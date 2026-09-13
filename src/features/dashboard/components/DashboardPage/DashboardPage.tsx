@@ -1,22 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@components/ui/Badge";
 import { Card } from "@components/ui/Card";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { Button } from "@components/ui/Button";
+import { AppHeader } from "@components/layout/AppHeader";
 import { dashboardApi } from "@services/api/dashboardApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
+import { useLogout } from "@features/auth/hooks/useLogout";
 import type { PriorityLevel, StudyPlanItem } from "@models/dashboard";
 import {
   StyledPage,
-  StyledHeader,
-  StyledHeaderInner,
-  StyledBrand,
-  StyledNav,
-  StyledNavLinkActive,
-  StyledNavLinkDisabled,
-  StyledHeaderActions,
   StyledContent,
   StyledStateMessage,
   StyledGreeting,
@@ -50,9 +44,8 @@ const PRIORITY_TONE: Record<PriorityLevel, "accent2" | "neutral" | "accent"> = {
 };
 
 export function DashboardPage() {
-  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
+  const handleLogout = useLogout();
 
   const firstName = user?.name.split(" ")[0] ?? "Estudante";
 
@@ -76,32 +69,13 @@ export function DashboardPage() {
     );
   }
 
-  async function handleLogout() {
-    await logout();
-    navigate("/login", { replace: true });
-  }
-
   return (
     <StyledPage>
-      <StyledHeader>
-        <StyledHeaderInner>
-          <StyledBrand>🎓 Student App</StyledBrand>
-          <StyledNav aria-label="Navegação principal">
-            <StyledNavLinkActive>Início</StyledNavLinkActive>
-            <StyledNavLinkDisabled title="Em breve">Disciplinas</StyledNavLinkDisabled>
-            <StyledNavLinkDisabled title="Em breve">Simulados</StyledNavLinkDisabled>
-            <StyledNavLinkDisabled title="Em breve">Ranking</StyledNavLinkDisabled>
-          </StyledNav>
-          <StyledHeaderActions>
-            {dashboardQuery.data && (
-              <Badge tone="accent2">🔥 {dashboardQuery.data.streakDays} dias de estudo</Badge>
-            )}
-            <Button variant="secondary" onClick={handleLogout}>
-              Sair
-            </Button>
-          </StyledHeaderActions>
-        </StyledHeaderInner>
-      </StyledHeader>
+      <AppHeader
+        active="inicio"
+        streakDays={dashboardQuery.data?.streakDays}
+        onLogout={handleLogout}
+      />
 
       <StyledContent>
         {dashboardQuery.isLoading && <StyledStateMessage>Carregando seu painel…</StyledStateMessage>}
