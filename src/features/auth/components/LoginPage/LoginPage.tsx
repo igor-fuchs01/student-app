@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { z } from "zod";
 import { loginCredentialsSchema } from "@models/auth";
 import { TextField } from "@components/ui/TextField";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
@@ -32,7 +33,7 @@ export function LoginPage() {
 
     const result = loginCredentialsSchema.safeParse({ identifier, password });
     if (!result.success) {
-      const issues = result.error.flatten().fieldErrors;
+      const issues = z.flattenError(result.error).fieldErrors;
       setFieldErrors({
         identifier: issues.identifier?.[0],
         password: issues.password?.[0],
