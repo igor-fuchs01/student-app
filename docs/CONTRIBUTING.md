@@ -1,6 +1,6 @@
 # Como contribuir
 
-Guia passo a passo para quem nunca abriu um Pull Request (PR) na vida. Se você já sabe usar Git/GitHub, pode pular direto para a seção [Padrões do projeto](#padrões-do-projeto).
+Guia passo a passo para quem nunca abriu um Pull Request (PR). Se você já sabe fazer isso, pode pular direto para a seção [Padrões do projeto](#padrões-do-projeto).
 
 ## 0. O que você vai precisar
 
