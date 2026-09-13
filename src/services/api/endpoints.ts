@@ -4,4 +4,5 @@ export const API_ENDPOINTS = {
     logout: "/auth/logout",
   },
   dashboard: "/dashboard",
+  subjects: "/subjects",
 } as const;

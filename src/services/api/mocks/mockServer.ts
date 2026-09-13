@@ -3,6 +3,7 @@ import { MOCK_DELAY_MS } from "../config";
 import { API_ENDPOINTS } from "../endpoints";
 import type { ApiErrorBody, ApiErrorCode } from "../errors";
 import { buildMockDashboard } from "./dashboard";
+import { buildMockSubjects } from "./subjects";
 import { findAccountById, findAccountByIdentifier, type MockAccount } from "./users";
 
 type MockResult = {
@@ -43,7 +44,6 @@ const routes: Record<string, MockRoute> = {
 
       const { identifier, password } = credentials.data;
       const account = findAccountByIdentifier(identifier);
-      console.log(account, password)
       if (!account || account.password !== password) {
         return errorResult(401, "INVALID_CREDENTIALS", "Matrícula/e-mail ou senha inválidos.");
       }
@@ -61,6 +61,11 @@ const routes: Record<string, MockRoute> = {
   [`GET ${API_ENDPOINTS.dashboard}`]: {
     authenticated: true,
     handle: () => ({ status: 200, body: buildMockDashboard() }),
+  },
+
+  [`GET ${API_ENDPOINTS.subjects}`]: {
+    authenticated: true,
+    handle: () => ({ status: 200, body: buildMockSubjects() }),
   },
 };
 
@@ -105,13 +110,13 @@ export async function mockFetch(input: RequestInfo | URL, init: RequestInit = {}
 
   const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
   const method = (init.method ?? "GET").toUpperCase();
+  const body = parseJson(init.body);
+
   const route = routes[`${method} ${url.pathname}`];
 
   if (!route) {
     return toResponse(errorResult(404, "NOT_FOUND", "Recurso não encontrado."));
   }
-
-  const body = parseJson(init.body);
 
   if (!route.authenticated) {
     return toResponse(route.handle(body));
