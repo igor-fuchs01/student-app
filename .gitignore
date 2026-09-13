@@ -134,3 +134,9 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Ignore all env files by default (may contain secrets), except the
+# non-secret feature-flag files needed to reproduce `npm run dev`/`mock`.
+.env*
+!.env.development.example
+!.env.mock
