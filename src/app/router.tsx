@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "@features/auth/components/LoginPage";
 import { DashboardPage } from "@features/dashboard/components/DashboardPage";
+import { SubjectsPage } from "@features/subjects/components/SubjectsPage";
 import { ProtectedRoute } from "@app/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@app/routes/PublicOnlyRoute";
 
@@ -20,6 +21,14 @@ export function AppRouter() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/disciplinas"
+        element={
+          <ProtectedRoute>
+            <SubjectsPage />
           </ProtectedRoute>
         }
       />
