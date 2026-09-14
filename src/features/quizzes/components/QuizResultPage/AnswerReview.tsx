@@ -22,7 +22,7 @@ import {
   QUESTION_STATUS_LABEL,
   QUESTION_STATUS_TONE,
   type QuestionReviewStatus,
-} from "./questionReviewStatus";
+} from "@features/quizzes/questionReviewStatus";
 
 type AnswerReviewProps = {
   index: number;

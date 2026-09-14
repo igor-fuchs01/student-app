@@ -5,7 +5,7 @@ import {
   QUESTION_STATUS_LABEL,
   getQuestionReviewStatus,
   type QuestionReviewStatus,
-} from "./questionReviewStatus";
+} from "@features/quizzes/questionReviewStatus";
 import {
   StyledExamLayout,
   StyledExamMain,
