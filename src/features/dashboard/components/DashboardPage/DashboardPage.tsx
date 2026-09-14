@@ -3,16 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge, type BadgeTone } from "@components/ui/Badge";
 import { Card } from "@components/ui/Card";
 import { ProgressBar } from "@components/ui/ProgressBar";
-import { Button } from "@components/ui/Button";
+import { StatusMessage } from "@components/ui/StatusMessage";
 import { AppHeader } from "@components/layout/AppHeader";
+import { useLogout } from "@features/auth/hooks/useLogout";
 import { dashboardApi } from "@services/api/dashboardApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
-import { useLogout } from "@features/auth/hooks/useLogout";
 import type { PriorityLevel, StudyPlanItem } from "@models/dashboard";
 import {
   StyledPage,
   StyledContent,
-  StyledStateMessage,
   StyledGreeting,
   StyledPageTitle,
   StyledMainGrid,
@@ -44,8 +43,8 @@ const PRIORITY_TONE: Record<PriorityLevel, BadgeTone> = {
 };
 
 export function DashboardPage() {
-  const user = useAuthStore((state) => state.user);
   const handleLogout = useLogout();
+  const user = useAuthStore((state) => state.user);
 
   const firstName = user?.name.split(" ")[0] ?? "Estudante";
 
@@ -76,22 +75,15 @@ export function DashboardPage() {
         streakDays={dashboardQuery.data?.streakDays}
         onLogout={handleLogout}
       />
-
       <StyledContent>
-        {dashboardQuery.isLoading && (
-          <StyledStateMessage>Carregando seu painel…</StyledStateMessage>
-        )}
+        {dashboardQuery.isLoading && <StatusMessage message="Carregando seu painel…" />}
 
         {dashboardQuery.isError && (
-          <StyledStateMessage>
-            <p role="alert">
-              Não foi possível carregar seus dados agora.{" "}
-              {dashboardQuery.error instanceof Error ? dashboardQuery.error.message : ""}
-            </p>
-            <Button variant="secondary" onClick={() => dashboardQuery.refetch()}>
-              Tentar novamente
-            </Button>
-          </StyledStateMessage>
+          <StatusMessage
+            message="Não foi possível carregar seus dados agora."
+            error={dashboardQuery.error}
+            action={{ label: "Tentar novamente", onClick: () => dashboardQuery.refetch() }}
+          />
         )}
 
         {dashboardQuery.data && (

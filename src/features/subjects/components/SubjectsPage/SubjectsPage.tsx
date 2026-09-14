@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@components/ui/Button";
+import { StatusMessage } from "@components/ui/StatusMessage";
 import { AppHeader } from "@components/layout/AppHeader";
-import { subjectsApi } from "@services/api/subjectsApi";
 import { useLogout } from "@features/auth/hooks/useLogout";
+import { subjectsApi } from "@services/api/subjectsApi";
 import {
   StyledPage,
   StyledContent,
-  StyledStateMessage,
   StyledPageTitle,
   StyledPageSubtitle,
   StyledGrid,
@@ -24,7 +23,6 @@ import {
 
 export function SubjectsPage() {
   const handleLogout = useLogout();
-
   const subjectsQuery = useQuery({
     queryKey: ["subjects"],
     queryFn: ({ signal }) => subjectsApi.getSubjects(signal),
@@ -33,22 +31,15 @@ export function SubjectsPage() {
   return (
     <StyledPage>
       <AppHeader active="disciplinas" onLogout={handleLogout} />
-
       <StyledContent>
-        {subjectsQuery.isLoading && (
-          <StyledStateMessage>Carregando disciplinas…</StyledStateMessage>
-        )}
+        {subjectsQuery.isLoading && <StatusMessage message="Carregando disciplinas…" />}
 
         {subjectsQuery.isError && (
-          <StyledStateMessage>
-            <p role="alert">
-              Não foi possível carregar as disciplinas agora.{" "}
-              {subjectsQuery.error instanceof Error ? subjectsQuery.error.message : ""}
-            </p>
-            <Button variant="secondary" onClick={() => subjectsQuery.refetch()}>
-              Tentar novamente
-            </Button>
-          </StyledStateMessage>
+          <StatusMessage
+            message="Não foi possível carregar as disciplinas agora."
+            error={subjectsQuery.error}
+            action={{ label: "Tentar novamente", onClick: () => subjectsQuery.refetch() }}
+          />
         )}
 
         {subjectsQuery.data && (

@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button } from "@components/ui/Button";
+import { StatusMessage } from "@components/ui/StatusMessage";
 import { AppHeader } from "@components/layout/AppHeader";
-import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
-import { quizzesApi } from "@services/api/quizzesApi";
-import { toggleSetItem } from "@features/quizzes/toggleSetItem";
-import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import { useLogout } from "@features/auth/hooks/useLogout";
-import type { QuizAnswer } from "@models/quizzes";
-import { StyledPage, StyledContent, StyledStateMessage } from "./QuizAttemptLayout.styles";
+import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import type { QuizAttemptContextValue } from "@features/quizzes/hooks/useQuizAttemptContext";
+import { toggleSetItem } from "@features/quizzes/toggleSetItem";
+import { quizzesApi } from "@services/api/quizzesApi";
+import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
+import type { QuizAnswer } from "@models/quizzes";
+import { StyledPage, StyledContent } from "./QuizAttemptLayout.styles";
 
 type StartNavigationState = { timeLimitEnabled?: boolean } | null | undefined;
 
@@ -171,24 +171,19 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   return (
     <StyledPage>
       <AppHeader active="simulados" onLogout={logout} />
-
       {(quizQuery.isLoading || !contextValue) && !quizQuery.isError && (
         <StyledContent>
-          <StyledStateMessage>Carregando simulado…</StyledStateMessage>
+          <StatusMessage message="Carregando simulado…" />
         </StyledContent>
       )}
 
       {quizQuery.isError && (
         <StyledContent>
-          <StyledStateMessage>
-            <p role="alert">
-              Não foi possível carregar este simulado.{" "}
-              {quizQuery.error instanceof Error ? quizQuery.error.message : ""}
-            </p>
-            <Button variant="secondary" onClick={() => navigate("/simulados")}>
-              Voltar para simulados
-            </Button>
-          </StyledStateMessage>
+          <StatusMessage
+            message="Não foi possível carregar este simulado."
+            error={quizQuery.error}
+            action={{ label: "Voltar para simulados", onClick: () => navigate("/simulados") }}
+          />
         </StyledContent>
       )}
 

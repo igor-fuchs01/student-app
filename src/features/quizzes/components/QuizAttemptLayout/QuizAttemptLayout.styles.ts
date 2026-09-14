@@ -10,8 +10,3 @@ export const StyledContent = styled.main`
   max-width: 1280px;
   margin: 0 auto;
 `;
-
-export const StyledStateMessage = styled.div`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 14px;
-`;

@@ -12,11 +12,6 @@ export const StyledContent = styled.main`
   margin: 0 auto;
 `;
 
-export const StyledStateMessage = styled.div`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 14px;
-`;
-
 export const StyledLayout = styled.div`
   display: grid;
   grid-template-columns: 320px 1fr;

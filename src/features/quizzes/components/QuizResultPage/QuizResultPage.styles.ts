@@ -12,11 +12,6 @@ export const StyledContent = styled.main`
   margin: 0 auto;
 `;
 
-export const StyledStateMessage = styled.div`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 14px;
-`;
-
 export const StyledHeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -113,13 +108,9 @@ export const StyledReviewCard = styled(Card)`
   padding: 16px;
 `;
 
-export const StyledReviewSubject = styled.span<{ $tone?: "danger" | "accent2" }>`
+export const StyledReviewSubject = styled.span<{ $tone: "danger" | "accent2" }>`
   color: ${({ theme, $tone }) =>
-    $tone === "danger"
-      ? theme.colors.danger600
-      : $tone === "accent2"
-        ? theme.colors.accent2600
-        : theme.colors.muted};
+    $tone === "danger" ? theme.colors.danger600 : theme.colors.accent2600};
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;

@@ -3,16 +3,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { ProgressBar } from "@components/ui/ProgressBar";
+import { StatusMessage } from "@components/ui/StatusMessage";
 import { AppHeader } from "@components/layout/AppHeader";
-import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
-import { toggleSetItem } from "@features/quizzes/toggleSetItem";
-import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { useLogout } from "@features/auth/hooks/useLogout";
+import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { ExamReview } from "@features/quizzes/components/ExamReview";
+import { toggleSetItem } from "@features/quizzes/toggleSetItem";
+import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import {
   StyledPage,
   StyledContent,
-  StyledStateMessage,
   StyledHeaderRow,
   StyledTitle,
   StyledSubmittedAt,
@@ -44,9 +44,9 @@ function formatSubmittedAt(iso: string): string {
 }
 
 export function QuizResultPage() {
+  const handleLogout = useLogout();
   const { quizId = "" } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
-  const handleLogout = useLogout();
   const [attempt] = useState(() => quizAttemptStorage.load(quizId));
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [view, setView] = useState<ResultView>("performance");
@@ -56,12 +56,10 @@ export function QuizResultPage() {
       <StyledPage>
         <AppHeader active="simulados" onLogout={handleLogout} />
         <StyledContent>
-          <StyledStateMessage>
-            <p>Nenhum resultado deste simulado foi encontrado neste navegador.</p>
-            <Button variant="secondary" onClick={() => navigate("/simulados")}>
-              Ver simulados
-            </Button>
-          </StyledStateMessage>
+          <StatusMessage
+            message="Nenhum resultado deste simulado foi encontrado neste navegador."
+            action={{ label: "Ver simulados", onClick: () => navigate("/simulados") }}
+          />
         </StyledContent>
       </StyledPage>
     );

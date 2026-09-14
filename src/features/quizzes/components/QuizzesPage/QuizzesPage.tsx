@@ -2,15 +2,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@components/ui/Button";
+import { StatusMessage } from "@components/ui/StatusMessage";
 import { AppHeader } from "@components/layout/AppHeader";
+import { useLogout } from "@features/auth/hooks/useLogout";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import { quizzesApi } from "@services/api/quizzesApi";
-import { useLogout } from "@features/auth/hooks/useLogout";
 import type { QuizDifficulty, QuizSummary } from "@models/quizzes";
 import {
   StyledPage,
   StyledContent,
-  StyledStateMessage,
   StyledPageTitle,
   StyledPageSubtitle,
   StyledTableCard,
@@ -29,8 +29,8 @@ const DIFFICULTY_LABEL: Record<QuizDifficulty, string> = {
 };
 
 export function QuizzesPage() {
-  const navigate = useNavigate();
   const handleLogout = useLogout();
+  const navigate = useNavigate();
   const [startModalQuiz, setStartModalQuiz] = useState<QuizSummary | null>(null);
 
   const quizzesQuery = useQuery({
@@ -46,20 +46,15 @@ export function QuizzesPage() {
   return (
     <StyledPage>
       <AppHeader active="simulados" onLogout={handleLogout} />
-
       <StyledContent>
-        {quizzesQuery.isLoading && <StyledStateMessage>Carregando simulados…</StyledStateMessage>}
+        {quizzesQuery.isLoading && <StatusMessage message="Carregando simulados…" />}
 
         {quizzesQuery.isError && (
-          <StyledStateMessage>
-            <p role="alert">
-              Não foi possível carregar os simulados agora.{" "}
-              {quizzesQuery.error instanceof Error ? quizzesQuery.error.message : ""}
-            </p>
-            <Button variant="secondary" onClick={() => quizzesQuery.refetch()}>
-              Tentar novamente
-            </Button>
-          </StyledStateMessage>
+          <StatusMessage
+            message="Não foi possível carregar os simulados agora."
+            error={quizzesQuery.error}
+            action={{ label: "Tentar novamente", onClick: () => quizzesQuery.refetch() }}
+          />
         )}
 
         {quizzesQuery.data && (
@@ -116,17 +111,17 @@ export function QuizzesPage() {
             </StyledTableCard>
           </>
         )}
-      </StyledContent>
 
-      {startModalQuiz && (
-        <StartQuizModal
-          quizTitle={startModalQuiz.title}
-          questionCount={startModalQuiz.questionCount}
-          durationMinutes={startModalQuiz.durationMinutes}
-          onCancel={() => setStartModalQuiz(null)}
-          onConfirm={confirmStart}
-        />
-      )}
+        {startModalQuiz && (
+          <StartQuizModal
+            quizTitle={startModalQuiz.title}
+            questionCount={startModalQuiz.questionCount}
+            durationMinutes={startModalQuiz.durationMinutes}
+            onCancel={() => setStartModalQuiz(null)}
+            onConfirm={confirmStart}
+          />
+        )}
+      </StyledContent>
     </StyledPage>
   );
 }

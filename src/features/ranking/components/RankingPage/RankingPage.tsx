@@ -1,14 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@components/ui/Button";
 import { ProgressBar } from "@components/ui/ProgressBar";
+import { StatusMessage } from "@components/ui/StatusMessage";
 import { AppHeader } from "@components/layout/AppHeader";
+import { useLogout } from "@features/auth/hooks/useLogout";
 import { rankingApi } from "@services/api/rankingApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
-import { useLogout } from "@features/auth/hooks/useLogout";
 import {
   StyledPage,
   StyledContent,
-  StyledStateMessage,
   StyledLayout,
   StyledProfileCard,
   StyledAvatar,
@@ -52,20 +51,15 @@ export function RankingPage() {
   return (
     <StyledPage>
       <AppHeader active="ranking" onLogout={handleLogout} />
-
       <StyledContent>
-        {rankingQuery.isLoading && <StyledStateMessage>Carregando ranking…</StyledStateMessage>}
+        {rankingQuery.isLoading && <StatusMessage message="Carregando ranking…" />}
 
         {rankingQuery.isError && (
-          <StyledStateMessage>
-            <p role="alert">
-              Não foi possível carregar o ranking agora.{" "}
-              {rankingQuery.error instanceof Error ? rankingQuery.error.message : ""}
-            </p>
-            <Button variant="secondary" onClick={() => rankingQuery.refetch()}>
-              Tentar novamente
-            </Button>
-          </StyledStateMessage>
+          <StatusMessage
+            message="Não foi possível carregar o ranking agora."
+            error={rankingQuery.error}
+            action={{ label: "Tentar novamente", onClick: () => rankingQuery.refetch() }}
+          />
         )}
 
         {rankingQuery.data && user && (
