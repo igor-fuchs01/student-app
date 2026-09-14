@@ -1,11 +1,10 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes } from "react";
 import { StyledBadge, type BadgeTone } from "./Badge.styles";
 
-type BadgeProps = {
+type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   tone?: BadgeTone;
-  children: ReactNode;
 };
 
-export function Badge({ tone = "neutral", children }: BadgeProps) {
-  return <StyledBadge $tone={tone}>{children}</StyledBadge>;
+export function Badge({ tone = "neutral", ...rest }: BadgeProps) {
+  return <StyledBadge $tone={tone} {...rest} />;
 }

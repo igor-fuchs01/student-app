@@ -1,6 +1,6 @@
 import styled, { css } from "styled-components";
 
-export type BadgeTone = "accent" | "accent2" | "neutral";
+export type BadgeTone = "accent" | "accent2" | "danger" | "neutral";
 
 export const StyledBadge = styled.span<{ $tone: BadgeTone }>`
   display: inline-flex;
@@ -24,6 +24,13 @@ export const StyledBadge = styled.span<{ $tone: BadgeTone }>`
     css`
       background: ${theme.colors.accent2100};
       color: ${theme.colors.accent2600};
+    `}
+
+  ${({ theme, $tone }) =>
+    $tone === "danger" &&
+    css`
+      background: ${theme.colors.danger100};
+      color: ${theme.colors.danger600};
     `}
 
   ${({ theme, $tone }) =>
