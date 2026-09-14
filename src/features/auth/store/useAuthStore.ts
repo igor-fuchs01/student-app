@@ -37,12 +37,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   async logout() {
-    try {
-      await authApi.logout();
-    } finally {
-      tokenStorage.clearSession();
-      set(signedOutState);
-    }
+    await authApi.logout().catch(() => undefined);
+    tokenStorage.clearSession();
+    set(signedOutState);
   },
 }));
 
