@@ -9,7 +9,7 @@ import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import { useLogout } from "@features/auth/hooks/useLogout";
 import type { QuizAnswer } from "@models/quizzes";
 import { StyledPage, StyledContent, StyledStateMessage } from "./QuizAttemptLayout.styles";
-import type { QuizAttemptContextValue } from "./useQuizAttemptContext";
+import type { QuizAttemptContextValue } from "@features/quizzes/hooks/useQuizAttemptContext";
 
 type StartNavigationState = { timeLimitEnabled?: boolean } | null | undefined;
 

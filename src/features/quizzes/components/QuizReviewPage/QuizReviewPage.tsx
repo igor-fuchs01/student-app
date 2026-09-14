@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@components/ui/Button";
 import { Modal } from "@components/ui/Modal";
-import { useQuizAttemptContext } from "../QuizAttemptLayout";
+import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "../../isQuestionAnswered";
 import {
   StyledContent,

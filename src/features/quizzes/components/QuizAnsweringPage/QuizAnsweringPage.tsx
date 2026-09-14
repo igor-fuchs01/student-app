@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@components/ui/Button";
-import { useQuizAttemptContext } from "../QuizAttemptLayout";
+import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "../../isQuestionAnswered";
 import { QuestionField } from "./QuestionField";
 import {
