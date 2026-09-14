@@ -28,12 +28,12 @@ export const StyledInput = styled.input`
   }
 
   &[aria-invalid="true"] {
-    border-color: #d92d20;
+    border-color: ${({ theme }) => theme.colors.danger600};
   }
 `;
 
 export const StyledErrorText = styled.p`
   margin: 6px 0 0;
   font-size: 12px;
-  color: #d92d20;
+  color: ${({ theme }) => theme.colors.danger600};
 `;

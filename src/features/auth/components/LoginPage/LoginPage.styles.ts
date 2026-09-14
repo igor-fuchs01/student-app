@@ -57,8 +57,8 @@ export const StyledSubmitButton = styled(Button)`
 export const StyledFormError = styled.p`
   margin: 0 0 10px;
   font-size: 12.5px;
-  color: #d92d20;
-  background: #fef3f2;
+  color: ${({ theme }) => theme.colors.danger600};
+  background: ${({ theme }) => theme.colors.danger100};
   border-radius: ${({ theme }) => theme.radii.md};
   padding: 10px 12px;
 `;

@@ -163,7 +163,7 @@ export const StyledConfirmActions = styled.div`
 `;
 
 export const StyledErrorMessage = styled.p`
-  color: ${({ theme }) => theme.colors.accent2600};
+  color: ${({ theme }) => theme.colors.danger600};
   font-size: 12.5px;
   margin: 0;
 `;
