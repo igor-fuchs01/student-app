@@ -1,11 +1,5 @@
 import styled from "styled-components";
 
-export const StyledContent = styled.main`
-  padding: 26px 28px 64px;
-  max-width: 1280px;
-  margin: 0 auto;
-`;
-
 export const StyledTitle = styled.h1`
   font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;

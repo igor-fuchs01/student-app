@@ -8,7 +8,6 @@ import {
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import {
-  StyledContent,
   StyledTopBar,
   StyledTopBarTitle,
   StyledTopBarMeta,
@@ -71,7 +70,7 @@ export function QuizAnsweringPage() {
   }
 
   return (
-    <StyledContent>
+    <>
       <StyledTopBar>
         <StyledTopBarTitle>{quiz.title}</StyledTopBarTitle>
         <StyledTopBarMeta>
@@ -138,6 +137,6 @@ export function QuizAnsweringPage() {
           {isLast ? "Ir para revisão" : "Avançar"}
         </Button>
       </StyledFooter>
-    </StyledContent>
+    </>
   );
 }

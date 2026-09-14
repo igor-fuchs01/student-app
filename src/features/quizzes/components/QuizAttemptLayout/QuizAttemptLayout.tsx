@@ -2,15 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Outlet, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { StatusMessage } from "@components/ui/StatusMessage";
-import { AppHeader } from "@components/layout/AppHeader";
-import { useLogout } from "@features/auth/hooks/useLogout";
+import { PageLayout } from "@components/layout/PageLayout";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import type { QuizAttemptContextValue } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { quizzesApi } from "@services/api/quizzesApi";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import type { QuizAnswer } from "@models/quizzes";
-import { StyledPage, StyledContent } from "./QuizAttemptLayout.styles";
 
 type StartNavigationState = { timeLimitEnabled?: boolean } | null | undefined;
 
@@ -27,7 +25,6 @@ export function QuizAttemptLayout() {
 function QuizAttempt({ quizId }: { quizId: string }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const logout = useLogout();
 
   const quizQuery = useQuery({
     queryKey: ["quiz", quizId],
@@ -169,22 +166,17 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     : null;
 
   return (
-    <StyledPage>
-      <AppHeader active="simulados" onLogout={logout} />
+    <PageLayout active="simulados">
       {(quizQuery.isLoading || !contextValue) && !quizQuery.isError && (
-        <StyledContent>
-          <StatusMessage message="Carregando simulado…" />
-        </StyledContent>
+        <StatusMessage message="Carregando simulado…" />
       )}
 
       {quizQuery.isError && (
-        <StyledContent>
-          <StatusMessage
-            message="Não foi possível carregar este simulado."
-            error={quizQuery.error}
-            action={{ label: "Voltar para simulados", onClick: () => navigate("/simulados") }}
-          />
-        </StyledContent>
+        <StatusMessage
+          message="Não foi possível carregar este simulado."
+          error={quizQuery.error}
+          action={{ label: "Voltar para simulados", onClick: () => navigate("/simulados") }}
+        />
       )}
 
       {contextValue && !hasStarted && (
@@ -198,6 +190,6 @@ function QuizAttempt({ quizId }: { quizId: string }) {
       )}
 
       {contextValue && hasStarted && <Outlet context={contextValue} />}
-    </StyledPage>
+    </PageLayout>
   );
 }

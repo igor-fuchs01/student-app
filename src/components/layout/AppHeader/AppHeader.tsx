@@ -1,5 +1,6 @@
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
+import { useLogout } from "@features/auth/hooks/useLogout";
 import {
   StyledHeader,
   StyledHeaderInner,
@@ -15,7 +16,6 @@ export type ActiveNavKey = "inicio" | "disciplinas" | "simulados" | "ranking";
 type AppHeaderProps = {
   active: ActiveNavKey;
   streakDays?: number;
-  onLogout: () => void;
 };
 
 const NAV_ITEMS: { key: ActiveNavKey; label: string; to: string }[] = [
@@ -25,7 +25,9 @@ const NAV_ITEMS: { key: ActiveNavKey; label: string; to: string }[] = [
   { key: "ranking", label: "Ranking", to: "/ranking" },
 ];
 
-export function AppHeader({ active, streakDays, onLogout }: AppHeaderProps) {
+export function AppHeader({ active, streakDays }: AppHeaderProps) {
+  const handleLogout = useLogout();
+
   return (
     <StyledHeader>
       <StyledHeaderInner>
@@ -43,7 +45,7 @@ export function AppHeader({ active, streakDays, onLogout }: AppHeaderProps) {
         </StyledNav>
         <StyledHeaderActions>
           {streakDays !== undefined && <Badge tone="accent2">🔥 {streakDays} dias de estudo</Badge>}
-          <Button variant="secondary" onClick={onLogout}>
+          <Button variant="secondary" onClick={handleLogout}>
             Sair
           </Button>
         </StyledHeaderActions>

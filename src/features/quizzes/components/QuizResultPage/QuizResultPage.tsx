@@ -4,15 +4,12 @@ import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { StatusMessage } from "@components/ui/StatusMessage";
-import { AppHeader } from "@components/layout/AppHeader";
-import { useLogout } from "@features/auth/hooks/useLogout";
+import { PageLayout } from "@components/layout/PageLayout";
 import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { ExamReview } from "@features/quizzes/components/ExamReview";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import {
-  StyledPage,
-  StyledContent,
   StyledHeaderRow,
   StyledTitle,
   StyledSubmittedAt,
@@ -44,7 +41,6 @@ function formatSubmittedAt(iso: string): string {
 }
 
 export function QuizResultPage() {
-  const handleLogout = useLogout();
   const { quizId = "" } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
   const [attempt] = useState(() => quizAttemptStorage.load(quizId));
@@ -53,15 +49,12 @@ export function QuizResultPage() {
 
   if (!attempt) {
     return (
-      <StyledPage>
-        <AppHeader active="simulados" onLogout={handleLogout} />
-        <StyledContent>
-          <StatusMessage
-            message="Nenhum resultado deste simulado foi encontrado neste navegador."
-            action={{ label: "Ver simulados", onClick: () => navigate("/simulados") }}
-          />
-        </StyledContent>
-      </StyledPage>
+      <PageLayout active="simulados">
+        <StatusMessage
+          message="Nenhum resultado deste simulado foi encontrado neste navegador."
+          action={{ label: "Ver simulados", onClick: () => navigate("/simulados") }}
+        />
+      </PageLayout>
     );
   }
 
@@ -73,112 +66,109 @@ export function QuizResultPage() {
   }
 
   return (
-    <StyledPage>
-      <AppHeader active="simulados" onLogout={handleLogout} />
-      <StyledContent>
-        <StyledHeaderRow>
-          <div>
-            <StyledTitle>Resultado — {quiz.title}</StyledTitle>
-            <StyledSubmittedAt>{formatSubmittedAt(result.submittedAt)}</StyledSubmittedAt>
-          </div>
-          {view === "performance" && (
-            <StyledScoreBox>
-              <StyledScoreValue>
-                {result.correctCount}/{gradedTotal}
-              </StyledScoreValue>
-              <StyledScoreLabel>{result.scorePercent}% de aproveitamento</StyledScoreLabel>
-            </StyledScoreBox>
-          )}
-        </StyledHeaderRow>
-
-        {view === "review" ? (
-          <ExamReview quiz={quiz} answers={answers} result={result} />
-        ) : (
-          <>
-            <StyledBadgeRow>
-              <Badge tone="accent">{result.correctCount} acertos</Badge>
-              <Badge tone="danger">{result.incorrectCount} erros</Badge>
-              <Badge tone="danger">{result.unansweredCount} não respondidas</Badge>
-              {result.selfReviewCount > 0 && (
-                <Badge tone="accent2">{result.selfReviewCount} para autoavaliar</Badge>
-              )}
-            </StyledBadgeRow>
-
-            <StyledColumns>
-              <div>
-                <StyledColumnTitle>Desempenho por assunto</StyledColumnTitle>
-                <StyledPerformanceList>
-                  {result.subjectPerformance.map((subject) => (
-                    <div key={subject.subjectName}>
-                      <StyledPerformanceHeader>
-                        <span>{subject.subjectName}</span>
-                        <span>{subject.percent}%</span>
-                      </StyledPerformanceHeader>
-                      <ProgressBar
-                        value={subject.percent}
-                        label={`Desempenho em ${subject.subjectName}`}
-                      />
-                    </div>
-                  ))}
-                </StyledPerformanceList>
-              </div>
-
-              <div>
-                <StyledColumnTitle>Questões para revisar</StyledColumnTitle>
-                {result.reviewItems.length === 0 ? (
-                  <StyledMutedLabel>Nenhuma questão pendente de revisão. 🎉</StyledMutedLabel>
-                ) : (
-                  <StyledReviewList>
-                    {result.reviewItems.map((item) => (
-                      <StyledReviewCard key={item.questionId} tone="surface">
-                        <StyledReviewSubject
-                          $tone={item.status === "self_review" ? "accent2" : "danger"}
-                        >
-                          {item.subjectName}
-                        </StyledReviewSubject>
-                        <StyledReviewExcerpt>"{item.promptExcerpt}"</StyledReviewExcerpt>
-                        {item.status === "self_review" ? (
-                          <AnswerComparison
-                            studentAnswer={item.studentAnswer ?? ""}
-                            referenceAnswer={item.referenceAnswer ?? ""}
-                          >
-                            <StyledMutedLabel>
-                              Compare as duas respostas e avalie se a sua está de acordo.
-                            </StyledMutedLabel>
-                          </AnswerComparison>
-                        ) : (
-                          <>
-                            <StyledReviewToggle onClick={() => toggleReveal(item.questionId)}>
-                              {revealed.has(item.questionId)
-                                ? "Ocultar gabarito comentado"
-                                : "Ver gabarito comentado →"}
-                            </StyledReviewToggle>
-                            {revealed.has(item.questionId) && item.explanation && (
-                              <StyledReviewExplanation>{item.explanation}</StyledReviewExplanation>
-                            )}
-                          </>
-                        )}
-                      </StyledReviewCard>
-                    ))}
-                  </StyledReviewList>
-                )}
-              </div>
-            </StyledColumns>
-          </>
+    <PageLayout active="simulados">
+      <StyledHeaderRow>
+        <div>
+          <StyledTitle>Resultado — {quiz.title}</StyledTitle>
+          <StyledSubmittedAt>{formatSubmittedAt(result.submittedAt)}</StyledSubmittedAt>
+        </div>
+        {view === "performance" && (
+          <StyledScoreBox>
+            <StyledScoreValue>
+              {result.correctCount}/{gradedTotal}
+            </StyledScoreValue>
+            <StyledScoreLabel>{result.scorePercent}% de aproveitamento</StyledScoreLabel>
+          </StyledScoreBox>
         )}
+      </StyledHeaderRow>
 
-        <StyledPageActions>
-          <Button variant="secondary" onClick={() => navigate("/simulados")}>
-            Voltar
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => setView(view === "performance" ? "review" : "performance")}
-          >
-            {view === "performance" ? "Rever prova" : "Mostrar desempenho"}
-          </Button>
-        </StyledPageActions>
-      </StyledContent>
-    </StyledPage>
+      {view === "review" ? (
+        <ExamReview quiz={quiz} answers={answers} result={result} />
+      ) : (
+        <>
+          <StyledBadgeRow>
+            <Badge tone="accent">{result.correctCount} acertos</Badge>
+            <Badge tone="danger">{result.incorrectCount} erros</Badge>
+            <Badge tone="danger">{result.unansweredCount} não respondidas</Badge>
+            {result.selfReviewCount > 0 && (
+              <Badge tone="accent2">{result.selfReviewCount} para autoavaliar</Badge>
+            )}
+          </StyledBadgeRow>
+
+          <StyledColumns>
+            <div>
+              <StyledColumnTitle>Desempenho por assunto</StyledColumnTitle>
+              <StyledPerformanceList>
+                {result.subjectPerformance.map((subject) => (
+                  <div key={subject.subjectName}>
+                    <StyledPerformanceHeader>
+                      <span>{subject.subjectName}</span>
+                      <span>{subject.percent}%</span>
+                    </StyledPerformanceHeader>
+                    <ProgressBar
+                      value={subject.percent}
+                      label={`Desempenho em ${subject.subjectName}`}
+                    />
+                  </div>
+                ))}
+              </StyledPerformanceList>
+            </div>
+
+            <div>
+              <StyledColumnTitle>Questões para revisar</StyledColumnTitle>
+              {result.reviewItems.length === 0 ? (
+                <StyledMutedLabel>Nenhuma questão pendente de revisão. 🎉</StyledMutedLabel>
+              ) : (
+                <StyledReviewList>
+                  {result.reviewItems.map((item) => (
+                    <StyledReviewCard key={item.questionId} tone="surface">
+                      <StyledReviewSubject
+                        $tone={item.status === "self_review" ? "accent2" : "danger"}
+                      >
+                        {item.subjectName}
+                      </StyledReviewSubject>
+                      <StyledReviewExcerpt>"{item.promptExcerpt}"</StyledReviewExcerpt>
+                      {item.status === "self_review" ? (
+                        <AnswerComparison
+                          studentAnswer={item.studentAnswer ?? ""}
+                          referenceAnswer={item.referenceAnswer ?? ""}
+                        >
+                          <StyledMutedLabel>
+                            Compare as duas respostas e avalie se a sua está de acordo.
+                          </StyledMutedLabel>
+                        </AnswerComparison>
+                      ) : (
+                        <>
+                          <StyledReviewToggle onClick={() => toggleReveal(item.questionId)}>
+                            {revealed.has(item.questionId)
+                              ? "Ocultar gabarito comentado"
+                              : "Ver gabarito comentado →"}
+                          </StyledReviewToggle>
+                          {revealed.has(item.questionId) && item.explanation && (
+                            <StyledReviewExplanation>{item.explanation}</StyledReviewExplanation>
+                          )}
+                        </>
+                      )}
+                    </StyledReviewCard>
+                  ))}
+                </StyledReviewList>
+              )}
+            </div>
+          </StyledColumns>
+        </>
+      )}
+
+      <StyledPageActions>
+        <Button variant="secondary" onClick={() => navigate("/simulados")}>
+          Voltar
+        </Button>
+        <Button
+          variant="primary"
+          onClick={() => setView(view === "performance" ? "review" : "performance")}
+        >
+          {view === "performance" ? "Rever prova" : "Mostrar desempenho"}
+        </Button>
+      </StyledPageActions>
+    </PageLayout>
   );
 }

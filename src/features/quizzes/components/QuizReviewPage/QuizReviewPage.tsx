@@ -10,7 +10,6 @@ import {
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import {
-  StyledContent,
   StyledTitle,
   StyledSubtitle,
   StyledCountRow,
@@ -44,7 +43,7 @@ export function QuizReviewPage() {
   }
 
   return (
-    <StyledContent>
+    <>
       <StyledTitle>Revisar antes de enviar</StyledTitle>
       <StyledSubtitle>{quiz.title}</StyledSubtitle>
 
@@ -102,6 +101,6 @@ export function QuizReviewPage() {
           </StyledConfirmActions>
         </Modal>
       )}
-    </StyledContent>
+    </>
   );
 }

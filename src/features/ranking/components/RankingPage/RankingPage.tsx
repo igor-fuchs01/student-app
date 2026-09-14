@@ -1,13 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { StatusMessage } from "@components/ui/StatusMessage";
-import { AppHeader } from "@components/layout/AppHeader";
-import { useLogout } from "@features/auth/hooks/useLogout";
+import { PageLayout } from "@components/layout/PageLayout";
 import { rankingApi } from "@services/api/rankingApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
 import {
-  StyledPage,
-  StyledContent,
   StyledLayout,
   StyledProfileCard,
   StyledAvatar,
@@ -39,7 +36,6 @@ function getInitials(name: string): string {
 }
 
 export function RankingPage() {
-  const handleLogout = useLogout();
   const user = useAuthStore((state) => state.user);
 
   const rankingQuery = useQuery({
@@ -49,86 +45,83 @@ export function RankingPage() {
   });
 
   return (
-    <StyledPage>
-      <AppHeader active="ranking" onLogout={handleLogout} />
-      <StyledContent>
-        {rankingQuery.isLoading && <StatusMessage message="Carregando ranking…" />}
+    <PageLayout active="ranking">
+      {rankingQuery.isLoading && <StatusMessage message="Carregando ranking…" />}
 
-        {rankingQuery.isError && (
-          <StatusMessage
-            message="Não foi possível carregar o ranking agora."
-            error={rankingQuery.error}
-            action={{ label: "Tentar novamente", onClick: () => rankingQuery.refetch() }}
-          />
-        )}
+      {rankingQuery.isError && (
+        <StatusMessage
+          message="Não foi possível carregar o ranking agora."
+          error={rankingQuery.error}
+          action={{ label: "Tentar novamente", onClick: () => rankingQuery.refetch() }}
+        />
+      )}
 
-        {rankingQuery.data && user && (
-          <StyledLayout>
-            <StyledProfileCard tone="surface">
-              <StyledAvatar aria-hidden="true">{getInitials(user.name)}</StyledAvatar>
-              <StyledProfileName>{user.name}</StyledProfileName>
-              <StyledProfileCourse>{user.course}</StyledProfileCourse>
-              <StyledDivider />
+      {rankingQuery.data && user && (
+        <StyledLayout>
+          <StyledProfileCard tone="surface">
+            <StyledAvatar aria-hidden="true">{getInitials(user.name)}</StyledAvatar>
+            <StyledProfileName>{user.name}</StyledProfileName>
+            <StyledProfileCourse>{user.course}</StyledProfileCourse>
+            <StyledDivider />
 
-              <StyledMutedLabel>Sequência atual</StyledMutedLabel>
-              <StyledStreak>🔥 {rankingQuery.data.profile.streakDays} dias</StyledStreak>
+            <StyledMutedLabel>Sequência atual</StyledMutedLabel>
+            <StyledStreak>🔥 {rankingQuery.data.profile.streakDays} dias</StyledStreak>
 
-              <StyledMutedLabel>
-                Meta semanal — {rankingQuery.data.profile.weeklyGoalCompleted}/
-                {rankingQuery.data.profile.weeklyGoalTarget} questões
-              </StyledMutedLabel>
-              <ProgressBar
-                value={
-                  (rankingQuery.data.profile.weeklyGoalCompleted /
-                    rankingQuery.data.profile.weeklyGoalTarget) *
-                  100
-                }
-                label="Progresso da meta semanal"
-              />
+            <StyledMutedLabel>
+              Meta semanal — {rankingQuery.data.profile.weeklyGoalCompleted}/
+              {rankingQuery.data.profile.weeklyGoalTarget} questões
+            </StyledMutedLabel>
+            <ProgressBar
+              value={
+                (rankingQuery.data.profile.weeklyGoalCompleted /
+                  rankingQuery.data.profile.weeklyGoalTarget) *
+                100
+              }
+              label="Progresso da meta semanal"
+            />
 
-              <StyledStatsGrid>
-                <StyledStat $tone="accent">
-                  <StyledStatValue $tone="accent">
-                    {rankingQuery.data.profile.questionsAnswered}
-                  </StyledStatValue>
-                  <StyledStatLabel>questões</StyledStatLabel>
-                </StyledStat>
-                <StyledStat $tone="accent2">
-                  <StyledStatValue $tone="accent2">
-                    {rankingQuery.data.profile.quizzesCompleted}
-                  </StyledStatValue>
-                  <StyledStatLabel>simulados</StyledStatLabel>
-                </StyledStat>
-              </StyledStatsGrid>
-            </StyledProfileCard>
+            <StyledStatsGrid>
+              <StyledStat $tone="accent">
+                <StyledStatValue $tone="accent">
+                  {rankingQuery.data.profile.questionsAnswered}
+                </StyledStatValue>
+                <StyledStatLabel>questões</StyledStatLabel>
+              </StyledStat>
+              <StyledStat $tone="accent2">
+                <StyledStatValue $tone="accent2">
+                  {rankingQuery.data.profile.quizzesCompleted}
+                </StyledStatValue>
+                <StyledStatLabel>simulados</StyledStatLabel>
+              </StyledStat>
+            </StyledStatsGrid>
+          </StyledProfileCard>
 
-            <div>
-              <StyledRankingTitle>Ranking de consistência</StyledRankingTitle>
-              <StyledRankingList tone="surface">
-                {rankingQuery.data.entries.map((entry) => (
-                  <StyledRankingRow key={entry.studentId} $current={entry.isCurrentUser}>
-                    <span>
-                      <StyledPosition>
-                        {MEDALS[entry.position] ? `${MEDALS[entry.position]} ` : ""}
-                        {entry.position}.
-                      </StyledPosition>
-                      {entry.studentName}
-                      {entry.isCurrentUser && <StyledYouBadge>Você</StyledYouBadge>}
-                    </span>
-                    <StyledStreakDays $current={entry.isCurrentUser}>
-                      {entry.streakDays} dias
-                    </StyledStreakDays>
-                  </StyledRankingRow>
-                ))}
-              </StyledRankingList>
-              <StyledPrivacyNote>
-                O ranking considera apenas consistência de estudo. Notas e desempenho acadêmico são
-                privados e não são exibidos a outros alunos.
-              </StyledPrivacyNote>
-            </div>
-          </StyledLayout>
-        )}
-      </StyledContent>
-    </StyledPage>
+          <div>
+            <StyledRankingTitle>Ranking de consistência</StyledRankingTitle>
+            <StyledRankingList tone="surface">
+              {rankingQuery.data.entries.map((entry) => (
+                <StyledRankingRow key={entry.studentId} $current={entry.isCurrentUser}>
+                  <span>
+                    <StyledPosition>
+                      {MEDALS[entry.position] ? `${MEDALS[entry.position]} ` : ""}
+                      {entry.position}.
+                    </StyledPosition>
+                    {entry.studentName}
+                    {entry.isCurrentUser && <StyledYouBadge>Você</StyledYouBadge>}
+                  </span>
+                  <StyledStreakDays $current={entry.isCurrentUser}>
+                    {entry.streakDays} dias
+                  </StyledStreakDays>
+                </StyledRankingRow>
+              ))}
+            </StyledRankingList>
+            <StyledPrivacyNote>
+              O ranking considera apenas consistência de estudo. Notas e desempenho acadêmico são
+              privados e não são exibidos a outros alunos.
+            </StyledPrivacyNote>
+          </div>
+        </StyledLayout>
+      )}
+    </PageLayout>
   );
 }
