@@ -142,7 +142,11 @@ function DragAndDropField({ question, answer, onChange }: FieldProps<DragAndDrop
   const usedTermIds = new Set(Object.values(slotAnswers));
 
   function placeTerm(slotId: string, termId: string) {
-    onChange({ slotAnswers: { ...slotAnswers, [slotId]: termId } });
+    const next = Object.fromEntries(
+      Object.entries(slotAnswers).filter(([, placedTermId]) => placedTermId !== termId),
+    );
+    next[slotId] = termId;
+    onChange({ slotAnswers: next });
     setSelectedTermId(null);
   }
 

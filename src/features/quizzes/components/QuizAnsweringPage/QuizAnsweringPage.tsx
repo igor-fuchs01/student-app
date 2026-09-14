@@ -97,6 +97,7 @@ export function QuizAnsweringPage() {
       <StyledLayout>
         <StyledQuestionCard tone="surface">
           <QuestionField
+            key={question.id}
             question={question}
             answer={answers[question.id]}
             onChange={(patch) => setAnswer(question.id, patch)}
