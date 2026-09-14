@@ -56,14 +56,6 @@ export const StyledNavLinkActive = styled.span`
   border-radius: ${({ theme }) => theme.radii.pill};
 `;
 
-export const StyledNavLinkDisabled = styled.span`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 12px;
-  cursor: not-allowed;
-`;
-
 export const StyledHeaderActions = styled.div`
   margin-left: auto;
   display: flex;

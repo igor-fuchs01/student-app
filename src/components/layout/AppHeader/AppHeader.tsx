@@ -7,11 +7,10 @@ import {
   StyledNav,
   StyledNavLink,
   StyledNavLinkActive,
-  StyledNavLinkDisabled,
   StyledHeaderActions,
 } from "./AppHeader.styles";
 
-export type ActiveNavKey = "inicio" | "disciplinas" | "simulados";
+export type ActiveNavKey = "inicio" | "disciplinas" | "simulados" | "ranking";
 
 type AppHeaderProps = {
   active: ActiveNavKey;
@@ -23,6 +22,7 @@ const NAV_ITEMS: { key: ActiveNavKey; label: string; to: string }[] = [
   { key: "inicio", label: "Início", to: "/" },
   { key: "disciplinas", label: "Disciplinas", to: "/disciplinas" },
   { key: "simulados", label: "Simulados", to: "/simulados" },
+  { key: "ranking", label: "Ranking", to: "/ranking" },
 ];
 
 export function AppHeader({ active, streakDays, onLogout }: AppHeaderProps) {
@@ -40,7 +40,6 @@ export function AppHeader({ active, streakDays, onLogout }: AppHeaderProps) {
               </StyledNavLink>
             ),
           )}
-          <StyledNavLinkDisabled title="Em breve">Ranking</StyledNavLinkDisabled>
         </StyledNav>
         <StyledHeaderActions>
           {streakDays !== undefined && <Badge tone="accent2">🔥 {streakDays} dias de estudo</Badge>}

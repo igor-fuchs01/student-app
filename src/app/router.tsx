@@ -7,6 +7,7 @@ import { QuizAttemptLayout } from "@features/quizzes/components/QuizAttemptLayou
 import { QuizAnsweringPage } from "@features/quizzes/components/QuizAnsweringPage";
 import { QuizReviewPage } from "@features/quizzes/components/QuizReviewPage";
 import { QuizResultPage } from "@features/quizzes/components/QuizResultPage";
+import { RankingPage } from "@features/ranking/components/RankingPage";
 import { ProtectedRoute } from "@app/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@app/routes/PublicOnlyRoute";
 
@@ -61,6 +62,14 @@ export function AppRouter() {
         element={
           <ProtectedRoute>
             <QuizResultPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ranking"
+        element={
+          <ProtectedRoute>
+            <RankingPage />
           </ProtectedRoute>
         }
       />
