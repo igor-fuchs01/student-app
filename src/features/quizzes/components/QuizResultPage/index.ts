@@ -1,0 +1,1 @@
+export { QuizResultPage } from "./QuizResultPage";
