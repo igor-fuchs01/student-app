@@ -61,7 +61,7 @@ export function SubjectsPage() {
                 <StyledSubjectCard key={subject.id}>
                   <StyledInitial
                     $accent2={
-                      index % 2 == 0
+                      index % 2 === 0
                     }
                   >
                     {subject.shortLabel}
