@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { QuizAnswer, QuizDetail, QuizResult } from "@models/quizzes";
-import { AnswerReview } from "./AnswerReview";
+import { AnswerReview } from "@features/quizzes/components/AnswerReview";
 import {
   QUESTION_STATUS_LABEL,
   getQuestionReviewStatus,

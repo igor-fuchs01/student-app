@@ -1,8 +1,13 @@
 import type { QuestionOption, Question, QuizAnswer } from "@models/quizzes";
 import { Badge } from "@components/ui/Badge";
 import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
-import { splitTemplate } from "../../splitTemplate";
 import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
+import {
+  QUESTION_STATUS_LABEL,
+  QUESTION_STATUS_TONE,
+  type QuestionReviewStatus,
+} from "@features/quizzes/questionReviewStatus";
+import { splitTemplate } from "@features/quizzes/splitTemplate";
 import {
   StyledReviewCard,
   StyledReviewQuestionHeader,
@@ -15,12 +20,7 @@ import {
   StyledReviewBlank,
   StyledReviewExplanation,
   type ReviewTone,
-} from "./QuizResultPage.styles";
-import {
-  QUESTION_STATUS_LABEL,
-  QUESTION_STATUS_TONE,
-  type QuestionReviewStatus,
-} from "@features/quizzes/questionReviewStatus";
+} from "./AnswerReview.styles";
 
 type AnswerReviewProps = {
   index: number;
