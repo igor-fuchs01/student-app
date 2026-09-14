@@ -1,79 +1,82 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { LoginPage } from "@features/auth/components/LoginPage";
-import { DashboardPage } from "@features/dashboard/components/DashboardPage";
-import { SubjectsPage } from "@features/subjects/components/SubjectsPage";
-import { QuizzesPage } from "@features/quizzes/components/QuizzesPage";
-import { QuizAttemptLayout } from "@features/quizzes/components/QuizAttemptLayout";
-import { QuizAnsweringPage } from "@features/quizzes/components/QuizAnsweringPage";
-import { QuizReviewPage } from "@features/quizzes/components/QuizReviewPage";
-import { QuizResultPage } from "@features/quizzes/components/QuizResultPage";
-import { RankingPage } from "@features/ranking/components/RankingPage";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@app/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@app/routes/PublicOnlyRoute";
 
-export function AppRouter() {
-  return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <PublicOnlyRoute>
-            <LoginPage />
-          </PublicOnlyRoute>
-        }
-      />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/disciplinas"
-        element={
-          <ProtectedRoute>
-            <SubjectsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/simulados"
-        element={
-          <ProtectedRoute>
-            <QuizzesPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/simulados/:quizId"
-        element={
-          <ProtectedRoute>
-            <QuizAttemptLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<QuizAnsweringPage />} />
-        <Route path="revisao" element={<QuizReviewPage />} />
-      </Route>
-      <Route
-        path="/simulados/:quizId/resultado"
-        element={
-          <ProtectedRoute>
-            <QuizResultPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/ranking"
-        element={
-          <ProtectedRoute>
-            <RankingPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
+export const router = createBrowserRouter([
+  {
+    element: <PublicOnlyRoute />,
+    children: [
+      {
+        path: "/login",
+        lazy: () =>
+          import("@features/auth/components/LoginPage").then(({ LoginPage }) => ({
+            Component: LoginPage,
+          })),
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/",
+        lazy: () =>
+          import("@features/dashboard/components/DashboardPage").then(({ DashboardPage }) => ({
+            Component: DashboardPage,
+          })),
+      },
+      {
+        path: "/disciplinas",
+        lazy: () =>
+          import("@features/subjects/components/SubjectsPage").then(({ SubjectsPage }) => ({
+            Component: SubjectsPage,
+          })),
+      },
+      {
+        path: "/simulados",
+        lazy: () =>
+          import("@features/quizzes/components/QuizzesPage").then(({ QuizzesPage }) => ({
+            Component: QuizzesPage,
+          })),
+      },
+      {
+        path: "/simulados/:quizId",
+        lazy: () =>
+          import("@features/quizzes/components/QuizAttemptLayout").then(
+            ({ QuizAttemptLayout }) => ({ Component: QuizAttemptLayout }),
+          ),
+        children: [
+          {
+            index: true,
+            lazy: () =>
+              import("@features/quizzes/components/QuizAnsweringPage").then(
+                ({ QuizAnsweringPage }) => ({ Component: QuizAnsweringPage }),
+              ),
+          },
+          {
+            path: "revisao",
+            lazy: () =>
+              import("@features/quizzes/components/QuizReviewPage").then(({ QuizReviewPage }) => ({
+                Component: QuizReviewPage,
+              })),
+          },
+        ],
+      },
+      {
+        path: "/simulados/:quizId/resultado",
+        lazy: () =>
+          import("@features/quizzes/components/QuizResultPage").then(({ QuizResultPage }) => ({
+            Component: QuizResultPage,
+          })),
+      },
+      {
+        path: "/ranking",
+        lazy: () =>
+          import("@features/ranking/components/RankingPage").then(({ RankingPage }) => ({
+            Component: RankingPage,
+          })),
+      },
+    ],
+  },
+  { path: "*", element: <Navigate to="/" replace /> },
+]);
