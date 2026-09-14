@@ -1,11 +1,11 @@
 import type { QuestionOption, Question, QuizAnswer } from "@models/quizzes";
+import { Badge } from "@components/ui/Badge";
 import { splitTemplate } from "../../splitTemplate";
 import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
 import {
   StyledReviewCard,
   StyledReviewQuestionHeader,
   StyledReviewSubject,
-  StyledBadge,
   StyledReviewPrompt,
   StyledReviewOptionList,
   StyledReviewOption,
@@ -211,9 +211,7 @@ export function AnswerReview({ index, question, answer, status }: AnswerReviewPr
         <StyledReviewSubject>
           Questão {index + 1} · {question.subjectName}
         </StyledReviewSubject>
-        <StyledBadge $tone={QUESTION_STATUS_TONE[status]}>
-          {QUESTION_STATUS_LABEL[status]}
-        </StyledBadge>
+        <Badge tone={QUESTION_STATUS_TONE[status]}>{QUESTION_STATUS_LABEL[status]}</Badge>
       </StyledReviewQuestionHeader>
       <QuestionBody question={question} answer={answer} />
     </StyledReviewCard>

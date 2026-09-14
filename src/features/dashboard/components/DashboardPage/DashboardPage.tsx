@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Badge } from "@components/ui/Badge";
+import { Badge, type BadgeTone } from "@components/ui/Badge";
 import { Card } from "@components/ui/Card";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { Button } from "@components/ui/Button";
@@ -37,7 +37,7 @@ const PRIORITY_LABEL: Record<PriorityLevel, string> = {
   low: "Em dia",
 };
 
-const PRIORITY_TONE: Record<PriorityLevel, "accent2" | "neutral" | "accent"> = {
+const PRIORITY_TONE: Record<PriorityLevel, BadgeTone> = {
   high: "accent2",
   medium: "neutral",
   low: "accent",

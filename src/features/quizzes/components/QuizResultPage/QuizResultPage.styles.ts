@@ -66,28 +66,6 @@ export const StyledBadgeRow = styled.div`
   flex-wrap: wrap;
 `;
 
-export type BadgeTone = "accent" | "accent2" | "danger";
-
-export const StyledBadge = styled.span<{ $tone: BadgeTone }>`
-  font-size: 12px;
-  font-weight: 700;
-  padding: 5px 14px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  white-space: nowrap;
-  background: ${({ theme, $tone }) =>
-    $tone === "accent"
-      ? theme.colors.accent100
-      : $tone === "accent2"
-        ? theme.colors.accent2100
-        : theme.colors.danger100};
-  color: ${({ theme, $tone }) =>
-    $tone === "accent"
-      ? theme.colors.accent600
-      : $tone === "accent2"
-        ? theme.colors.accent2600
-        : theme.colors.danger600};
-`;
-
 export const StyledColumns = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;

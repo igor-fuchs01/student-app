@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { Modal } from "@components/ui/Modal";
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
@@ -9,7 +10,6 @@ import {
   StyledTitle,
   StyledSubtitle,
   StyledCountRow,
-  StyledCountBadge,
   StyledGrid,
   StyledTile,
   StyledLegend,
@@ -48,9 +48,9 @@ export function QuizReviewPage() {
       <StyledSubtitle>{quiz.title}</StyledSubtitle>
 
       <StyledCountRow>
-        <StyledCountBadge $tone="neutral">{answeredCount} respondidas</StyledCountBadge>
-        <StyledCountBadge $tone="danger">{unansweredCount} não respondidas</StyledCountBadge>
-        <StyledCountBadge $tone="accent">{markedCount} marcadas para revisão</StyledCountBadge>
+        <Badge tone="neutral">{answeredCount} respondidas</Badge>
+        <Badge tone="danger">{unansweredCount} não respondidas</Badge>
+        <Badge tone="accent">{markedCount} marcadas para revisão</Badge>
       </StyledCountRow>
 
       <StyledGrid>

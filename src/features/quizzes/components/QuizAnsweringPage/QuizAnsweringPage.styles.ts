@@ -1,5 +1,10 @@
 import styled, { css } from "styled-components";
 import { Card } from "@components/ui/Card";
+import { Badge } from "@components/ui/Badge";
+
+export const StyledSubjectTag = styled(Badge)`
+  margin-bottom: 16px;
+`;
 
 export const StyledContent = styled.main`
   padding: 26px 28px 64px;
@@ -78,17 +83,6 @@ export const StyledQuestionCard = styled(Card)`
   flex: 1;
   min-width: 280px;
   padding: 28px 32px;
-`;
-
-export const StyledSubjectTag = styled.span`
-  display: inline-block;
-  background: rgba(0, 0, 0, 0.06);
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-  margin-bottom: 16px;
 `;
 
 export const StyledPrompt = styled.h2`

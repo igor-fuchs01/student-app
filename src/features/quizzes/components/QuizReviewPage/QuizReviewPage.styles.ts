@@ -26,34 +26,6 @@ export const StyledCountRow = styled.div`
   flex-wrap: wrap;
 `;
 
-export const StyledCountBadge = styled.span<{ $tone: "neutral" | "accent" | "danger" }>`
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 5px 14px;
-  border-radius: ${({ theme }) => theme.radii.pill};
-
-  ${({ theme, $tone }) =>
-    $tone === "neutral" &&
-    css`
-      background: rgba(0, 0, 0, 0.06);
-      color: ${theme.colors.muted};
-    `}
-
-  ${({ theme, $tone }) =>
-    $tone === "accent" &&
-    css`
-      background: ${theme.colors.accent100};
-      color: ${theme.colors.accent600};
-    `}
-
-  ${({ theme, $tone }) =>
-    $tone === "danger" &&
-    css`
-      background: ${theme.colors.danger100};
-      color: ${theme.colors.danger600};
-    `}
-`;
-
 export const StyledGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(10, 1fr);

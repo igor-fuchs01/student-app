@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { AppHeader } from "@components/layout/AppHeader";
@@ -19,7 +20,6 @@ import {
   StyledScoreValue,
   StyledScoreLabel,
   StyledBadgeRow,
-  StyledBadge,
   StyledColumns,
   StyledColumnTitle,
   StyledPerformanceList,
@@ -100,11 +100,11 @@ export function QuizResultPage() {
         ) : (
           <>
             <StyledBadgeRow>
-              <StyledBadge $tone="accent">{result.correctCount} acertos</StyledBadge>
-              <StyledBadge $tone="danger">{result.incorrectCount} erros</StyledBadge>
-              <StyledBadge $tone="danger">{result.unansweredCount} não respondidas</StyledBadge>
+              <Badge tone="accent">{result.correctCount} acertos</Badge>
+              <Badge tone="danger">{result.incorrectCount} erros</Badge>
+              <Badge tone="danger">{result.unansweredCount} não respondidas</Badge>
               {result.selfReviewCount > 0 && (
-                <StyledBadge $tone="accent2">{result.selfReviewCount} para autoavaliar</StyledBadge>
+                <Badge tone="accent2">{result.selfReviewCount} para autoavaliar</Badge>
               )}
             </StyledBadgeRow>
 
