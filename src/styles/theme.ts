@@ -17,6 +17,10 @@ export const theme = {
     danger600: "oklch(49% 0.19 27)",
     danger100: "oklch(94% 0.04 27)",
   },
+  fonts: {
+    heading: '"Poppins", system-ui, sans-serif',
+    body: '"Inter", system-ui, sans-serif',
+  },
   radii: {
     lg: "22px",
     md: "14px",

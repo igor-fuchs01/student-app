@@ -27,7 +27,7 @@ export const StyledHeaderRow = styled.div`
 `;
 
 export const StyledTitle = styled.h1`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 18px;
   margin: 0 0 4px;
@@ -47,7 +47,7 @@ export const StyledScoreBox = styled.div`
 `;
 
 export const StyledScoreValue = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 800;
   font-size: 34px;
   line-height: 1;
@@ -99,7 +99,7 @@ export const StyledColumns = styled.div`
 `;
 
 export const StyledColumnTitle = styled.h2`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 15px;
   margin: 0 0 14px;

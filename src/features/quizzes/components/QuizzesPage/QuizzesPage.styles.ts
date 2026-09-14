@@ -18,7 +18,7 @@ export const StyledStateMessage = styled.div`
 `;
 
 export const StyledPageTitle = styled.h1`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 20px;
   margin: 0 0 4px;

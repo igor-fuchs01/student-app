@@ -24,7 +24,7 @@ export const StyledFormCard = styled.form`
 `;
 
 export const StyledBrand = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 800;
   font-size: 17px;
   margin-bottom: 28px;

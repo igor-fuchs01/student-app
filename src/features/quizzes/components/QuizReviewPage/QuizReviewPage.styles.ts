@@ -7,7 +7,7 @@ export const StyledContent = styled.main`
 `;
 
 export const StyledTitle = styled.h1`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 20px;
   margin: 0 0 4px;
@@ -140,7 +140,7 @@ export const StyledFooter = styled.div`
 `;
 
 export const StyledConfirmTitle = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 19px;
 `;

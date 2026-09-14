@@ -17,7 +17,7 @@ export const StyledTopBar = styled.div`
 `;
 
 export const StyledTopBarTitle = styled.h1`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 16px;
   margin: 0;
@@ -92,7 +92,7 @@ export const StyledSubjectTag = styled.span`
 `;
 
 export const StyledPrompt = styled.h2`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 17px;
   line-height: 1.35;

@@ -1,7 +1,7 @@
 import styled, { css } from "styled-components";
 
 export const StyledTitle = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 19px;
 `;

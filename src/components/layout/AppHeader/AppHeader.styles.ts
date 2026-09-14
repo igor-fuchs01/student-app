@@ -20,7 +20,7 @@ export const StyledHeaderInner = styled.div`
 `;
 
 export const StyledBrand = styled.span`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 800;
   font-size: 14px;
   margin-right: 20px;

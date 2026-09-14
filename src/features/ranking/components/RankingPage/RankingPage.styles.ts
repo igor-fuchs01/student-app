@@ -41,14 +41,14 @@ export const StyledAvatar = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 18px;
   margin-bottom: 12px;
 `;
 
 export const StyledProfileName = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 16px;
 `;
@@ -72,7 +72,7 @@ export const StyledMutedLabel = styled.div`
 `;
 
 export const StyledStreak = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 800;
   font-size: 24px;
   color: ${({ theme }) => theme.colors.accent600};
@@ -95,7 +95,7 @@ export const StyledStat = styled.div<{ $tone: "accent" | "accent2" }>`
 `;
 
 export const StyledStatValue = styled.div<{ $tone: "accent" | "accent2" }>`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 800;
   font-size: 17px;
   color: ${({ theme, $tone }) =>
@@ -108,7 +108,7 @@ export const StyledStatLabel = styled.div`
 `;
 
 export const StyledRankingTitle = styled.h1`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 16px;
   margin: 0 0 14px;
@@ -140,7 +140,7 @@ export const StyledRankingRow = styled.div<{ $current: boolean }>`
 `;
 
 export const StyledPosition = styled.strong`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   margin-right: 4px;
 `;
 

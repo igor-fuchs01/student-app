@@ -18,7 +18,7 @@ export const StyledStateMessage = styled.div`
 `;
 
 export const StyledPageTitle = styled.h1`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 20px;
   margin: 0 0 4px;
@@ -56,7 +56,7 @@ export const StyledInitial = styled.div<{ $accent2?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 10px;
@@ -71,7 +71,7 @@ export const StyledIntegratedInitial = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 11px;
   margin-bottom: 10px;
@@ -79,7 +79,7 @@ export const StyledIntegratedInitial = styled.div`
 `;
 
 export const StyledSubjectName = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 15px;
   margin-bottom: 4px;
@@ -106,7 +106,7 @@ export const StyledIntegratedEyebrow = styled.span`
 `;
 
 export const StyledIntegratedTitle = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 15px;
   margin: 4px 0 6px;

@@ -13,7 +13,7 @@ export const GlobalStyle = createGlobalStyle`
 
   body {
     margin: 0;
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: ${({ theme }) => theme.fonts.body};
     background: ${({ theme }) => theme.colors.bg};
     color: ${({ theme }) => theme.colors.text};
     line-height: 1.5;
@@ -24,7 +24,7 @@ export const GlobalStyle = createGlobalStyle`
   h3,
   h4,
   h5 {
-    font-family: "Poppins", system-ui, sans-serif;
+    font-family: ${({ theme }) => theme.fonts.heading};
   }
 
   input,

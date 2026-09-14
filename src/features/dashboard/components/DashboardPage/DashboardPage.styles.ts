@@ -49,7 +49,7 @@ export const StyledEyebrow = styled.span`
 `;
 
 export const StyledExamSubject = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 19px;
   margin: 4px 0;
@@ -129,7 +129,7 @@ export const StyledSummaryCard = styled(Card)`
 `;
 
 export const StyledSummaryValue = styled.div`
-  font-family: "Poppins", sans-serif;
+  font-family: ${({ theme }) => theme.fonts.heading};
   font-weight: 700;
   font-size: 16px;
   margin: 4px 0;
