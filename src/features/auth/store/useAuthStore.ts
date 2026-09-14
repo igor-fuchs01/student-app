@@ -8,37 +8,30 @@ type AuthStatus = "idle" | "authenticating" | "authenticated" | "error";
 
 type AuthState = {
   status: AuthStatus;
-  token: string | null;
   user: StudentUser | null;
-  error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const signedOutState = {
   status: "idle",
-  token: null,
   user: null,
-  error: null,
 } as const;
 
 const existingSession = tokenStorage.getSession();
 
 export const useAuthStore = create<AuthState>((set) => ({
   status: existingSession ? "authenticated" : "idle",
-  token: existingSession?.token ?? null,
   user: existingSession?.user ?? null,
-  error: null,
 
   async login(credentials) {
-    set({ status: "authenticating", error: null });
+    set({ status: "authenticating" });
     try {
       const session = await authApi.login(credentials);
       tokenStorage.saveSession(session);
-      set({ status: "authenticated", token: session.token, user: session.user, error: null });
+      set({ status: "authenticated", user: session.user });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Não foi possível entrar.";
-      set({ status: "error", error: message });
+      set({ status: "error" });
       throw err;
     }
   },
