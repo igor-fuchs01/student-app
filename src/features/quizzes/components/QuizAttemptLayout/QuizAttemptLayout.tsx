@@ -5,6 +5,7 @@ import { Button } from "@components/ui/Button";
 import { AppHeader } from "@components/layout/AppHeader";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import { quizzesApi } from "@services/api/quizzesApi";
+import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import { useLogout } from "@features/auth/hooks/useLogout";
 import type { QuizAnswer } from "@models/quizzes";
@@ -135,15 +136,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   }
 
   function toggleMarkedForReview(questionId: string) {
-    setMarkedForReview((current) => {
-      const next = new Set(current);
-      if (next.has(questionId)) {
-        next.delete(questionId);
-      } else {
-        next.add(questionId);
-      }
-      return next;
-    });
+    setMarkedForReview((current) => toggleSetItem(current, questionId));
   }
 
   function startAttempt(chosenTimeLimitEnabled: boolean) {

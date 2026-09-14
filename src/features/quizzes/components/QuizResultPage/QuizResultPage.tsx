@@ -4,6 +4,7 @@ import { Button } from "@components/ui/Button";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { AppHeader } from "@components/layout/AppHeader";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
+import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { useLogout } from "@features/auth/hooks/useLogout";
 import { ExamReview } from "./ExamReview";
 import {
@@ -72,15 +73,7 @@ export function QuizResultPage() {
   const gradedTotal = result.correctCount + result.incorrectCount + result.unansweredCount;
 
   function toggleReveal(questionId: string) {
-    setRevealed((current) => {
-      const next = new Set(current);
-      if (next.has(questionId)) {
-        next.delete(questionId);
-      } else {
-        next.add(questionId);
-      }
-      return next;
-    });
+    setRevealed((current) => toggleSetItem(current, questionId));
   }
 
   return (
