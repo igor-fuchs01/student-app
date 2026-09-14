@@ -4,7 +4,7 @@ const envSchema = z
   .object({
     VITE_USE_MOCKS: z.enum(["true", "false"]).default("false"),
     VITE_MOCK_DELAY_MS: z.coerce.number().int().nonnegative().default(500),
-    VITE_API_BASE_URL: z.url().optional(),
+    VITE_API_BASE_URL: z.url({ protocol: /^https?$/ }).optional(),
   })
   .refine((env) => env.VITE_USE_MOCKS === "true" || Boolean(env.VITE_API_BASE_URL), {
     path: ["VITE_API_BASE_URL"],
