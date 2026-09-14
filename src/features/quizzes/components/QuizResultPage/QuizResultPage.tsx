@@ -6,6 +6,7 @@ import { ProgressBar } from "@components/ui/ProgressBar";
 import { AppHeader } from "@components/layout/AppHeader";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
+import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { useLogout } from "@features/auth/hooks/useLogout";
 import { ExamReview } from "./ExamReview";
 import {
@@ -31,9 +32,6 @@ import {
   StyledReviewToggle,
   StyledReviewExplanation,
   StyledMutedLabel,
-  StyledAnswerComparison,
-  StyledAnswerLabel,
-  StyledAnswerText,
 } from "./QuizResultPage.styles";
 
 type ResultView = "performance" | "review";
@@ -142,19 +140,14 @@ export function QuizResultPage() {
                         </StyledReviewSubject>
                         <StyledReviewExcerpt>"{item.promptExcerpt}"</StyledReviewExcerpt>
                         {item.status === "self_review" ? (
-                          <StyledAnswerComparison>
-                            <div>
-                              <StyledAnswerLabel>Sua resposta</StyledAnswerLabel>
-                              <StyledAnswerText>{item.studentAnswer}</StyledAnswerText>
-                            </div>
-                            <div>
-                              <StyledAnswerLabel>Resposta esperada</StyledAnswerLabel>
-                              <StyledAnswerText>{item.referenceAnswer}</StyledAnswerText>
-                            </div>
+                          <AnswerComparison
+                            studentAnswer={item.studentAnswer ?? ""}
+                            referenceAnswer={item.referenceAnswer ?? ""}
+                          >
                             <StyledMutedLabel>
                               Compare as duas respostas e avalie se a sua está de acordo.
                             </StyledMutedLabel>
-                          </StyledAnswerComparison>
+                          </AnswerComparison>
                         ) : (
                           <>
                             <StyledReviewToggle onClick={() => toggleReveal(item.questionId)}>

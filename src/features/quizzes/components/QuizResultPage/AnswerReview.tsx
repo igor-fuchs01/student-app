@@ -1,5 +1,6 @@
 import type { QuestionOption, Question, QuizAnswer } from "@models/quizzes";
 import { Badge } from "@components/ui/Badge";
+import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { splitTemplate } from "../../splitTemplate";
 import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
 import {
@@ -13,9 +14,6 @@ import {
   StyledReviewSentence,
   StyledReviewBlank,
   StyledReviewExplanation,
-  StyledAnswerComparison,
-  StyledAnswerLabel,
-  StyledAnswerText,
   type ReviewTone,
 } from "./QuizResultPage.styles";
 import {
@@ -189,16 +187,10 @@ function QuestionBody({
       return (
         <>
           <StyledReviewPrompt>{question.prompt}</StyledReviewPrompt>
-          <StyledAnswerComparison>
-            <div>
-              <StyledAnswerLabel>Sua resposta</StyledAnswerLabel>
-              <StyledAnswerText>{answer?.text?.trim() || "Sem resposta"}</StyledAnswerText>
-            </div>
-            <div>
-              <StyledAnswerLabel>Resposta esperada</StyledAnswerLabel>
-              <StyledAnswerText>{question.referenceAnswer}</StyledAnswerText>
-            </div>
-          </StyledAnswerComparison>
+          <AnswerComparison
+            studentAnswer={answer?.text?.trim() || "Sem resposta"}
+            referenceAnswer={question.referenceAnswer}
+          />
         </>
       );
   }

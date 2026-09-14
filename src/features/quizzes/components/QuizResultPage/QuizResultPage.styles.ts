@@ -156,29 +156,6 @@ export const StyledMutedLabel = styled.span`
   font-weight: 600;
 `;
 
-export const StyledAnswerComparison = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid ${({ theme }) => theme.colors.divider};
-`;
-
-export const StyledAnswerLabel = styled.div`
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: ${({ theme }) => theme.colors.muted};
-  margin-bottom: 4px;
-`;
-
-export const StyledAnswerText = styled.p`
-  font-size: 13px;
-  margin: 0;
-`;
-
 export const StyledPageActions = styled.div`
   display: flex;
   justify-content: space-between;
