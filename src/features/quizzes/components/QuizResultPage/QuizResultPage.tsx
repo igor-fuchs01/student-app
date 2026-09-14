@@ -5,6 +5,7 @@ import { Button } from "@components/ui/Button";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
+import { useAuthStore } from "@features/auth/store/useAuthStore";
 import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { ExamReview } from "@features/quizzes/components/ExamReview";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
@@ -43,7 +44,8 @@ function formatSubmittedAt(iso: string): string {
 export function QuizResultPage() {
   const { quizId = "" } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
-  const [attempt] = useState(() => quizAttemptStorage.load(quizId));
+  const userId = useAuthStore((state) => state.user?.id);
+  const [attempt] = useState(() => (userId ? quizAttemptStorage.load(userId, quizId) : null));
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [view, setView] = useState<ResultView>("performance");
 

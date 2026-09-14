@@ -3,6 +3,7 @@ import { Outlet, useBlocker, useLocation, useNavigate, useParams } from "react-r
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
+import { useAuthStore } from "@features/auth/store/useAuthStore";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import type { QuizAttemptContextValue } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
@@ -25,6 +26,7 @@ export function QuizAttemptLayout() {
 function QuizAttempt({ quizId }: { quizId: string }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const userId = useAuthStore((state) => state.user?.id);
 
   const quizQuery = useQuery({
     queryKey: ["quiz", quizId],
@@ -120,8 +122,12 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   const submitMutation = useMutation({
     mutationFn: () => quizzesApi.submitQuizAttempt(quizId, Object.values(answers)),
     onSuccess: (result) => {
-      if (quizQuery.data) {
-        quizAttemptStorage.save({ quiz: quizQuery.data, answers: Object.values(answers), result });
+      if (quizQuery.data && userId) {
+        quizAttemptStorage.save(userId, {
+          quiz: quizQuery.data,
+          answers: Object.values(answers),
+          result,
+        });
       }
       setIsFinished(true);
       navigate(`${attemptBasePath}/resultado`);
