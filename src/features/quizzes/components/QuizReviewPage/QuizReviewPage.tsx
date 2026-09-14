@@ -3,18 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { Modal } from "@components/ui/Modal";
+import {
+  QuestionGrid,
+  type QuestionGridLegendItem,
+} from "@features/quizzes/components/QuestionGrid";
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
-import { isQuestionAnswered } from "../../isQuestionAnswered";
+import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import {
   StyledContent,
   StyledTitle,
   StyledSubtitle,
   StyledCountRow,
-  StyledGrid,
-  StyledTile,
-  StyledLegend,
-  StyledLegendItem,
-  StyledLegendDot,
   StyledFooter,
   StyledConfirmTitle,
   StyledConfirmBody,
@@ -22,20 +21,22 @@ import {
   StyledErrorMessage,
 } from "./QuizReviewPage.styles";
 
+const LEGEND: QuestionGridLegendItem[] = [
+  { label: "Respondida", tone: "answered" },
+  { label: "Marcada para revisão", tone: "empty", marked: true },
+  { label: "Não respondida", tone: "empty" },
+];
+
 export function QuizReviewPage() {
   const navigate = useNavigate();
   const { quiz, answers, markedForReview, setCurrentIndex, submit, isSubmitting, submitError } =
     useQuizAttemptContext();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  function isAnswered(questionId: string): boolean {
-    const question = quiz.questions.find((q) => q.id === questionId);
-    return question ? isQuestionAnswered(question, answers[questionId]) : false;
-  }
-
-  const answeredCount = quiz.questions.filter((q) => isAnswered(q.id)).length;
-  const unansweredCount = quiz.questions.length - answeredCount;
-  const markedCount = markedForReview.size;
+  const answeredIds = new Set(
+    quiz.questions.filter((q) => isQuestionAnswered(q, answers[q.id])).map((q) => q.id),
+  );
+  const unansweredCount = quiz.questions.length - answeredIds.size;
 
   function goToQuestion(index: number) {
     setCurrentIndex(index);
@@ -48,39 +49,21 @@ export function QuizReviewPage() {
       <StyledSubtitle>{quiz.title}</StyledSubtitle>
 
       <StyledCountRow>
-        <Badge tone="neutral">{answeredCount} respondidas</Badge>
+        <Badge tone="neutral">{answeredIds.size} respondidas</Badge>
         <Badge tone="danger">{unansweredCount} não respondidas</Badge>
-        <Badge tone="accent">{markedCount} marcadas para revisão</Badge>
+        <Badge tone="accent">{markedForReview.size} marcadas para revisão</Badge>
       </StyledCountRow>
 
-      <StyledGrid>
-        {quiz.questions.map((q, index) => (
-          <StyledTile
-            key={q.id}
-            type="button"
-            $answered={isAnswered(q.id)}
-            $marked={markedForReview.has(q.id)}
-            onClick={() => goToQuestion(index)}
-          >
-            {index + 1}
-          </StyledTile>
-        ))}
-      </StyledGrid>
-
-      <StyledLegend>
-        <StyledLegendItem>
-          <StyledLegendDot $tone="answered" />
-          Respondida
-        </StyledLegendItem>
-        <StyledLegendItem>
-          <StyledLegendDot $tone="marked" />
-          Marcada para revisão
-        </StyledLegendItem>
-        <StyledLegendItem>
-          <StyledLegendDot $tone="empty" />
-          Não respondida
-        </StyledLegendItem>
-      </StyledLegend>
+      <QuestionGrid
+        variant="wide"
+        tiles={quiz.questions.map((q) => ({
+          id: q.id,
+          tone: answeredIds.has(q.id) ? "answered" : "empty",
+          marked: markedForReview.has(q.id),
+        }))}
+        legend={LEGEND}
+        onSelect={goToQuestion}
+      />
 
       <StyledFooter>
         <Button variant="secondary" onClick={() => navigate(`/simulados/${quiz.id}`)}>

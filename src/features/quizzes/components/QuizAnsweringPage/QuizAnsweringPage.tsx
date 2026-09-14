@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@components/ui/Button";
-import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
-import { isQuestionAnswered } from "../../isQuestionAnswered";
 import { QuestionField } from "@features/quizzes/components/QuestionField";
+import {
+  QuestionGrid,
+  type QuestionGridLegendItem,
+} from "@features/quizzes/components/QuestionGrid";
+import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
+import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import {
   StyledContent,
   StyledTopBar,
@@ -17,13 +21,15 @@ import {
   StyledSidebarHeader,
   StyledSidebarLabel,
   StyledMarkCurrentButton,
-  StyledQuestionGrid,
-  StyledQuestionTile,
-  StyledLegend,
-  StyledLegendItem,
-  StyledLegendDot,
   StyledFooter,
 } from "./QuizAnsweringPage.styles";
+
+const LEGEND: QuestionGridLegendItem[] = [
+  { label: "Respondida", tone: "answered" },
+  { label: "Atual", current: true },
+  { label: "Marcada p/ revisão", tone: "empty", marked: true },
+  { label: "Não respondida", tone: "empty" },
+];
 
 function formatClock(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -111,41 +117,16 @@ export function QuizAnsweringPage() {
               🚩
             </StyledMarkCurrentButton>
           </StyledSidebarHeader>
-          <StyledQuestionGrid>
-            {quiz.questions.map((q, index) => {
-              const answered = isQuestionAnswered(q, answers[q.id]);
-              return (
-                <StyledQuestionTile
-                  key={q.id}
-                  type="button"
-                  $answered={answered}
-                  $marked={markedForReview.has(q.id)}
-                  $current={index === currentIndex}
-                  onClick={() => setCurrentIndex(index)}
-                >
-                  {index + 1}
-                </StyledQuestionTile>
-              );
-            })}
-          </StyledQuestionGrid>
-          <StyledLegend>
-            <StyledLegendItem>
-              <StyledLegendDot $tone="answered" />
-              Respondida
-            </StyledLegendItem>
-            <StyledLegendItem>
-              <StyledLegendDot $tone="current" />
-              Atual
-            </StyledLegendItem>
-            <StyledLegendItem>
-              <StyledLegendDot $tone="marked" />
-              Marcada p/ revisão
-            </StyledLegendItem>
-            <StyledLegendItem>
-              <StyledLegendDot $tone="empty" />
-              Não respondida
-            </StyledLegendItem>
-          </StyledLegend>
+          <QuestionGrid
+            tiles={quiz.questions.map((q, index) => ({
+              id: q.id,
+              tone: isQuestionAnswered(q, answers[q.id]) ? "answered" : "empty",
+              marked: markedForReview.has(q.id),
+              current: index === currentIndex,
+            }))}
+            legend={LEGEND}
+            onSelect={setCurrentIndex}
+          />
         </StyledSidebar>
       </StyledLayout>
 

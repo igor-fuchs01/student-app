@@ -1,4 +1,4 @@
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 
 export const StyledContent = styled.main`
   padding: 26px 28px 64px;
@@ -24,83 +24,6 @@ export const StyledCountRow = styled.div`
   gap: 10px;
   margin-bottom: 24px;
   flex-wrap: wrap;
-`;
-
-export const StyledGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 6px;
-  max-width: 620px;
-  margin-bottom: 16px;
-
-  @media (max-width: 640px) {
-    grid-template-columns: repeat(5, 1fr);
-  }
-`;
-
-export const StyledTile = styled.button<{ $answered: boolean; $marked: boolean }>`
-  height: 36px;
-  box-sizing: border-box;
-  border-radius: ${({ theme }) => theme.radii.md};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  background: ${({ theme, $answered }) => ($answered ? theme.colors.accent : "rgba(0, 0, 0, 0.05)")};
-  color: ${({ theme, $answered }) => ($answered ? "#fff" : theme.colors.muted)};
-
-  ${({ theme, $marked }) =>
-    $marked &&
-    css`
-      box-shadow: 0 0 0 2px ${theme.colors.accent2};
-    `}
-`;
-
-export const StyledLegend = styled.div`
-  display: flex;
-  gap: 16px;
-  font-size: 11px;
-  color: ${({ theme }) => theme.colors.muted};
-  flex-wrap: wrap;
-  margin-bottom: 28px;
-`;
-
-export const StyledLegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-type LegendTone = "answered" | "marked" | "empty";
-
-export const StyledLegendDot = styled.span<{ $tone: LegendTone }>`
-  width: 10px;
-  height: 10px;
-  border-radius: 4px;
-  box-sizing: border-box;
-
-  ${({ theme, $tone }) =>
-    $tone === "answered" &&
-    css`
-      background: ${theme.colors.accent};
-    `}
-
-  ${({ theme, $tone }) =>
-    $tone === "marked" &&
-    css`
-      background: rgba(0, 0, 0, 0.05);
-      box-shadow: 0 0 0 2px ${theme.colors.accent2};
-    `}
-
-  ${({ $tone }) =>
-    $tone === "empty" &&
-    css`
-      background: rgba(0, 0, 0, 0.05);
-    `}
 `;
 
 export const StyledFooter = styled.div`

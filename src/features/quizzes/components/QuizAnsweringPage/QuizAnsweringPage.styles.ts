@@ -1,4 +1,4 @@
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 import { Card } from "@components/ui/Card";
 
 export const StyledContent = styled.main`
@@ -115,97 +115,6 @@ export const StyledMarkCurrentButton = styled.button<{ $marked: boolean }>`
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
-`;
-
-export const StyledQuestionGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  margin-bottom: 14px;
-  max-height: 320px;
-  overflow-y: auto;
-  padding: 4px;
-`;
-
-export const StyledQuestionTile = styled.button<{
-  $answered: boolean;
-  $marked: boolean;
-  $current: boolean;
-}>`
-  height: 32px;
-  box-sizing: border-box;
-  border-radius: ${({ theme }) => theme.radii.md};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  border: 2px solid transparent;
-  cursor: pointer;
-  font-family: inherit;
-  background: ${({ theme, $answered }) => ($answered ? theme.colors.accent : "rgba(0, 0, 0, 0.05)")};
-  color: ${({ theme, $answered }) => ($answered ? "#fff" : theme.colors.muted)};
-
-  ${({ theme, $current }) =>
-    $current &&
-    css`
-      border-color: ${theme.colors.accent600};
-    `}
-
-  ${({ theme, $marked }) =>
-    $marked &&
-    css`
-      box-shadow: 0 0 0 2px ${theme.colors.accent2};
-    `}
-`;
-
-export const StyledLegend = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 11px;
-  color: ${({ theme }) => theme.colors.muted};
-`;
-
-export const StyledLegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-type LegendTone = "answered" | "current" | "marked" | "empty";
-
-export const StyledLegendDot = styled.span<{ $tone: LegendTone }>`
-  width: 10px;
-  height: 10px;
-  border-radius: 4px;
-  box-sizing: border-box;
-
-  ${({ theme, $tone }) =>
-    $tone === "answered" &&
-    css`
-      background: ${theme.colors.accent};
-    `}
-
-  ${({ theme, $tone }) =>
-    $tone === "current" &&
-    css`
-      background: transparent;
-      border: 2px solid ${theme.colors.accent600};
-    `}
-
-  ${({ theme, $tone }) =>
-    $tone === "marked" &&
-    css`
-      background: rgba(0, 0, 0, 0.05);
-      box-shadow: 0 0 0 2px ${theme.colors.accent2};
-    `}
-
-  ${({ $tone }) =>
-    $tone === "empty" &&
-    css`
-      background: rgba(0, 0, 0, 0.05);
-    `}
 `;
 
 export const StyledFooter = styled.div`
