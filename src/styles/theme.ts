@@ -13,6 +13,9 @@ export const theme = {
     accent2: "oklch(64% 0.13 70)",
     accent2600: "oklch(54% 0.14 70)",
     accent2100: "oklch(93% 0.06 70)",
+    danger: "oklch(57% 0.19 27)",
+    danger600: "oklch(49% 0.19 27)",
+    danger100: "oklch(94% 0.04 27)",
   },
   radii: {
     lg: "22px",
