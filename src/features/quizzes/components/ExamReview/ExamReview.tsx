@@ -2,6 +2,10 @@ import { useState } from "react";
 import type { QuizAnswer, QuizDetail, QuizResult } from "@models/quizzes";
 import { AnswerReview } from "@features/quizzes/components/AnswerReview";
 import {
+  QuestionGrid,
+  type QuestionGridLegendItem,
+} from "@features/quizzes/components/QuestionGrid";
+import {
   QUESTION_STATUS_LABEL,
   getQuestionReviewStatus,
   type QuestionReviewStatus,
@@ -11,12 +15,7 @@ import {
   StyledExamMain,
   StyledExamSidebar,
   StyledExamSidebarLabel,
-  StyledExamGrid,
-  StyledExamTile,
-  StyledExamLegend,
-  StyledExamLegendItem,
-  StyledExamLegendDot,
-} from "./QuizResultPage.styles";
+} from "./ExamReview.styles";
 
 type ExamReviewProps = {
   quiz: QuizDetail;
@@ -25,6 +24,11 @@ type ExamReviewProps = {
 };
 
 const LEGEND_ORDER: QuestionReviewStatus[] = ["correct", "incorrect", "self_review", "unanswered"];
+
+const LEGEND: QuestionGridLegendItem[] = LEGEND_ORDER.map((status) => ({
+  label: QUESTION_STATUS_LABEL[status],
+  tone: status,
+}));
 
 export function ExamReview({ quiz, answers, result }: ExamReviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -48,28 +52,15 @@ export function ExamReview({ quiz, answers, result }: ExamReviewProps) {
 
       <StyledExamSidebar tone="surface">
         <StyledExamSidebarLabel>Questões</StyledExamSidebarLabel>
-        <StyledExamGrid>
-          {quiz.questions.map((q, index) => (
-            <StyledExamTile
-              key={q.id}
-              type="button"
-              $status={statuses[index]}
-              $current={index === currentIndex}
-              aria-label={`Questão ${index + 1}: ${QUESTION_STATUS_LABEL[statuses[index]]}`}
-              onClick={() => setCurrentIndex(index)}
-            >
-              {index + 1}
-            </StyledExamTile>
-          ))}
-        </StyledExamGrid>
-        <StyledExamLegend>
-          {LEGEND_ORDER.map((status) => (
-            <StyledExamLegendItem key={status}>
-              <StyledExamLegendDot $status={status} />
-              {QUESTION_STATUS_LABEL[status]}
-            </StyledExamLegendItem>
-          ))}
-        </StyledExamLegend>
+        <QuestionGrid
+          tiles={quiz.questions.map((q, index) => ({
+            id: q.id,
+            tone: statuses[index],
+            current: index === currentIndex,
+          }))}
+          legend={LEGEND}
+          onSelect={setCurrentIndex}
+        />
       </StyledExamSidebar>
     </StyledExamLayout>
   );

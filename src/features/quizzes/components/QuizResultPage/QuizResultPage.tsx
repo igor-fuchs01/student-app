@@ -8,7 +8,7 @@ import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { useLogout } from "@features/auth/hooks/useLogout";
-import { ExamReview } from "./ExamReview";
+import { ExamReview } from "@features/quizzes/components/ExamReview";
 import {
   StyledPage,
   StyledContent,
