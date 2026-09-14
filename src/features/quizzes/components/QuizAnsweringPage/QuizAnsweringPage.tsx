@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@components/ui/Button";
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "../../isQuestionAnswered";
-import { QuestionField } from "./QuestionField";
+import { QuestionField } from "@features/quizzes/components/QuestionField";
 import {
   StyledContent,
   StyledTopBar,

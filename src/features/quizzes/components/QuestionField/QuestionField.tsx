@@ -8,7 +8,7 @@ import type {
   QuizAnswer,
   SingleChoiceQuestion,
 } from "@models/quizzes";
-import { splitTemplate } from "../../splitTemplate";
+import { splitTemplate } from "@features/quizzes/splitTemplate";
 import {
   StyledSubjectTag,
   StyledPrompt,
@@ -26,7 +26,7 @@ import {
   StyledBlankInput,
   StyledDragHandle,
   StyledDragDropHint,
-} from "./QuizAnsweringPage.styles";
+} from "./QuestionField.styles";
 
 type QuestionFieldProps = {
   question: Question;
