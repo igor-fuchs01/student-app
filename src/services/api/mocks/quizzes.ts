@@ -1,4 +1,5 @@
 import type { QuizAnswer, QuizDetail, QuizResult, QuizSummary, Question } from "@models/quizzes";
+import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
 
 const INTEGRATED_QUIZ_ID = "integrado";
 
@@ -255,10 +256,6 @@ function questionPromptExcerpt(question: Question): string {
     return excerpt(`${question.prompt} ${templateToPlainText(question.template)}`);
   }
   return excerpt(question.prompt);
-}
-
-function normalizeAnswerText(text: string): string {
-  return text.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 export function correctMockQuizAttempt(id: string, answers: QuizAnswer[]): QuizResult | undefined {

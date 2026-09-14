@@ -1,5 +1,6 @@
 import type { QuestionOption, Question, QuizAnswer } from "@models/quizzes";
 import { splitTemplate } from "../../splitTemplate";
+import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
 import {
   StyledReviewCard,
   StyledReviewQuestionHeader,
@@ -29,10 +30,6 @@ type AnswerReviewProps = {
   answer: QuizAnswer | undefined;
   status: QuestionReviewStatus;
 };
-
-function normalizeText(text: string): string {
-  return text.trim().toLowerCase().replace(/\s+/g, " ");
-}
 
 function OptionsReview({
   options,
@@ -166,7 +163,10 @@ function QuestionBody({
               const blank = question.blanks.find((b) => b.id === part.id);
               if (!blank) return null;
               const written = answer?.blankAnswers?.[part.id]?.trim();
-              if (written && normalizeText(written) === normalizeText(blank.referenceAnswer)) {
+              if (
+                written &&
+                normalizeAnswerText(written) === normalizeAnswerText(blank.referenceAnswer)
+              ) {
                 return (
                   <StyledReviewBlank key={part.id} $tone="correct">
                     {written}
