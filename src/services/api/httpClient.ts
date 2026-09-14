@@ -2,7 +2,6 @@ import type { ZodType } from "zod";
 import { tokenStorage } from "@services/storage/tokenStorage";
 import { API_BASE_URL, USE_MOCKS } from "./config";
 import { ApiError, apiErrorBodySchema } from "./errors";
-import { mockFetch } from "./mocks/mockServer";
 
 type HttpMethod = "GET" | "POST";
 
@@ -11,7 +10,10 @@ type RequestOptions = {
   authenticated?: boolean;
 };
 
-const transport: typeof fetch = USE_MOCKS ? mockFetch : fetch.bind(globalThis);
+const transport: typeof fetch =
+  import.meta.env.VITE_USE_MOCKS === "true"
+    ? (input, init) => import("./mocks/mockServer").then(({ mockFetch }) => mockFetch(input, init))
+    : fetch.bind(globalThis);
 const baseUrl = USE_MOCKS ? "" : API_BASE_URL;
 
 let unauthorizedHandler: (() => void) | null = null;
