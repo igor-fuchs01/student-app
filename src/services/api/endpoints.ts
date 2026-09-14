@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   },
   dashboard: "/dashboard",
   subjects: "/subjects",
+  ranking: "/ranking",
   quizzes: {
     list: "/quizzes",
     detail: (id: string) => `/quizzes/${id}`,

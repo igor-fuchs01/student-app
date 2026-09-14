@@ -6,6 +6,7 @@ import type { ApiErrorBody, ApiErrorCode } from "../errors";
 import { buildMockDashboard } from "./dashboard";
 import { buildMockSubjects } from "./subjects";
 import { buildMockQuizList, correctMockQuizAttempt, getMockQuizDetail } from "./quizzes";
+import { buildMockRanking } from "./ranking";
 import { findAccountById, findAccountByIdentifier, type MockAccount } from "./users";
 
 type MockResult = {
@@ -73,6 +74,11 @@ const routes: Record<string, MockRoute> = {
   [`GET ${API_ENDPOINTS.quizzes.list}`]: {
     authenticated: true,
     handle: () => ({ status: 200, body: buildMockQuizList() }),
+  },
+
+  [`GET ${API_ENDPOINTS.ranking}`]: {
+    authenticated: true,
+    handle: (_body, account) => ({ status: 200, body: buildMockRanking(account.user) }),
   },
 };
 
