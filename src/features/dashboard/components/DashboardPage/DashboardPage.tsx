@@ -78,7 +78,9 @@ export function DashboardPage() {
       />
 
       <StyledContent>
-        {dashboardQuery.isLoading && <StyledStateMessage>Carregando seu painel…</StyledStateMessage>}
+        {dashboardQuery.isLoading && (
+          <StyledStateMessage>Carregando seu painel…</StyledStateMessage>
+        )}
 
         {dashboardQuery.isError && (
           <StyledStateMessage>

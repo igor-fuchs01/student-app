@@ -142,7 +142,10 @@ function toResponse({ status, body }: MockResult): Response {
   });
 }
 
-export async function mockFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+export async function mockFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
   await delay(MOCK_DELAY_MS, init.signal);
 
   const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
@@ -150,8 +153,7 @@ export async function mockFetch(input: RequestInfo | URL, init: RequestInit = {}
   const body = parseJson(init.body);
 
   const quizDetailMatch = method === "GET" ? url.pathname.match(QUIZ_DETAIL_PATTERN) : null;
-  const quizAttemptMatch =
-    method === "POST" ? url.pathname.match(QUIZ_ATTEMPT_PATTERN) : null;
+  const quizAttemptMatch = method === "POST" ? url.pathname.match(QUIZ_ATTEMPT_PATTERN) : null;
 
   if (quizDetailMatch || quizAttemptMatch) {
     const account = resolveAccount(new Headers(init.headers).get("Authorization"));

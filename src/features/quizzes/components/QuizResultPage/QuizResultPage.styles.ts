@@ -322,7 +322,6 @@ export const StyledExamLegendDot = styled.span<{ $status: ExamStatus }>`
   ${examStatusStyles}
 `;
 
-
 export const StyledReviewQuestionHeader = styled.div`
   display: flex;
   justify-content: space-between;

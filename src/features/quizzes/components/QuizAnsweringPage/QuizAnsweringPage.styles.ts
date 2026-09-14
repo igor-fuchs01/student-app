@@ -328,7 +328,8 @@ export const StyledMarkCurrentButton = styled.button<{ $marked: boolean }>`
   height: 26px;
   flex: none;
   border-radius: ${({ theme }) => theme.radii.pill};
-  border: 1.5px solid ${({ theme, $marked }) => ($marked ? theme.colors.accent2 : theme.colors.divider)};
+  border: 1.5px solid
+    ${({ theme, $marked }) => ($marked ? theme.colors.accent2 : theme.colors.divider)};
   background: ${({ theme, $marked }) => ($marked ? theme.colors.accent2100 : "transparent")};
   font-size: 13px;
   line-height: 1;

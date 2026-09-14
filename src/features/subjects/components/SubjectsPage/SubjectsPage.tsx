@@ -59,13 +59,7 @@ export function SubjectsPage() {
             <StyledGrid>
               {subjectsQuery.data.map((subject, index) => (
                 <StyledSubjectCard key={subject.id}>
-                  <StyledInitial
-                    $accent2={
-                      index % 2 === 0
-                    }
-                  >
-                    {subject.shortLabel}
-                  </StyledInitial>
+                  <StyledInitial $accent2={index % 2 === 0}>{subject.shortLabel}</StyledInitial>
                   <StyledSubjectName>{subject.name}</StyledSubjectName>
                   <StyledSubjectMeta>
                     {subject.materialsCount} materiais · {subject.questionsCount} questões

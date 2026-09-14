@@ -111,9 +111,7 @@ export function QuizResultPage() {
               <StyledBadge $tone="danger">{result.incorrectCount} erros</StyledBadge>
               <StyledBadge $tone="danger">{result.unansweredCount} não respondidas</StyledBadge>
               {result.selfReviewCount > 0 && (
-                <StyledBadge $tone="accent2">
-                  {result.selfReviewCount} para autoavaliar
-                </StyledBadge>
+                <StyledBadge $tone="accent2">{result.selfReviewCount} para autoavaliar</StyledBadge>
               )}
             </StyledBadgeRow>
 

@@ -48,17 +48,13 @@ export function QuizzesPage() {
       <AppHeader active="simulados" onLogout={handleLogout} />
 
       <StyledContent>
-        {quizzesQuery.isLoading && (
-          <StyledStateMessage>Carregando simulados…</StyledStateMessage>
-        )}
+        {quizzesQuery.isLoading && <StyledStateMessage>Carregando simulados…</StyledStateMessage>}
 
         {quizzesQuery.isError && (
           <StyledStateMessage>
             <p role="alert">
               Não foi possível carregar os simulados agora.{" "}
-              {quizzesQuery.error instanceof Error
-                ? quizzesQuery.error.message
-                : ""}
+              {quizzesQuery.error instanceof Error ? quizzesQuery.error.message : ""}
             </p>
             <Button variant="secondary" onClick={() => quizzesQuery.refetch()}>
               Tentar novamente
@@ -100,12 +96,8 @@ export function QuizzesPage() {
                     <StyledTableRow key={quiz.id}>
                       <StyledQuizTitle>{quiz.title}</StyledQuizTitle>
                       <td>
-                        <StyledSubjectBadge
-                          $integrated={quiz.subjectScope === "all"}
-                        >
-                          {quiz.subjectScope === "all"
-                            ? "Todas"
-                            : quiz.subjectName}
+                        <StyledSubjectBadge $integrated={quiz.subjectScope === "all"}>
+                          {quiz.subjectScope === "all" ? "Todas" : quiz.subjectName}
                         </StyledSubjectBadge>
                       </td>
                       <td>{quiz.questionCount}</td>

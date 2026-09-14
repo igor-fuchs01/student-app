@@ -24,15 +24,8 @@ import {
 
 export function QuizReviewPage() {
   const navigate = useNavigate();
-  const {
-    quiz,
-    answers,
-    markedForReview,
-    setCurrentIndex,
-    submit,
-    isSubmitting,
-    submitError,
-  } = useQuizAttemptContext();
+  const { quiz, answers, markedForReview, setCurrentIndex, submit, isSubmitting, submitError } =
+    useQuizAttemptContext();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   function isAnswered(questionId: string): boolean {
@@ -104,8 +97,8 @@ export function QuizReviewPage() {
           <StyledConfirmBody>
             {unansweredCount > 0 ? (
               <>
-                Você tem <strong>{unansweredCount} questões não respondidas</strong>. Elas
-                serão consideradas incorretas na correção. Esta ação não pode ser desfeita.
+                Você tem <strong>{unansweredCount} questões não respondidas</strong>. Elas serão
+                consideradas incorretas na correção. Esta ação não pode ser desfeita.
               </>
             ) : (
               <>Esta ação não pode ser desfeita.</>

@@ -128,8 +128,8 @@ export function RankingPage() {
                 ))}
               </StyledRankingList>
               <StyledPrivacyNote>
-                O ranking considera apenas consistência de estudo. Notas e desempenho acadêmico
-                são privados e não são exibidos a outros alunos.
+                O ranking considera apenas consistência de estudo. Notas e desempenho acadêmico são
+                privados e não são exibidos a outros alunos.
               </StyledPrivacyNote>
             </div>
           </StyledLayout>

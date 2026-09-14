@@ -153,7 +153,8 @@ const INTEGRATED_QUESTIONS: Question[] = [
     type: "essay_blanks",
     id: "q9",
     subjectName: "Banco de Dados",
-    prompt: "Complete a consulta SQL que busca o registro com id igual a 1 na tabela tabelaExemplo:",
+    prompt:
+      "Complete a consulta SQL que busca o registro com id igual a 1 na tabela tabelaExemplo:",
     template: "SELECT * {{b1}} tabelaExemplo {{b2}} id = 1;",
     blanks: [
       { id: "b1", referenceAnswer: "FROM" },
@@ -279,7 +280,9 @@ export function correctMockQuizAttempt(id: string, answers: QuizAnswer[]): QuizR
       const studentAnswer = answer?.text?.trim();
       if (!studentAnswer) {
         unansweredCount += 1;
-      } else if (normalizeAnswerText(studentAnswer) === normalizeAnswerText(question.referenceAnswer)) {
+      } else if (
+        normalizeAnswerText(studentAnswer) === normalizeAnswerText(question.referenceAnswer)
+      ) {
         correctCount += 1;
         const subjectTotal = subjectTotals.get(question.subjectName) ?? { correct: 0, total: 0 };
         subjectTotal.total += 1;
@@ -327,7 +330,8 @@ export function correctMockQuizAttempt(id: string, answers: QuizAnswer[]): QuizR
           status: "self_review",
           studentAnswer: fillTemplate((blankId) => blankAnswers[blankId] ?? "___"),
           referenceAnswer: fillTemplate(
-            (blankId) => question.blanks.find((blank) => blank.id === blankId)?.referenceAnswer ?? "___",
+            (blankId) =>
+              question.blanks.find((blank) => blank.id === blankId)?.referenceAnswer ?? "___",
           ),
         });
       }

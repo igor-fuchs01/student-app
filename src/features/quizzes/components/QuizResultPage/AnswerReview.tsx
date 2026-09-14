@@ -74,15 +74,19 @@ function BlankReview({ chosen, expected }: { chosen: string | undefined; expecte
   }
   return (
     <>
-      <StyledReviewBlank $tone="wrong">
-        {chosen ?? "sem resposta"}
-      </StyledReviewBlank>
+      <StyledReviewBlank $tone="wrong">{chosen ?? "sem resposta"}</StyledReviewBlank>
       <StyledReviewBlank $tone="correct">{expected}</StyledReviewBlank>
     </>
   );
 }
 
-function QuestionBody({ question, answer }: { question: Question; answer: QuizAnswer | undefined }) {
+function QuestionBody({
+  question,
+  answer,
+}: {
+  question: Question;
+  answer: QuizAnswer | undefined;
+}) {
   switch (question.type) {
     case "multiple_choice":
       return (
@@ -207,7 +211,9 @@ export function AnswerReview({ index, question, answer, status }: AnswerReviewPr
         <StyledReviewSubject>
           Questão {index + 1} · {question.subjectName}
         </StyledReviewSubject>
-        <StyledBadge $tone={QUESTION_STATUS_TONE[status]}>{QUESTION_STATUS_LABEL[status]}</StyledBadge>
+        <StyledBadge $tone={QUESTION_STATUS_TONE[status]}>
+          {QUESTION_STATUS_LABEL[status]}
+        </StyledBadge>
       </StyledReviewQuestionHeader>
       <QuestionBody question={question} answer={answer} />
     </StyledReviewCard>
