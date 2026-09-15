@@ -12,6 +12,7 @@ export default defineConfig({
       "@services": path.resolve(import.meta.dirname, "./src/services"),
       "@styles": path.resolve(import.meta.dirname, "./src/styles"),
       "@models": path.resolve(import.meta.dirname, "./src/types"),
+      "@utils": path.resolve(import.meta.dirname, "./src/utils"),
     },
   },
   server: {
