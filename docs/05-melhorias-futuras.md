@@ -5,7 +5,24 @@ Limitações identificadas em revisão de código e evoluções sugeridas pela e
 tratadas antes de o produto sair do MVP.
 
 Cada item descreve o problema, por que ele é aceitável hoje e uma proposta de solução.
-Ao implementar um item, remova-o daqui e atualize a documentação correspondente.
+Ao implementar um item, remova-o daqui e atualize a documentação correspondente. Os números
+dos itens são estáveis, porque outros documentos os referenciam: não renumere os demais.
+
+## Índice
+
+| # | Melhoria | Tipo | Depende de |
+|---|---|---|---|
+| 1 | [Persistência da tentativa e cronômetro no servidor](#1-persistência-da-tentativa-e-cronômetro-no-servidor) | Limitação técnica | Backend |
+| 2 | [Gabarito enviado ao navegador antes do envio](#2-gabarito-enviado-ao-navegador-antes-do-envio) | Segurança | Backend |
+| 3 | [Testes automatizados](#3-testes-automatizados) | Qualidade | — |
+| 4 | [Plano do dia do dashboard copiado para estado local](#4-plano-do-dia-do-dashboard-copiado-para-estado-local) | Limitação técnica | Backend |
+| 5 | [Correção de dissertativas no mock](#5-correção-de-dissertativas-no-mock) | Regra de negócio | Painel de correção |
+| 6 | [Questões classificadas por assunto](#6-questões-classificadas-por-assunto-para-diagnóstico-de-dificuldades) | Produto | Backend |
+| 7 | [Detalhe da disciplina com assuntos e resumos](#7-detalhe-da-disciplina-com-assuntos-e-resumos) | Produto | 6 |
+| 8 | [Ranking com gráficos e filtros](#8-ranking-com-gráficos-e-filtros) | Produto | Backend |
+| 9 | [Dashboards na tela de Início](#9-dashboards-na-tela-de-início) | Produto | 4, 6 |
+| 10 | [Logo e identidade da aplicação](#10-logo-e-identidade-da-aplicação) | Identidade visual | Nome do produto |
+| 11 | [Design e implementação para mobile](#11-design-e-implementação-para-mobile) | UX | 10 |
 
 ---
 
