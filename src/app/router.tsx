@@ -1,10 +1,12 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@app/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@app/routes/PublicOnlyRoute";
+import { RouteErrorPage } from "@app/routes/RouteErrorPage";
 
 export const router = createBrowserRouter([
   {
     element: <PublicOnlyRoute />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         path: "/login",
@@ -17,6 +19,7 @@ export const router = createBrowserRouter([
   },
   {
     element: <ProtectedRoute />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         path: "/",
