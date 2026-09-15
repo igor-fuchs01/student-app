@@ -144,7 +144,11 @@ export function QuizResultPage() {
                         </AnswerComparison>
                       ) : (
                         <>
-                          <StyledReviewToggle onClick={() => toggleReveal(item.questionId)}>
+                          <StyledReviewToggle
+                            type="button"
+                            aria-expanded={revealed.has(item.questionId)}
+                            onClick={() => toggleReveal(item.questionId)}
+                          >
                             {revealed.has(item.questionId)
                               ? "Ocultar gabarito comentado"
                               : "Ver gabarito comentado →"}
