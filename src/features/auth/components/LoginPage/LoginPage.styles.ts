@@ -36,18 +36,6 @@ export const StyledTitle = styled.h1`
   margin: 0 0 22px;
 `;
 
-export const StyledForgotPassword = styled.a`
-  display: inline-block;
-  font-size: 12px;
-  color: ${({ theme }) => theme.colors.accent600};
-  font-weight: 600;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 export const StyledSubmitButton = styled(Button)`
   width: 100%;
   display: block;

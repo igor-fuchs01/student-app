@@ -9,7 +9,6 @@ import {
   StyledFormCard,
   StyledBrand,
   StyledTitle,
-  StyledForgotPassword,
   StyledSubmitButton,
   StyledFormError,
   StyledHint,
@@ -46,7 +45,9 @@ export function LoginPage() {
       await login(result.data);
       navigate("/", { replace: true });
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Unknown Error");
+      setFormError(
+        err instanceof Error ? err.message : "Não foi possível entrar. Tente novamente.",
+      );
     }
   }
 
@@ -54,11 +55,11 @@ export function LoginPage() {
     <StyledPage>
       <StyledFormCard onSubmit={handleSubmit} noValidate>
         <StyledBrand>🎓 Student App</StyledBrand>
-        <StyledTitle>Bem-vinda de volta!</StyledTitle>
+        <StyledTitle>Que bom ter você de volta!</StyledTitle>
 
         <TextField
-          label="Login"
-          placeholder="Instituição e nome"
+          label="Matrícula ou e-mail"
+          placeholder="Matrícula ou e-mail institucional"
           autoComplete="username"
           value={identifier}
           onChange={(event) => {
@@ -85,8 +86,6 @@ export function LoginPage() {
         />
 
         {formError && <StyledFormError role="alert">{formError}</StyledFormError>}
-
-        <StyledForgotPassword href="#">Esqueci minha senha</StyledForgotPassword>
 
         <StyledSubmitButton type="submit" isLoading={isSubmitting}>
           Entrar
