@@ -118,6 +118,7 @@ function SingleChoiceField({ question, answer, onChange }: FieldProps<SingleChoi
           return (
             <StyledDropdown
               key={part.id}
+              aria-label={`Lacuna ${question.blanks.indexOf(blank) + 1}`}
               value={blankAnswers[part.id] ?? ""}
               onChange={(event) => handleSelect(part.id, event)}
               $answered={Boolean(blankAnswers[part.id])}
@@ -189,11 +190,13 @@ function DragAndDropField({ question, answer, onChange }: FieldProps<DragAndDrop
 
           const filledTermId = slotAnswers[part.id];
           const filledTerm = question.terms.find((term) => term.id === filledTermId);
+          const slotNumber = question.slots.findIndex((slot) => slot.id === part.id) + 1;
 
           return (
             <StyledSlot
               key={part.id}
               type="button"
+              aria-label={`Lacuna ${slotNumber}: ${filledTerm ? filledTerm.text : "vazia"}`}
               $filled={Boolean(filledTerm)}
               onClick={() => handleSlotClick(part.id)}
               onDragOver={(event) => event.preventDefault()}
@@ -255,7 +258,7 @@ function EssayBlanksField({ question, answer, onChange }: FieldProps<EssayBlanks
               key={part.id}
               value={blankAnswers[part.id] ?? ""}
               placeholder="_____"
-              aria-label={`Lacuna ${part.id}`}
+              aria-label={`Lacuna ${question.blanks.findIndex((blank) => blank.id === part.id) + 1}`}
               $answered={Boolean(blankAnswers[part.id]?.trim())}
               onChange={(event) => handleInput(part.id, event.target.value)}
             />
@@ -284,6 +287,7 @@ export function QuestionField({ question, answer, onChange }: QuestionFieldProps
           <StyledSubjectTag>{question.subjectName}</StyledSubjectTag>
           <StyledPrompt>{question.prompt}</StyledPrompt>
           <StyledTextarea
+            aria-label="Sua resposta"
             value={answer?.text ?? ""}
             maxLength={question.maxLength}
             placeholder="Digite sua resposta aqui..."
