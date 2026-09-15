@@ -7,6 +7,7 @@ import { PageLayout } from "@components/layout/PageLayout";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import { quizzesApi } from "@services/api/quizzesApi";
 import type { QuizDifficulty, QuizSummary } from "@models/quizzes";
+import { formatCount } from "@utils/formatCount";
 import {
   StyledPageTitle,
   StyledPageSubtitle,
@@ -91,7 +92,7 @@ export function QuizzesPage() {
                     </td>
                     <td>{quiz.questionCount}</td>
                     <td>{quiz.durationMinutes} min</td>
-                    <td>{quiz.attemptsRemaining} restantes</td>
+                    <td>{formatCount(quiz.attemptsRemaining, "restante", "restantes")}</td>
                     <td>{DIFFICULTY_LABEL[quiz.difficulty]}</td>
                     <td>
                       <Button
