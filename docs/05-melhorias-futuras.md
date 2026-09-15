@@ -1,7 +1,8 @@
 # Melhorias Futuras
 
-Pontos identificados em revisão de código que foram **conscientemente aceitos para o MVP**.
-Não são bugs a corrigir agora, mas devem ser tratados antes de o produto sair do MVP.
+Limitações identificadas em revisão de código e evoluções sugeridas pela equipe que foram
+**conscientemente deixadas para depois do MVP**. Não são bugs a corrigir agora, mas devem ser
+tratadas antes de o produto sair do MVP.
 
 Cada item descreve o problema, por que ele é aceitável hoje e uma proposta de solução.
 Ao implementar um item, remova-o daqui e atualize a documentação correspondente.
@@ -115,3 +116,81 @@ MVP, e a seção 6 usa o estado `pending_review`, não `self_review`.
 2. Alinhar o nome do estado entre documentação, schema (`src/types/quizzes.ts`) e UI.
 3. A tela de resultado continua mostrando o resultado parcial das objetivas enquanto houver
    dissertativas pendentes.
+
+---
+
+## 6. Questões classificadas por assunto para diagnóstico de dificuldades
+
+**Problema.** Hoje cada questão só informa a disciplina (`subjectName` em
+`src/types/quizzes.ts`). Com isso, o resultado do simulado mostra o desempenho por
+**disciplina** ("Banco de Dados: 50%"), mas não diz **quais conceitos** o aluno está errando
+dentro dela. Um aluno que acerta SQL e erra Normalização vê apenas um percentual médio, sem
+saber o que estudar.
+
+Há ainda uma inconsistência na UI: a seção da tela de resultado se chama "Desempenho por
+assunto", mas os dados exibidos são por disciplina.
+
+**Por que é aceitável no MVP.** O banco de questões ainda é pequeno e curado manualmente, e o
+desempenho por disciplina já permite validar o fluxo de simulado → resultado.
+
+**Conflita com.** [`02-regras-de-negocio.md`](02-regras-de-negocio.md): a seção 1 exige que toda
+questão esteja amarrada a uma disciplina **e a um assunto**; a seção 8 define o desempenho por
+disciplina, assunto e subassunto; e a seção 9 prioriza recomendações pelos assuntos com baixo
+desempenho. Também é o que responde à pergunta central do produto
+([`01-visao-do-produto.md`](01-visao-do-produto.md)): *"O que você aprendeu e o que ainda
+precisa estudar?"*
+
+**Proposta.**
+
+1. **Modelo de dados.** Cadastrar os assuntos (e, opcionalmente, subassuntos) de cada disciplina,
+   cada um com `id` estável e nome de exibição. Cada questão passa a referenciar um ou mais
+   assuntos. Exemplo em Banco de Dados: "Modelagem ER", "Normalização", "SQL básico",
+   "Índices".
+2. **Contrato da questão** (mudança aditiva, compatível segundo
+   [`04-contratos-de-api.md`](04-contratos-de-api.md), seção 1.4). Adicionar a `Question`:
+
+   ```json
+   {
+     "topics": [{ "id": "normalization", "name": "Normalização" }]
+   }
+   ```
+
+3. **Contrato do resultado** (também aditivo). Adicionar a `QuizResult` o desempenho por
+   assunto, agrupável por disciplina, e o assunto em cada item de revisão:
+
+   ```json
+   {
+     "topicPerformance": [
+       {
+         "subjectName": "Banco de Dados",
+         "topicId": "normalization",
+         "topicName": "Normalização",
+         "correct": 1,
+         "total": 3,
+         "percent": 33
+       }
+     ]
+   }
+   ```
+
+   `QuizReviewItem` ganha `topics` com os mesmos objetos da questão.
+4. **Regras de cálculo** (seguem as já usadas em `subjectPerformance`):
+   - questões `self_review` ficam fora do cálculo; não respondidas entram no denominador;
+   - uma questão com vários assuntos conta em cada um deles;
+   - enviar `correct` e `total` junto do percentual, para a UI não apresentar como
+     dificuldade um assunto avaliado por uma única questão (ex.: exibir "poucas questões" quando
+     `total < 3`).
+5. **Tela de resultado.**
+   - Renomear a seção atual para "Desempenho por disciplina" e, abaixo de cada disciplina,
+     listar os assuntos com barra de progresso e a contagem ("1 de 3 acertos").
+   - Destacar os assuntos com menor desempenho em um bloco "O que revisar primeiro", com link
+     para os materiais do assunto quando a feature de materiais existir.
+   - Mostrar o assunto nos cards de "Questões para revisar" e na revisão da prova.
+6. **Dashboard e recomendações.** O histórico de desempenho por assunto alimenta
+   `nextExam.priorities` (que já usa `topicName`) e as recomendações da seção 9 de
+   [`02-regras-de-negocio.md`](02-regras-de-negocio.md), substituindo os valores fixos do mock.
+7. **Mock e documentação.** Classificar as questões de `src/services/api/mocks/quizzes.ts` por
+   assunto, calcular `topicPerformance` em `correctMockQuizAttempt` e documentar os novos
+   campos em [`04-contratos-de-api.md`](04-contratos-de-api.md).
+8. **Privacidade.** O desempenho por assunto é dado acadêmico privado: nunca aparece no ranking
+   nem para outros alunos ([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11).
