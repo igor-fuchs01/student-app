@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { subjectsApi } from "@services/api/subjectsApi";
+import { formatCount } from "@utils/formatCount";
 import {
   StyledPageTitle,
   StyledPageSubtitle,
@@ -47,7 +48,8 @@ export function SubjectsPage() {
                 <StyledInitial $accent2={index % 2 === 0}>{subject.shortLabel}</StyledInitial>
                 <StyledSubjectName>{subject.name}</StyledSubjectName>
                 <StyledSubjectMeta>
-                  {subject.materialsCount} materiais · {subject.questionsCount} questões
+                  {formatCount(subject.materialsCount, "material", "materiais")} ·{" "}
+                  {formatCount(subject.questionsCount, "questão", "questões")}
                 </StyledSubjectMeta>
                 <StyledSubjectPreparation>
                   Preparo: {subject.preparationPercent}%
@@ -60,7 +62,9 @@ export function SubjectsPage() {
               <StyledIntegratedEyebrow>Simulado integrado</StyledIntegratedEyebrow>
               <StyledIntegratedTitle>Todas as disciplinas</StyledIntegratedTitle>
               <StyledIntegratedDescription>
-                Questões combinadas das 5 disciplinas em uma única prova.
+                Questões combinadas das{" "}
+                {formatCount(subjectsQuery.data.length, "disciplina", "disciplinas")} em uma única
+                prova.
               </StyledIntegratedDescription>
             </StyledIntegratedCard>
           </StyledGrid>
