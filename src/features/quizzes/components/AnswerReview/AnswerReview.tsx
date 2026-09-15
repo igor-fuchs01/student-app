@@ -63,14 +63,20 @@ function OptionsReview({
   );
 }
 
-function BlankReview({ chosen, expected }: { chosen: string | undefined; expected: string }) {
-  if (chosen === expected) {
-    return <StyledReviewBlank $tone="correct">{chosen}</StyledReviewBlank>;
+function BlankReview({
+  chosen,
+  expected,
+}: {
+  chosen: QuestionOption | undefined;
+  expected: QuestionOption | undefined;
+}) {
+  if (chosen && chosen.id === expected?.id) {
+    return <StyledReviewBlank $tone="correct">{chosen.text}</StyledReviewBlank>;
   }
   return (
     <>
-      <StyledReviewBlank $tone="wrong">{chosen ?? "sem resposta"}</StyledReviewBlank>
-      <StyledReviewBlank $tone="correct">{expected}</StyledReviewBlank>
+      <StyledReviewBlank $tone="wrong">{chosen?.text ?? "sem resposta"}</StyledReviewBlank>
+      <StyledReviewBlank $tone="correct">{expected?.text}</StyledReviewBlank>
     </>
   );
 }
@@ -115,13 +121,13 @@ function QuestionBody({
               if (part.kind === "text") return <span key={index}>{part.value}</span>;
               const blank = question.blanks.find((b) => b.id === part.id);
               if (!blank) return null;
-              const textOf = (optionId: string | undefined) =>
-                blank.options.find((option) => option.id === optionId)?.text;
+              const optionOf = (optionId: string | undefined) =>
+                blank.options.find((option) => option.id === optionId);
               return (
                 <BlankReview
                   key={part.id}
-                  chosen={textOf(answer?.blankAnswers?.[part.id])}
-                  expected={textOf(blank.correctOptionId) ?? ""}
+                  chosen={optionOf(answer?.blankAnswers?.[part.id])}
+                  expected={optionOf(blank.correctOptionId)}
                 />
               );
             })}
@@ -137,13 +143,13 @@ function QuestionBody({
               if (part.kind === "text") return <span key={index}>{part.value}</span>;
               const slot = question.slots.find((s) => s.id === part.id);
               if (!slot) return null;
-              const textOf = (termId: string | undefined) =>
-                question.terms.find((term) => term.id === termId)?.text;
+              const termOf = (termId: string | undefined) =>
+                question.terms.find((term) => term.id === termId);
               return (
                 <BlankReview
                   key={part.id}
-                  chosen={textOf(answer?.slotAnswers?.[part.id])}
-                  expected={textOf(slot.correctTermId) ?? ""}
+                  chosen={termOf(answer?.slotAnswers?.[part.id])}
+                  expected={termOf(slot.correctTermId)}
                 />
               );
             })}
