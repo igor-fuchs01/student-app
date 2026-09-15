@@ -7,49 +7,58 @@
 
 ## Estrutura de pastas
 
-Organização por *feature*, não por tipo de arquivo:
+Organização por *feature*, não por tipo de arquivo. Estrutura atual:
 
 ```text
 src/
 ├── app/
-│   ├── router/
-│   ├── providers/
-│   └── config/
-├── assets/
+│   ├── providers/     # QueryProvider (TanStack Query)
+│   ├── routes/        # ProtectedRoute, PublicOnlyRoute, RouteErrorPage
+│   └── router.tsx     # definição das rotas (data router)
 ├── components/
-│   ├── ui/            # componentes base, sem regra de negócio
-│   └── shared/        # componentes compostos reutilizáveis
+│   ├── layout/        # AppHeader, PageLayout (header + conteúdo da página)
+│   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, Modal, ...)
 ├── features/
-│   ├── auth/
+│   ├── auth/          # login, store de sessão (Zustand), useLogout
 │   ├── dashboard/
-│   ├── subjects/
-│   ├── materials/
-│   ├── study/
-│   ├── questions/
-│   ├── quizzes/
-│   ├── attempts/
-│   ├── performance/
-│   ├── recommendations/
-│   ├── gamification/
-│   └── profile/
-├── hooks/
-├── layouts/
-├── pages/
+│   ├── quizzes/       # lista, tentativa, revisão e resultado de simulados
+│   ├── ranking/
+│   └── subjects/
 ├── services/
-│   ├── api/
-│   ├── auth/
-│   └── storage/
-├── store/
-├── types/
-├── utils/
-└── App.tsx
+│   ├── api/           # httpClient, módulos *Api, endpoints, erros e mocks/
+│   └── storage/       # tokenStorage e quizAttemptStorage (localStorage)
+├── styles/            # theme e GlobalStyle
+├── types/             # schemas zod e tipos inferidos (alias @models)
+├── utils/             # utilitários genéricos, sem regra de negócio
+├── App.tsx
+└── main.tsx
 ```
+
+Features planejadas, criadas em `features/` conforme forem implementadas: `materials`, `study`,
+`questions`, `attempts`, `performance`, `recommendations`, `gamification` e `profile`.
+
+Dentro de uma feature, cada componente fica em sua própria pasta (`Componente.tsx`,
+`Componente.styles.ts` e `index.ts`), hooks ficam em `hooks/` e funções puras da feature ficam
+na raiz da feature (ex.: `features/quizzes/isQuestionAnswered.ts`).
+
+Imports entre pastas usam os aliases `@app`, `@components`, `@features`, `@services`, `@styles`,
+`@models` (para `src/types`) e `@utils`.
 
 ### Por que assim
 
 O risco natural deste produto é que **toda a lógica acabe concentrada na feature de simulados**. As features de `performance`, `recommendations` e `gamification` são partes centrais do produto e precisam existir como domínios próprios, com suas próprias regras, não como abas dentro do simulado.
 
-`questions/` (o motor de renderização e resposta de questões) deve ser independente de `quizzes/` e `attempts/` — uma questão pode ser praticada fora de um simulado.
+`questions/` (o motor de renderização e resposta de questões) deve ser independente de `quizzes/` e `attempts/` — uma questão pode ser praticada fora de um simulado. Hoje esse motor (`QuestionField`) ainda vive em `features/quizzes/` e deve ser extraído para `features/questions/` quando surgir a prática de questões fora de simulados.
+
+---
+
+## Roteamento
+
+- As rotas ficam em `src/app/router.tsx`, com `createBrowserRouter`.
+- `ProtectedRoute` e `PublicOnlyRoute` são rotas de layout: decidem, pelo `status` da store de
+  autenticação, se renderizam as rotas filhas (`<Outlet />`) ou redirecionam.
+- Cada página é carregada sob demanda (`lazy`), gerando um chunk por rota.
+- Erros de renderização ou de carregamento de uma rota exibem `RouteErrorPage`.
 
 ---
 
@@ -84,8 +93,11 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
 `services/` é isolado da UI:
 
 - `services/api/` — clientes HTTP e DTOs;
-- `services/auth/` — sessão, tokens, refresh;
-- `services/storage/` — IndexedDB / localStorage para persistência de tentativas.
+- `services/storage/` — localStorage para sessão (`tokenStorage`) e resultados de tentativas
+  (`quizAttemptStorage`, com chave por aluno). IndexedDB pode ser adotado quando a persistência
+  durante a tentativa for implementada.
+
+Refresh de token ainda não existe; quando existir, deve ficar em `services/`.
 
 Componentes não fazem chamadas HTTP diretamente. A separação entre apresentação e lógica é obrigatória.
 
@@ -102,6 +114,9 @@ Estratégia:
 3. A UI indica claramente respostas ainda não sincronizadas;
 4. Ao reabrir uma tentativa, o estado local é reconciliado com o servidor;
 5. Envios devem ser idempotentes para evitar duplicação de respostas.
+
+> Estado atual: as respostas ficam só em memória até o envio. Essa limitação foi aceita para o
+> MVP; a proposta de implementação está em [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 1.
 
 ---
 
