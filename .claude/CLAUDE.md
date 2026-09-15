@@ -126,6 +126,9 @@ After finishing any task execute:
 - docs: documentation
 * Use `git add -p` or `git add <file>` for selective staging
 * Make one commit per group using conventional commits
+* Always prefer small commits: split each group into the smallest meaningful units
+  (one component, one fix, one config change, one doc topic), and make sure every
+  commit builds and passes lint on its own
 * Never mix, for example feat + fix in the same commit
 * Never add Co-Authored-By lines to commit messages
 * Never push without prior authorization
