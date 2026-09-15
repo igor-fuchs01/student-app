@@ -292,3 +292,38 @@ estudados. "Questões realizadas" conta questões **respondidas**, nunca acertos
    - Mostrar os primeiros colocados e a posição do próprio aluno, em vez de expor a lista inteira
      com alunos sem atividade.
    - Os gráficos precisam de alternativa textual (tabela ou `aria-label` com os valores).
+
+---
+
+## 9. Dashboards na tela de Início
+
+**Situação atual.** A tela de Início mostra a próxima prova (com prioridades), o plano do dia e
+três cards de resumo com textos prontos enviados pelo servidor (ex.: "5 matérias"). Não há
+gráficos nem evolução ao longo do tempo.
+
+**Objetivo.** Transformar a Início em um painel que responda *"o que eu devo estudar hoje e como
+estou evoluindo?"*, seguindo o histórico definido em
+[`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 10, com gráficos simples e legíveis.
+
+**Por que fica para depois do MVP.** Os dados de evolução dependem do histórico de tentativas no
+backend, do plano do dia persistido (item 4) e do desempenho por assunto (item 6).
+
+**Proposta.**
+
+1. **Widgets, em ordem de prioridade.**
+   1. **O que revisar agora:** os 3 assuntos com menor desempenho recente (item 6), com acesso
+      direto ao detalhe do assunto (item 7).
+   2. **Evolução de desempenho:** percentual de acerto por semana nas últimas semanas, geral e
+      por disciplina.
+   3. **Questões erradas recentemente:** lista curta com link para rever cada questão.
+   4. **Constância:** sequência atual e meta semanal (hoje só na tela de Ranking).
+2. **Contrato.** Estender `GET /dashboard` de forma aditiva com dados **numéricos**
+   (ex.: `weeklyPerformance: [{ weekStart, percent }]`), porque os `summaryCards` atuais trazem
+   textos prontos que não servem para gráficos. Os campos atuais continuam existindo durante a
+   transição.
+3. **Estados vazios.** Um aluno novo, sem tentativas, vê um convite para fazer o primeiro
+   simulado em vez de gráficos zerados.
+4. **Gráficos.** Usar o mesmo componente de gráfico do item 8, sempre com valores também em
+   texto.
+5. **Validação.** Antes de implementar, prototipar com a equipe quais widgets realmente mudam o
+   que o aluno faz e manter no máximo 4 ou 5 na tela, para não virar um painel poluído.
