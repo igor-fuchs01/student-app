@@ -49,7 +49,7 @@ export function StartQuizModal({
           <StyledOptionText>
             Com tempo limite ({durationMinutes} min)
             <StyledOptionHint>
-              Ao acabar o tempo, o simulado é enviado automaticamente para a revisão.
+              Ao acabar o tempo, suas respostas são enviadas automaticamente.
             </StyledOptionHint>
           </StyledOptionText>
         </StyledOptionLabel>

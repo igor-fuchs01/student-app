@@ -12,6 +12,7 @@ import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import {
   StyledTitle,
   StyledSubtitle,
+  StyledTimeUpNotice,
   StyledCountRow,
   StyledFooter,
   StyledConfirmTitle,
@@ -28,8 +29,16 @@ const LEGEND: QuestionGridLegendItem[] = [
 
 export function QuizReviewPage() {
   const navigate = useNavigate();
-  const { quiz, answers, markedForReview, setCurrentIndex, submit, isSubmitting, submitError } =
-    useQuizAttemptContext();
+  const {
+    quiz,
+    answers,
+    markedForReview,
+    setCurrentIndex,
+    submit,
+    isSubmitting,
+    submitError,
+    isTimeUp,
+  } = useQuizAttemptContext();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const answeredIds = new Set(
@@ -44,8 +53,26 @@ export function QuizReviewPage() {
 
   return (
     <>
-      <StyledTitle>Revisar antes de enviar</StyledTitle>
+      <StyledTitle>{isTimeUp ? "Tempo esgotado" : "Revisar antes de enviar"}</StyledTitle>
       <StyledSubtitle>{quiz.title}</StyledSubtitle>
+
+      {isTimeUp && (
+        <StyledTimeUpNotice>
+          <p role="status">
+            {submitError
+              ? "O tempo acabou, mas não foi possível enviar suas respostas."
+              : "O tempo acabou. Enviando suas respostas…"}
+          </p>
+          {submitError && (
+            <>
+              <StyledErrorMessage role="alert">{submitError}</StyledErrorMessage>
+              <Button variant="primary" onClick={submit} isLoading={isSubmitting}>
+                Tentar enviar novamente
+              </Button>
+            </>
+          )}
+        </StyledTimeUpNotice>
+      )}
 
       <StyledCountRow>
         <Badge tone="neutral">{answeredIds.size} respondidas</Badge>
@@ -61,19 +88,21 @@ export function QuizReviewPage() {
           marked: markedForReview.has(q.id),
         }))}
         legend={LEGEND}
-        onSelect={goToQuestion}
+        onSelect={isTimeUp ? undefined : goToQuestion}
       />
 
-      <StyledFooter>
-        <Button variant="secondary" onClick={() => navigate(`/simulados/${quiz.id}`)}>
-          Voltar a responder
-        </Button>
-        <Button variant="primary" onClick={() => setConfirmOpen(true)}>
-          Enviar simulado
-        </Button>
-      </StyledFooter>
+      {!isTimeUp && (
+        <StyledFooter>
+          <Button variant="secondary" onClick={() => navigate(`/simulados/${quiz.id}`)}>
+            Voltar a responder
+          </Button>
+          <Button variant="primary" onClick={() => setConfirmOpen(true)}>
+            Enviar simulado
+          </Button>
+        </StyledFooter>
+      )}
 
-      {confirmOpen && (
+      {confirmOpen && !isTimeUp && (
         <Modal ariaLabel="Confirmar envio do simulado">
           <StyledConfirmTitle>Enviar simulado?</StyledConfirmTitle>
           <StyledConfirmBody>

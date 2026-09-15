@@ -12,6 +12,7 @@ export type QuizAttemptContextValue = {
   timeLimitEnabled: boolean;
   remainingSeconds: number;
   elapsedSeconds: number;
+  isTimeUp: boolean;
   showTimer: boolean;
   toggleShowTimer: () => void;
   isSubmitting: boolean;

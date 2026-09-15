@@ -26,7 +26,7 @@ export type QuestionGridLegendItem = {
 type QuestionGridProps = {
   tiles: QuestionGridTile[];
   legend: QuestionGridLegendItem[];
-  onSelect: (index: number) => void;
+  onSelect?: (index: number) => void;
   variant?: QuestionGridVariant;
 };
 
@@ -50,7 +50,8 @@ export function QuestionGrid({ tiles, legend, onSelect, variant = "compact" }: Q
             $current={Boolean(tile.current)}
             aria-label={`Questão ${index + 1}: ${TONE_LABEL[tile.tone]}${tile.marked ? ", marcada para revisão" : ""}`}
             aria-current={tile.current ? "step" : undefined}
-            onClick={() => onSelect(index)}
+            disabled={!onSelect}
+            onClick={() => onSelect?.(index)}
           >
             {index + 1}
           </StyledTile>

@@ -35,6 +35,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     queryKey: ["quiz", quizId],
     queryFn: ({ signal }) => quizzesApi.getQuiz(quizId, signal),
   });
+  const quiz = quizQuery.data;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, QuizAnswer>>({});
@@ -48,12 +49,16 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     () => readTimeLimitChoice(location.state) ?? true,
   );
   const [showTimer, setShowTimer] = useState(true);
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const autoSubmittedRef = useRef(false);
 
-  const inProgress = hasStarted && !isFinished && Boolean(quizQuery.data);
+  const inProgress = hasStarted && !isFinished && Boolean(quiz);
   const attemptBasePath = `/simulados/${quizId}`;
+
+  const elapsedSeconds = startedAt === null ? 0 : Math.max(0, Math.floor((now - startedAt) / 1000));
+  const remainingSeconds = Math.max(0, (quiz?.durationMinutes ?? 0) * 60 - elapsedSeconds);
+  const isTimeUp = timeLimitEnabled && startedAt !== null && remainingSeconds === 0;
 
   const blocker = useBlocker(
     ({ nextLocation }) =>
@@ -86,55 +91,42 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   }, [inProgress]);
 
   useEffect(() => {
-    if (quizQuery.data) {
-      const totalSeconds = quizQuery.data.durationMinutes * 60;
-      setRemainingSeconds((current) => current ?? totalSeconds);
+    if (hasStarted && quiz && startedAt === null) {
+      setStartedAt(Date.now());
     }
-  }, [quizQuery.data]);
+  }, [hasStarted, quiz, startedAt]);
 
   useEffect(() => {
-    if (!hasStarted || isFinished) return;
+    if (startedAt === null || isFinished) return;
 
-    const interval = setInterval(() => {
-      if (timeLimitEnabled) {
-        setRemainingSeconds((current) => (current === null ? current : Math.max(0, current - 1)));
-      } else {
-        setElapsedSeconds((current) => current + 1);
-      }
-    }, 1000);
-
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, [hasStarted, isFinished, timeLimitEnabled]);
+  }, [startedAt, isFinished]);
 
-  useEffect(() => {
-    if (
-      hasStarted &&
-      timeLimitEnabled &&
-      !isFinished &&
-      remainingSeconds === 0 &&
-      !autoSubmittedRef.current
-    ) {
-      autoSubmittedRef.current = true;
-      navigate(`${attemptBasePath}/revisao`);
-    }
-  }, [hasStarted, timeLimitEnabled, isFinished, remainingSeconds, navigate, attemptBasePath]);
-
-  const submitMutation = useMutation({
+  const {
+    mutate: submitAttempt,
+    isPending: isSubmitting,
+    error: submitError,
+  } = useMutation({
     mutationFn: () => quizzesApi.submitQuizAttempt(quizId, Object.values(answers)),
     onSuccess: (result) => {
-      if (quizQuery.data && userId) {
-        quizAttemptStorage.save(userId, {
-          quiz: quizQuery.data,
-          answers: Object.values(answers),
-          result,
-        });
+      if (quiz && userId) {
+        quizAttemptStorage.save(userId, { quiz, answers: Object.values(answers), result });
       }
       setIsFinished(true);
       navigate(`${attemptBasePath}/resultado`);
     },
   });
 
+  useEffect(() => {
+    if (!isTimeUp || isFinished || autoSubmittedRef.current) return;
+
+    autoSubmittedRef.current = true;
+    submitAttempt();
+  }, [isTimeUp, isFinished, submitAttempt]);
+
   function setAnswer(questionId: string, patch: Omit<QuizAnswer, "questionId">) {
+    if (isTimeUp) return;
     setAnswers((current) => ({ ...current, [questionId]: { questionId, ...patch } }));
   }
 
@@ -147,9 +139,9 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     setHasStarted(true);
   }
 
-  const contextValue: QuizAttemptContextValue | null = quizQuery.data
+  const contextValue: QuizAttemptContextValue | null = quiz
     ? {
-        quiz: quizQuery.data,
+        quiz,
         currentIndex,
         setCurrentIndex,
         answers,
@@ -157,17 +149,14 @@ function QuizAttempt({ quizId }: { quizId: string }) {
         markedForReview,
         toggleMarkedForReview,
         timeLimitEnabled,
-        remainingSeconds: remainingSeconds ?? 0,
+        remainingSeconds,
         elapsedSeconds,
+        isTimeUp,
         showTimer,
         toggleShowTimer: () => setShowTimer((current) => !current),
-        isSubmitting: submitMutation.isPending,
-        submitError: submitMutation.isError
-          ? submitMutation.error instanceof Error
-            ? submitMutation.error.message
-            : "Não foi possível enviar o simulado."
-          : null,
-        submit: () => submitMutation.mutate(),
+        isSubmitting,
+        submitError: submitError?.message ?? null,
+        submit: () => submitAttempt(),
       }
     : null;
 

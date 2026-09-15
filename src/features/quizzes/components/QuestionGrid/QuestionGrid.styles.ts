@@ -92,6 +92,10 @@ export const StyledTile = styled.button<TileStateProps & { $variant: QuestionGri
   font-weight: 700;
   cursor: pointer;
 
+  &:disabled {
+    cursor: default;
+  }
+
   ${tileStateStyles}
 
   ${({ theme, $current }) =>

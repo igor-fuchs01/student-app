@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@components/ui/Button";
 import { QuestionField } from "@features/quizzes/components/QuestionField";
 import {
@@ -51,7 +51,12 @@ export function QuizAnsweringPage() {
     elapsedSeconds,
     showTimer,
     toggleShowTimer,
+    isTimeUp,
   } = useQuizAttemptContext();
+
+  if (isTimeUp) {
+    return <Navigate to={`/simulados/${quiz.id}/revisao`} replace />;
+  }
 
   const question = quiz.questions[currentIndex];
   const isLast = currentIndex === quiz.questions.length - 1;

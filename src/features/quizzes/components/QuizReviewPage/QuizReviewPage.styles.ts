@@ -13,6 +13,24 @@ export const StyledSubtitle = styled.p`
   margin: 0 0 20px;
 `;
 
+export const StyledTimeUpNotice = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border-radius: ${({ theme }) => theme.radii.md};
+  background: ${({ theme }) => theme.colors.accent2100};
+  color: ${({ theme }) => theme.colors.accent2600};
+  font-size: 13.5px;
+  font-weight: 600;
+
+  p {
+    margin: 0;
+  }
+`;
+
 export const StyledCountRow = styled.div`
   display: flex;
   gap: 10px;
