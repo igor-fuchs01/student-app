@@ -42,7 +42,9 @@ export function AppHeader({ active, streakDays, logoutConfirmation }: AppHeaderP
         <StyledNav aria-label="Navegação principal">
           {NAV_ITEMS.map((item) =>
             item.key === active ? (
-              <StyledNavLinkActive key={item.key}>{item.label}</StyledNavLinkActive>
+              <StyledNavLinkActive key={item.key} aria-current="page">
+                {item.label}
+              </StyledNavLinkActive>
             ) : (
               <StyledNavLink key={item.key} to={item.to}>
                 {item.label}
