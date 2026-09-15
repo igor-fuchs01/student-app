@@ -4,6 +4,7 @@ import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { rankingApi } from "@services/api/rankingApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
+import { formatCount } from "@utils/formatCount";
 import {
   StyledLayout,
   StyledProfileCard,
@@ -65,7 +66,9 @@ export function RankingPage() {
             <StyledDivider />
 
             <StyledMutedLabel>Sequência atual</StyledMutedLabel>
-            <StyledStreak>🔥 {rankingQuery.data.profile.streakDays} dias</StyledStreak>
+            <StyledStreak>
+              🔥 {formatCount(rankingQuery.data.profile.streakDays, "dia", "dias")}
+            </StyledStreak>
 
             <StyledMutedLabel>
               Meta semanal — {rankingQuery.data.profile.weeklyGoalCompleted}/
@@ -110,7 +113,7 @@ export function RankingPage() {
                     {entry.isCurrentUser && <StyledYouBadge>Você</StyledYouBadge>}
                   </span>
                   <StyledStreakDays $current={entry.isCurrentUser}>
-                    {entry.streakDays} dias
+                    {formatCount(entry.streakDays, "dia", "dias")}
                   </StyledStreakDays>
                 </StyledRankingRow>
               ))}

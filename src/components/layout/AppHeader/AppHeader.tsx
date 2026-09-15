@@ -1,6 +1,7 @@
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { useLogout } from "@features/auth/hooks/useLogout";
+import { formatCount } from "@utils/formatCount";
 import {
   StyledHeader,
   StyledHeaderInner,
@@ -50,7 +51,9 @@ export function AppHeader({ active, streakDays, logoutConfirmation }: AppHeaderP
           )}
         </StyledNav>
         <StyledHeaderActions>
-          {streakDays !== undefined && <Badge tone="accent2">🔥 {streakDays} dias de estudo</Badge>}
+          {streakDays !== undefined && (
+            <Badge tone="accent2">🔥 {formatCount(streakDays, "dia", "dias")} de estudo</Badge>
+          )}
           <Button variant="secondary" onClick={handleLogout}>
             Sair
           </Button>
