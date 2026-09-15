@@ -327,3 +327,33 @@ backend, do plano do dia persistido (item 4) e do desempenho por assunto (item 6
    texto.
 5. **Validação.** Antes de implementar, prototipar com a equipe quais widgets realmente mudam o
    que o aluno faz e manter no máximo 4 ou 5 na tela, para não virar um painel poluído.
+
+---
+
+## 10. Logo e identidade da aplicação
+
+**Situação atual.** A marca é o emoji "🎓" seguido de "Student App", repetida em dois lugares
+(`AppHeader` e `LoginPage`, cada um com seu próprio `StyledBrand`). O `index.html` não define
+favicon nem `theme-color`, e o título da aba é "Student App".
+
+**Objetivo.** Criar um logo próprio e aplicá-lo de forma consistente na aplicação.
+
+**Por que fica para depois do MVP.** Não afeta o funcionamento; depende de uma decisão de marca.
+
+**Proposta.**
+
+1. **Decidir o nome antes do logo.** "Student App" é genérico; vale definir se será o nome
+   final.
+2. **Briefing para o design.**
+   - Conceito: preparação, progresso e constância, alinhado a
+     [`01-visao-do-produto.md`](01-visao-do-produto.md).
+   - Cores a partir do tema atual (`accent` verde e `accent2` laranja em `src/styles/theme.ts`).
+   - Precisa ser legível em 16×16 px (favicon).
+   - Versões: símbolo, horizontal (símbolo e nome) e monocromática.
+3. **Entregáveis.** SVG do logo, `favicon.svg`, PNG de 32 px e de 180 px (atalho no iOS) e
+   imagem para compartilhamento em redes sociais.
+4. **Implementação.**
+   - Arquivos em `public/` (favicons) e `src/assets/` (logo usado nos componentes).
+   - Um único componente de marca em `src/components/layout/`, substituindo os dois
+     `StyledBrand` duplicados, com texto alternativo acessível.
+   - Atualizar o `index.html`: favicon, `theme-color` e título.
