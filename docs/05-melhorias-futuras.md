@@ -194,3 +194,55 @@ precisa estudar?"*
    campos em [`04-contratos-de-api.md`](04-contratos-de-api.md).
 8. **Privacidade.** O desempenho por assunto é dado acadêmico privado: nunca aparece no ranking
    nem para outros alunos ([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11).
+
+---
+
+## 7. Detalhe da disciplina com assuntos e resumos
+
+**Situação atual.** A tela de Disciplinas (`/disciplinas`) mostra um card por disciplina com
+quantidade de materiais, quantidade de questões e percentual de preparo. Os cards não são
+clicáveis e não existe tela de detalhe; o card do simulado integrado também não leva a lugar
+nenhum.
+
+**Objetivo.** Ao clicar em uma disciplina, o aluno vê os assuntos cobrados nela, cada um com um
+resumo curto, para relembrar o conteúdo antes de estudar ou fazer um simulado.
+
+**Por que fica para depois do MVP.** Depende da classificação das questões por assunto (item 6)
+e de conteúdo de resumo curado pela equipe, que ainda não existe.
+
+**Proposta.**
+
+1. **Rota e navegação.** Criar `/disciplinas/:subjectId`. Os cards da tela de Disciplinas viram
+   links (acessíveis por teclado), e o card do simulado integrado leva para o simulado.
+2. **Contrato.** Criar `GET /subjects/:id`, retornando a disciplina e seus assuntos:
+
+   ```json
+   {
+     "id": "banco-de-dados",
+     "name": "Banco de Dados",
+     "topics": [
+       {
+         "id": "normalization",
+         "name": "Normalização",
+         "summary": "Processo de organizar tabelas para reduzir redundância e anomalias.",
+         "keyPoints": ["1FN: valores atômicos", "2FN: sem dependências parciais", "3FN: sem dependências transitivas"],
+         "questionsCount": 18,
+         "materialsCount": 3,
+         "preparationPercent": 40
+       }
+     ]
+   }
+   ```
+
+   `summary` e `keyPoints` são texto simples, sem HTML ou Markdown, para não exigir um
+   renderizador de conteúdo rico nesta etapa.
+3. **Tela.** Cabeçalho com a disciplina e o preparo geral; lista de assuntos em cards
+   expansíveis com resumo, pontos-chave, preparo do aluno no assunto (item 6) e ações
+   "Praticar questões" e "Ver materiais" (quando as features `study` e `materials` existirem).
+   Ordenação padrão: assuntos com menor preparo primeiro.
+4. **Conteúdo.** Os resumos são curados pela equipe a partir dos materiais da disciplina
+   ([`01-visao-do-produto.md`](01-visao-do-produto.md)) e servem para revisão rápida: não
+   substituem o material completo. Deixar isso claro na UI.
+5. **Organização do código.** A tela fica em `features/subjects/`; se crescer para materiais e
+   estudo guiado, extrair para as features planejadas `materials` e `study`
+   ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)).
