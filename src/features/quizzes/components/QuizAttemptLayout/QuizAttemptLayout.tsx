@@ -11,6 +11,9 @@ import { quizzesApi } from "@services/api/quizzesApi";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import type { QuizAnswer } from "@models/quizzes";
 
+const LEAVE_ATTEMPT_MESSAGE =
+  "Você está no meio de um simulado. Se sair agora, as informações desta atividade serão perdidas. Deseja sair mesmo assim?";
+
 type StartNavigationState = { timeLimitEnabled?: boolean } | null | undefined;
 
 function readTimeLimitChoice(state: unknown): boolean | undefined {
@@ -63,10 +66,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   useEffect(() => {
     if (blocker.state !== "blocked") return;
 
-    const confirmed = window.confirm(
-      "Você está no meio de um simulado. Se sair agora, as informações desta atividade serão perdidas. Deseja sair mesmo assim?",
-    );
-    if (confirmed) {
+    if (window.confirm(LEAVE_ATTEMPT_MESSAGE)) {
       blocker.proceed();
     } else {
       blocker.reset();
@@ -172,7 +172,10 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     : null;
 
   return (
-    <PageLayout active="simulados">
+    <PageLayout
+      active="simulados"
+      logoutConfirmation={inProgress ? LEAVE_ATTEMPT_MESSAGE : undefined}
+    >
       {(quizQuery.isLoading || !contextValue) && !quizQuery.isError && (
         <StatusMessage message="Carregando simulado…" />
       )}

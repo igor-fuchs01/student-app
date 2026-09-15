@@ -16,6 +16,7 @@ export type ActiveNavKey = "inicio" | "disciplinas" | "simulados" | "ranking";
 type AppHeaderProps = {
   active: ActiveNavKey;
   streakDays?: number;
+  logoutConfirmation?: string;
 };
 
 const NAV_ITEMS: { key: ActiveNavKey; label: string; to: string }[] = [
@@ -25,8 +26,13 @@ const NAV_ITEMS: { key: ActiveNavKey; label: string; to: string }[] = [
   { key: "ranking", label: "Ranking", to: "/ranking" },
 ];
 
-export function AppHeader({ active, streakDays }: AppHeaderProps) {
-  const handleLogout = useLogout();
+export function AppHeader({ active, streakDays, logoutConfirmation }: AppHeaderProps) {
+  const logout = useLogout();
+
+  function handleLogout() {
+    if (logoutConfirmation && !window.confirm(logoutConfirmation)) return;
+    logout();
+  }
 
   return (
     <StyledHeader>
