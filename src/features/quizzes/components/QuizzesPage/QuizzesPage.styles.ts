@@ -59,7 +59,7 @@ export const StyledTableRow = styled.tr`
     background: ${({ theme }) => theme.colors.accent100};
   }
 
-  &:hover td:last-child button {
+  &:hover td:last-child button:not(:disabled) {
     background: ${({ theme }) => theme.colors.accent};
     color: #fff;
     border-color: transparent;

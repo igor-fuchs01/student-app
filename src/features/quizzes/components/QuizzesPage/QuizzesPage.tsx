@@ -94,7 +94,11 @@ export function QuizzesPage() {
                     <td>{quiz.attemptsRemaining} restantes</td>
                     <td>{DIFFICULTY_LABEL[quiz.difficulty]}</td>
                     <td>
-                      <Button variant="secondary" onClick={() => setStartModalQuiz(quiz)}>
+                      <Button
+                        variant="secondary"
+                        disabled={quiz.attemptsRemaining === 0}
+                        onClick={() => setStartModalQuiz(quiz)}
+                      >
                         Iniciar
                       </Button>
                     </td>
