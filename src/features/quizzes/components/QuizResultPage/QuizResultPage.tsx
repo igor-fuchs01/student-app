@@ -10,6 +10,7 @@ import { AnswerComparison } from "@features/quizzes/components/AnswerComparison"
 import { ExamReview } from "@features/quizzes/components/ExamReview";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
+import { formatCount } from "@utils/formatCount";
 import {
   StyledHeaderRow,
   StyledTitle,
@@ -89,9 +90,11 @@ export function QuizResultPage() {
       ) : (
         <>
           <StyledBadgeRow>
-            <Badge tone="accent">{result.correctCount} acertos</Badge>
-            <Badge tone="danger">{result.incorrectCount} erros</Badge>
-            <Badge tone="danger">{result.unansweredCount} não respondidas</Badge>
+            <Badge tone="accent">{formatCount(result.correctCount, "acerto", "acertos")}</Badge>
+            <Badge tone="danger">{formatCount(result.incorrectCount, "erro", "erros")}</Badge>
+            <Badge tone="danger">
+              {formatCount(result.unansweredCount, "não respondida", "não respondidas")}
+            </Badge>
             {result.selfReviewCount > 0 && (
               <Badge tone="accent2">{result.selfReviewCount} para autoavaliar</Badge>
             )}

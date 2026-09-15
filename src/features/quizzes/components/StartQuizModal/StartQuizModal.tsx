@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@components/ui/Button";
 import { Modal } from "@components/ui/Modal";
+import { formatCount } from "@utils/formatCount";
 import {
   StyledTitle,
   StyledBody,
@@ -32,8 +33,8 @@ export function StartQuizModal({
     <Modal ariaLabel="Pronto para começar o simulado?">
       <StyledTitle>Pronto para começar?</StyledTitle>
       <StyledBody>
-        Você está prestes a iniciar o simulado <strong>{quizTitle}</strong> ({questionCount}{" "}
-        questões).
+        Você está prestes a iniciar o simulado <strong>{quizTitle}</strong> (
+        {formatCount(questionCount, "questão", "questões")}).
         <br />
         Escolha o tipo do cronômetro:
       </StyledBody>
