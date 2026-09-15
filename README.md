@@ -8,15 +8,20 @@ Plataforma web educacional para ajudar estudantes a se prepararem para provas e 
 
 ## Como rodar
 
-Pré-requisitos: [Node.js](https://nodejs.org/) 18+ e npm.
+Pré-requisitos: [Node.js](https://nodejs.org/) 20.19+ (ou 22.12+) e npm.
 
 ```bash
 npm install
-npm run mock   # dados mockados no navegador (.env.mock) — sem backend
-npm run dev    # servidor de desenvolvimento (.env.development → VITE_API_BASE_URL)
-npm run build  # build de produção
-npm run lint   # ESLint
+npm run mock          # dados mockados no navegador (.env.mock) — sem backend
+npm run dev           # servidor de desenvolvimento (.env.development → VITE_API_BASE_URL)
+npm run build         # build de produção
+npm run lint          # ESLint
+npm run format        # formata o código com Prettier
+npm run format:check  # verifica a formatação (usado na CI)
 ```
+
+A CI (`.github/workflows/ci.yml`) roda lint, verificação de formatação e build a cada push e
+pull request para `main`.
 
 Login de demonstração (dados mockados, via `npm run mock`): login `senaiigorpereira` com senha `123456`.
 

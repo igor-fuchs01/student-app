@@ -6,7 +6,7 @@ Guia passo a passo para quem nunca abriu um Pull Request (PR). Se você já sabe
 
 - Uma conta no [GitHub](https://github.com).
 - [Git](https://git-scm.com/downloads) instalado.
-- [Node.js](https://nodejs.org/) 18 ou superior (inclui o `npm`).
+- [Node.js](https://nodejs.org/) 20.19 ou superior (inclui o `npm`).
 - Um editor de código, como o [VS Code](https://code.visualstudio.com/).
 
 Para conferir se o Git e o Node estão instalados, abra o terminal e rode:
@@ -88,11 +88,13 @@ Exemplos de nomes: `fix-login-erro`, `feat-pagina-simulados`, `docs-atualiza-rea
 Antes de enviar sua alteração, rode:
 
 ```bash
+npm run format  # formata o código com Prettier
 npm run lint    # verifica o estilo do código
 npm run build   # garante que o projeto compila sem erros
 ```
 
-Corrija qualquer erro apontado antes de continuar.
+Corrija qualquer erro apontado antes de continuar. A CI roda `lint`, `format:check` e `build`
+no seu Pull Request; se algum falhar, o PR fica marcado com erro.
 
 ## 8. Salve suas alterações (commit)
 
