@@ -9,6 +9,7 @@ import {
 } from "@features/quizzes/components/QuestionGrid";
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
+import { formatCount } from "@utils/formatCount";
 import {
   StyledTitle,
   StyledSubtitle,
@@ -75,9 +76,13 @@ export function QuizReviewPage() {
       )}
 
       <StyledCountRow>
-        <Badge tone="neutral">{answeredIds.size} respondidas</Badge>
-        <Badge tone="danger">{unansweredCount} não respondidas</Badge>
-        <Badge tone="accent">{markedForReview.size} marcadas para revisão</Badge>
+        <Badge tone="neutral">{formatCount(answeredIds.size, "respondida", "respondidas")}</Badge>
+        <Badge tone="danger">
+          {formatCount(unansweredCount, "não respondida", "não respondidas")}
+        </Badge>
+        <Badge tone="accent">
+          {formatCount(markedForReview.size, "marcada para revisão", "marcadas para revisão")}
+        </Badge>
       </StyledCountRow>
 
       <QuestionGrid
@@ -108,8 +113,15 @@ export function QuizReviewPage() {
           <StyledConfirmBody>
             {unansweredCount > 0 ? (
               <>
-                Você tem <strong>{unansweredCount} questões não respondidas</strong>. Elas serão
-                consideradas incorretas na correção. Esta ação não pode ser desfeita.
+                Você tem{" "}
+                <strong>
+                  {formatCount(
+                    unansweredCount,
+                    "questão não respondida",
+                    "questões não respondidas",
+                  )}
+                </strong>
+                . Questões sem resposta não contam como acerto. Esta ação não pode ser desfeita.
               </>
             ) : (
               <>Esta ação não pode ser desfeita.</>
