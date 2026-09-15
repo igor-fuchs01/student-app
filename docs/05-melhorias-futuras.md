@@ -246,3 +246,49 @@ e de conteúdo de resumo curado pela equipe, que ainda não existe.
 5. **Organização do código.** A tela fica em `features/subjects/`; se crescer para materiais e
    estudo guiado, extrair para as features planejadas `materials` e `study`
    ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)).
+
+---
+
+## 8. Ranking com gráficos e filtros
+
+**Situação atual.** A tela de Ranking mostra o perfil do aluno (sequência atual, meta semanal,
+questões e simulados) e uma lista ordenada apenas por dias consecutivos de estudo.
+
+**Objetivo.** Permitir comparar outros indicadores de esforço, com gráficos e filtros. Por
+exemplo: quantidade de questões respondidas no simulado X por todos os alunos, quantidade no
+simulado Y, além dos dias consecutivos.
+
+**Por que fica para depois do MVP.** Exige que o backend agregue a atividade de todos os alunos
+por indicador, simulado e período.
+
+**Regra que não pode ser quebrada.** [`02-regras-de-negocio.md`](02-regras-de-negocio.md),
+seção 11: o ranking **nunca** usa nota ou desempenho. Os filtros só podem usar os indicadores de
+esforço permitidos: streak, streak semanal, questões realizadas, simulados concluídos e dias
+estudados. "Questões realizadas" conta questões **respondidas**, nunca acertos ou erros.
+
+**Proposta.**
+
+1. **Filtros.**
+   - Indicador: dias consecutivos, questões respondidas, simulados concluídos, dias estudados.
+   - Escopo, quando o indicador for "questões respondidas": todos os simulados ou um simulado
+     específico.
+   - Período: esta semana, este mês ou desde o início.
+   - Os filtros ficam na URL (`/ranking?indicador=questoes&simulado=bd-1&periodo=semana`), para o
+     aluno poder compartilhar e voltar à mesma visão.
+2. **Contrato.** Estender `GET /ranking` com parâmetros opcionais, sem quebrar o uso atual:
+   `GET /ranking?metric=questions_answered&quizId=bd-1&period=week`. Cada entrada passa a trazer
+   `value` (o número do indicador escolhido) além dos campos atuais.
+3. **Gráficos.**
+   - Barras horizontais com os primeiros colocados e a posição do aluno destacada, mesmo fora do
+     topo.
+   - No perfil, a evolução do próprio aluno no indicador escolhido (ex.: questões por dia na
+     semana).
+   - Começar com barras em CSS/SVG, reaproveitando o padrão do `ProgressBar`. Uma biblioteca de
+     gráficos só deve entrar se esses gráficos não bastarem, com justificativa (ver regras de
+     dependências no `CLAUDE.md`). O mesmo componente de gráfico serve ao item 9.
+4. **Cuidados.**
+   - Contar apenas questões de tentativas enviadas, para não incentivar "responder por
+     responder".
+   - Mostrar os primeiros colocados e a posição do próprio aluno, em vez de expor a lista inteira
+     com alunos sem atividade.
+   - Os gráficos precisam de alternativa textual (tabela ou `aria-label` com os valores).
