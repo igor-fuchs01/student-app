@@ -30,7 +30,7 @@ export function StartQuizModal({
   const [timeLimitEnabled, setTimeLimitEnabled] = useState(true);
 
   return (
-    <Modal ariaLabel="Pronto para começar o simulado?">
+    <Modal ariaLabel="Pronto para começar o simulado?" onClose={onCancel}>
       <StyledTitle>Pronto para começar?</StyledTitle>
       <StyledBody>
         Você está prestes a iniciar o simulado <strong>{quizTitle}</strong> (

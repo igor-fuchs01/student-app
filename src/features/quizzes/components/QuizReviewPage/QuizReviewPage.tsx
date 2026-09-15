@@ -108,7 +108,10 @@ export function QuizReviewPage() {
       )}
 
       {confirmOpen && !isTimeUp && (
-        <Modal ariaLabel="Confirmar envio do simulado">
+        <Modal
+          ariaLabel="Confirmar envio do simulado"
+          onClose={isSubmitting ? undefined : () => setConfirmOpen(false)}
+        >
           <StyledConfirmTitle>Enviar simulado?</StyledConfirmTitle>
           <StyledConfirmBody>
             {unansweredCount > 0 ? (
