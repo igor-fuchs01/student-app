@@ -1,9 +1,19 @@
-import type { QuizAnswer, QuizDetail, QuizResult, QuizSummary, Question } from "@models/quizzes";
+import type {
+  Question,
+  QuizAnswer,
+  QuizDetail,
+  QuizResult,
+  QuizReviewItem,
+  QuizSummary,
+} from "@models/quizzes";
+import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
 
-const INTEGRATED_QUIZ_ID = "integrado";
+type MockQuizDefinition = Omit<QuizSummary, "questionCount">;
 
-const INTEGRATED_QUESTIONS: Question[] = [
+type QuestionOutcome = "correct" | "incorrect" | "unanswered" | "self_review";
+
+const QUESTION_BANK: Question[] = [
   {
     type: "multiple_choice",
     id: "q1",
@@ -162,80 +172,165 @@ const INTEGRATED_QUESTIONS: Question[] = [
       { id: "b2", referenceAnswer: "WHERE" },
     ],
   },
+  {
+    type: "multiple_choice",
+    id: "q10",
+    subjectName: "Sistemas Operacionais",
+    prompt: "Qual é a principal função do escalonador de processos em um sistema operacional?",
+    options: [
+      { id: "q10-o1", text: "Gerenciar a alocação de memória virtual" },
+      { id: "q10-o2", text: "Decidir qual processo pronto recebe a CPU e por quanto tempo" },
+      { id: "q10-o3", text: "Controlar o acesso aos dispositivos de entrada e saída" },
+      { id: "q10-o4", text: "Traduzir endereços lógicos em endereços físicos" },
+    ],
+    correctOptionId: "q10-o2",
+    explanation:
+      "O escalonador escolhe, entre os processos prontos, qual será executado pela CPU e por quanto tempo, seguindo uma política como FIFO, Round Robin ou prioridade.",
+  },
+  {
+    type: "multiple_answer",
+    id: "q11",
+    subjectName: "Sistemas Operacionais",
+    prompt:
+      "Quais das situações abaixo são condições necessárias para a ocorrência de um deadlock?",
+    options: [
+      { id: "q11-o1", text: "Exclusão mútua" },
+      { id: "q11-o2", text: "Posse e espera" },
+      { id: "q11-o3", text: "Preempção de recursos" },
+      { id: "q11-o4", text: "Espera circular" },
+      { id: "q11-o5", text: "Escalonamento Round Robin" },
+    ],
+    correctOptionIds: ["q11-o1", "q11-o2", "q11-o4"],
+    explanation:
+      "As condições de Coffman para deadlock são exclusão mútua, posse e espera, não preempção e espera circular. Permitir a preempção de recursos evita o deadlock.",
+  },
+  {
+    type: "multiple_choice",
+    id: "q12",
+    subjectName: "Tecnologia da Informação",
+    prompt: "Na tríade da segurança da informação (CID), o que o pilar da integridade garante?",
+    options: [
+      { id: "q12-o1", text: "Que a informação esteja disponível sempre que necessário" },
+      { id: "q12-o2", text: "Que a informação só seja acessada por pessoas autorizadas" },
+      {
+        id: "q12-o3",
+        text: "Que a informação não seja alterada de forma indevida ou não autorizada",
+      },
+      { id: "q12-o4", text: "Que a origem da informação possa ser comprovada" },
+    ],
+    correctOptionId: "q12-o3",
+    explanation:
+      "A integridade garante que a informação permaneça exata e completa, sem alterações não autorizadas; confidencialidade e disponibilidade são os outros dois pilares.",
+  },
+  {
+    type: "single_choice",
+    id: "q13",
+    subjectName: "Tecnologia da Informação",
+    template:
+      "Em redes de computadores, o protocolo {{p1}} traduz nomes de domínio em endereços IP, enquanto o protocolo {{p2}} atribui endereços IP automaticamente aos dispositivos.",
+    blanks: [
+      {
+        id: "p1",
+        options: [
+          { id: "q13-p1-dns", text: "DNS" },
+          { id: "q13-p1-dhcp", text: "DHCP" },
+          { id: "q13-p1-http", text: "HTTP" },
+        ],
+        correctOptionId: "q13-p1-dns",
+      },
+      {
+        id: "p2",
+        options: [
+          { id: "q13-p2-dhcp", text: "DHCP" },
+          { id: "q13-p2-dns", text: "DNS" },
+          { id: "q13-p2-ftp", text: "FTP" },
+        ],
+        correctOptionId: "q13-p2-dhcp",
+      },
+    ],
+    explanation:
+      "O DNS resolve nomes (como www.exemplo.com) para endereços IP; o DHCP distribui as configurações de rede, incluindo o endereço IP, automaticamente.",
+  },
 ];
 
+const QUIZZES: MockQuizDefinition[] = [
+  {
+    id: "integrado",
+    title: "Simulado integrado",
+    subjectScope: "all",
+    durationMinutes: 15,
+    attemptsRemaining: 2,
+    difficulty: "medium",
+  },
+  {
+    id: "algoritmos-1",
+    title: "Algoritmos — Simulado 1",
+    subjectScope: "single",
+    subjectName: "Algoritmos",
+    durationMinutes: 5,
+    attemptsRemaining: 3,
+    difficulty: "medium",
+  },
+  {
+    id: "arquitetura-1",
+    title: "Arquitetura — Simulado 1",
+    subjectScope: "single",
+    subjectName: "Arquitetura de Computadores",
+    durationMinutes: 5,
+    attemptsRemaining: 3,
+    difficulty: "easy",
+  },
+  {
+    id: "so-1",
+    title: "Sistemas Operacionais — Simulado 1",
+    subjectScope: "single",
+    subjectName: "Sistemas Operacionais",
+    durationMinutes: 5,
+    attemptsRemaining: 3,
+    difficulty: "medium",
+  },
+  {
+    id: "ti-1",
+    title: "Tecnologia da Informação — Simulado 1",
+    subjectScope: "single",
+    subjectName: "Tecnologia da Informação",
+    durationMinutes: 5,
+    attemptsRemaining: 3,
+    difficulty: "easy",
+  },
+  {
+    id: "bd-1",
+    title: "Banco de Dados — Simulado 1",
+    subjectScope: "single",
+    subjectName: "Banco de Dados",
+    durationMinutes: 10,
+    attemptsRemaining: 3,
+    difficulty: "hard",
+  },
+];
+
+function findQuiz(id: string): MockQuizDefinition | undefined {
+  return QUIZZES.find((quiz) => quiz.id === id);
+}
+
+function questionsFor(quiz: MockQuizDefinition): Question[] {
+  if (quiz.subjectScope === "all") return QUESTION_BANK;
+  return QUESTION_BANK.filter((question) => question.subjectName === quiz.subjectName);
+}
+
 export function buildMockQuizList(): QuizSummary[] {
-  return [
-    {
-      id: INTEGRATED_QUIZ_ID,
-      title: "Simulado integrado",
-      subjectScope: "all",
-      questionCount: INTEGRATED_QUESTIONS.length,
-      durationMinutes: 15,
-      attemptsRemaining: 2,
-      difficulty: "medium",
-    },
-    {
-      id: "algoritmos-1",
-      title: "Algoritmos — Simulado 1",
-      subjectScope: "single",
-      subjectName: "Algoritmos",
-      questionCount: 15,
-      durationMinutes: 30,
-      attemptsRemaining: 3,
-      difficulty: "medium",
-    },
-    {
-      id: "arquitetura-1",
-      title: "Arquitetura — Simulado 1",
-      subjectScope: "single",
-      subjectName: "Arquitetura de Computadores",
-      questionCount: 12,
-      durationMinutes: 25,
-      attemptsRemaining: 3,
-      difficulty: "easy",
-    },
-    {
-      id: "so-1",
-      title: "Sistemas Operacionais — Simulado 1",
-      subjectScope: "single",
-      subjectName: "Sistemas Operacionais",
-      questionCount: 15,
-      durationMinutes: 30,
-      attemptsRemaining: 3,
-      difficulty: "medium",
-    },
-    {
-      id: "ti-1",
-      title: "Tecnologia da Informação — Simulado 1",
-      subjectScope: "single",
-      subjectName: "Tecnologia da Informação",
-      questionCount: 12,
-      durationMinutes: 25,
-      attemptsRemaining: 3,
-      difficulty: "easy",
-    },
-    {
-      id: "bd-1",
-      title: "Banco de Dados — Simulado 1",
-      subjectScope: "single",
-      subjectName: "Banco de Dados",
-      questionCount: 20,
-      durationMinutes: 40,
-      attemptsRemaining: 3,
-      difficulty: "hard",
-    },
-  ];
+  return QUIZZES.map((quiz) => ({ ...quiz, questionCount: questionsFor(quiz).length }));
 }
 
 export function getMockQuizDetail(id: string): QuizDetail | undefined {
-  if (id !== INTEGRATED_QUIZ_ID) return undefined;
+  const quiz = findQuiz(id);
+  if (!quiz) return undefined;
 
   return {
-    id: INTEGRATED_QUIZ_ID,
-    title: "Simulado integrado",
-    durationMinutes: 15,
-    questions: INTEGRATED_QUESTIONS,
+    id: quiz.id,
+    title: quiz.title,
+    durationMinutes: quiz.durationMinutes,
+    questions: questionsFor(quiz),
   };
 }
 
@@ -258,147 +353,133 @@ function questionPromptExcerpt(question: Question): string {
   return excerpt(question.prompt);
 }
 
+function gradeQuestion(question: Question, answer: QuizAnswer | undefined): QuestionOutcome {
+  if (!answer || !isQuestionAnswered(question, answer)) return "unanswered";
+
+  switch (question.type) {
+    case "multiple_choice":
+      return answer.optionId === question.correctOptionId ? "correct" : "incorrect";
+    case "multiple_answer": {
+      const selected = new Set(answer.optionIds);
+      const expected = new Set(question.correctOptionIds);
+      const matches =
+        selected.size === expected.size && [...selected].every((id) => expected.has(id));
+      return matches ? "correct" : "incorrect";
+    }
+    case "single_choice":
+      return question.blanks.every(
+        (blank) => answer.blankAnswers?.[blank.id] === blank.correctOptionId,
+      )
+        ? "correct"
+        : "incorrect";
+    case "drag_and_drop":
+      return question.slots.every((slot) => answer.slotAnswers?.[slot.id] === slot.correctTermId)
+        ? "correct"
+        : "incorrect";
+    case "essay":
+      return normalizeAnswerText(answer.text ?? "") ===
+        normalizeAnswerText(question.referenceAnswer)
+        ? "correct"
+        : "self_review";
+    case "essay_blanks":
+      return question.blanks.every(
+        (blank) =>
+          normalizeAnswerText(answer.blankAnswers?.[blank.id] ?? "") ===
+          normalizeAnswerText(blank.referenceAnswer),
+      )
+        ? "correct"
+        : "self_review";
+  }
+}
+
+function buildReviewItem(
+  question: Question,
+  answer: QuizAnswer | undefined,
+  outcome: QuestionOutcome,
+): QuizReviewItem | null {
+  const base = {
+    questionId: question.id,
+    subjectName: question.subjectName,
+    promptExcerpt: questionPromptExcerpt(question),
+  };
+
+  if (outcome === "incorrect" && "explanation" in question) {
+    return { ...base, status: "incorrect", explanation: question.explanation };
+  }
+
+  if (outcome !== "self_review") return null;
+
+  if (question.type === "essay") {
+    return {
+      ...base,
+      status: "self_review",
+      studentAnswer: answer?.text?.trim(),
+      referenceAnswer: question.referenceAnswer,
+    };
+  }
+
+  if (question.type === "essay_blanks") {
+    const fillTemplate = (valueFor: (blankId: string) => string) =>
+      question.template.replace(/\{\{(\w+)\}\}/g, (_, blankId: string) => valueFor(blankId));
+    return {
+      ...base,
+      status: "self_review",
+      studentAnswer: fillTemplate((blankId) => answer?.blankAnswers?.[blankId] ?? "___"),
+      referenceAnswer: fillTemplate(
+        (blankId) =>
+          question.blanks.find((blank) => blank.id === blankId)?.referenceAnswer ?? "___",
+      ),
+    };
+  }
+
+  return null;
+}
+
 export function correctMockQuizAttempt(id: string, answers: QuizAnswer[]): QuizResult | undefined {
-  if (id !== INTEGRATED_QUIZ_ID) return undefined;
+  const quiz = findQuiz(id);
+  if (!quiz) return undefined;
 
   const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer]));
-
-  let correctCount = 0;
-  let incorrectCount = 0;
-  let unansweredCount = 0;
-  let selfReviewCount = 0;
-  const reviewItems: QuizResult["reviewItems"] = [];
+  const counts: Record<QuestionOutcome, number> = {
+    correct: 0,
+    incorrect: 0,
+    unanswered: 0,
+    self_review: 0,
+  };
+  const reviewItems: QuizReviewItem[] = [];
   const subjectTotals = new Map<string, { correct: number; total: number }>();
 
-  for (const question of INTEGRATED_QUESTIONS) {
+  for (const question of questionsFor(quiz)) {
     const answer = answerByQuestionId.get(question.id);
+    const outcome = gradeQuestion(question, answer);
+    counts[outcome] += 1;
 
-    if (question.type === "essay") {
-      const studentAnswer = answer?.text?.trim();
-      if (!studentAnswer) {
-        unansweredCount += 1;
-      } else if (
-        normalizeAnswerText(studentAnswer) === normalizeAnswerText(question.referenceAnswer)
-      ) {
-        correctCount += 1;
-        const subjectTotal = subjectTotals.get(question.subjectName) ?? { correct: 0, total: 0 };
-        subjectTotal.total += 1;
-        subjectTotal.correct += 1;
-        subjectTotals.set(question.subjectName, subjectTotal);
-      } else {
-        selfReviewCount += 1;
-        reviewItems.push({
-          questionId: question.id,
-          subjectName: question.subjectName,
-          promptExcerpt: questionPromptExcerpt(question),
-          status: "self_review",
-          studentAnswer,
-          referenceAnswer: question.referenceAnswer,
-        });
-      }
-      continue;
-    }
+    const reviewItem = buildReviewItem(question, answer, outcome);
+    if (reviewItem) reviewItems.push(reviewItem);
 
-    if (question.type === "essay_blanks") {
-      const blankAnswers = answer?.blankAnswers ?? {};
-      const allFilled = question.blanks.every((blank) => blankAnswers[blank.id]?.trim());
-      const allMatch = question.blanks.every(
-        (blank) =>
-          normalizeAnswerText(blankAnswers[blank.id] ?? "") ===
-          normalizeAnswerText(blank.referenceAnswer),
-      );
-
-      if (!allFilled) {
-        unansweredCount += 1;
-      } else if (allMatch) {
-        correctCount += 1;
-        const subjectTotal = subjectTotals.get(question.subjectName) ?? { correct: 0, total: 0 };
-        subjectTotal.total += 1;
-        subjectTotal.correct += 1;
-        subjectTotals.set(question.subjectName, subjectTotal);
-      } else {
-        const fillTemplate = (valueFor: (blankId: string) => string) =>
-          question.template.replace(/\{\{(\w+)\}\}/g, (_, blankId: string) => valueFor(blankId));
-        selfReviewCount += 1;
-        reviewItems.push({
-          questionId: question.id,
-          subjectName: question.subjectName,
-          promptExcerpt: questionPromptExcerpt(question),
-          status: "self_review",
-          studentAnswer: fillTemplate((blankId) => blankAnswers[blankId] ?? "___"),
-          referenceAnswer: fillTemplate(
-            (blankId) =>
-              question.blanks.find((blank) => blank.id === blankId)?.referenceAnswer ?? "___",
-          ),
-        });
-      }
-      continue;
-    }
-
-    let isAnswered: boolean;
-    let isCorrect: boolean;
-
-    if (question.type === "multiple_choice") {
-      isAnswered = Boolean(answer?.optionId);
-      isCorrect = answer?.optionId === question.correctOptionId;
-    } else if (question.type === "multiple_answer") {
-      const selected = answer?.optionIds ?? [];
-      isAnswered = selected.length > 0;
-      const selectedSet = new Set(selected);
-      const correctSet = new Set(question.correctOptionIds);
-      isCorrect =
-        isAnswered &&
-        selectedSet.size === correctSet.size &&
-        [...selectedSet].every((optionId) => correctSet.has(optionId));
-    } else if (question.type === "single_choice") {
-      const blankAnswers = answer?.blankAnswers ?? {};
-      isAnswered = question.blanks.every((blank) => Boolean(blankAnswers[blank.id]));
-      isCorrect = question.blanks.every(
-        (blank) => blankAnswers[blank.id] === blank.correctOptionId,
-      );
-    } else {
-      const slotAnswers = answer?.slotAnswers ?? {};
-      isAnswered = question.slots.every((slot) => Boolean(slotAnswers[slot.id]));
-      isCorrect = question.slots.every((slot) => slotAnswers[slot.id] === slot.correctTermId);
-    }
+    if (outcome === "self_review") continue;
 
     const subjectTotal = subjectTotals.get(question.subjectName) ?? { correct: 0, total: 0 };
     subjectTotal.total += 1;
-
-    if (!isAnswered) {
-      unansweredCount += 1;
-    } else if (isCorrect) {
-      correctCount += 1;
-      subjectTotal.correct += 1;
-    } else {
-      incorrectCount += 1;
-      reviewItems.push({
-        questionId: question.id,
-        subjectName: question.subjectName,
-        promptExcerpt: questionPromptExcerpt(question),
-        status: "incorrect",
-        explanation: question.explanation,
-      });
-    }
-
+    if (outcome === "correct") subjectTotal.correct += 1;
     subjectTotals.set(question.subjectName, subjectTotal);
   }
 
-  const gradedTotal = correctCount + incorrectCount + unansweredCount;
-  const scorePercent = gradedTotal > 0 ? Math.round((correctCount / gradedTotal) * 100) : 0;
+  const gradedTotal = counts.correct + counts.incorrect + counts.unanswered;
+  const scorePercent = gradedTotal > 0 ? Math.round((counts.correct / gradedTotal) * 100) : 0;
 
   const subjectPerformance = Array.from(subjectTotals.entries()).map(([subjectName, totals]) => ({
     subjectName,
-    percent: totals.total > 0 ? Math.round((totals.correct / totals.total) * 100) : 0,
+    percent: Math.round((totals.correct / totals.total) * 100),
   }));
 
   return {
     quizId: id,
     submittedAt: new Date().toISOString(),
-    correctCount,
-    incorrectCount,
-    unansweredCount,
-    selfReviewCount,
+    correctCount: counts.correct,
+    incorrectCount: counts.incorrect,
+    unansweredCount: counts.unanswered,
+    selfReviewCount: counts.self_review,
     scorePercent,
     subjectPerformance,
     reviewItems,
