@@ -3,7 +3,7 @@
 -- Derived from the API contracts in docs/04-contratos-de-api.md, the domain
 -- rules in docs/02-regras-de-negocio.md and the MVP acceptance criteria in
 -- docs/99-criterios-de-aceite-mvp.md. The conceptual and logical models are
--- explained in docs/database/README.md.
+-- explained in docs/06-modelagem-de-dados.md.
 --
 -- Conventions:
 --   * table-level constraints are named, so errors and future migrations can
