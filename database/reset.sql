@@ -1,6 +1,6 @@
 -- Student App — empties every table filled by seed.sql.
 --
---   psql "$DATABASE_URL" -f docs/database/reset.sql
+--   psql "$DATABASE_URL" -f database/reset.sql
 --
 -- TRUNCATE removes all rows and RESTART IDENTITY puts the id sequences back to
 -- 1, so seeding again produces the same ids. CASCADE only reaches tables that

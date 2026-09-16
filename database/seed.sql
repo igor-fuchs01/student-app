@@ -1,7 +1,7 @@
 -- Student App — minimal seed data for local testing.
 --
 -- Run after schema.sql:
---   psql "$DATABASE_URL" -f docs/database/seed.sql
+--   psql "$DATABASE_URL" -f database/seed.sql
 --
 -- Use reset.sql to empty these tables before seeding again.
 --
