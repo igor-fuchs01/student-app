@@ -103,13 +103,19 @@ git add .
 git commit -m "feat: descreve o que foi feito"
 ```
 
-Use o padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/) no prefixo da mensagem:
+Toda mensagem de commit começa com `feat: `, seja uma funcionalidade nova, uma correção, uma
+refatoração, uma mudança de configuração ou de documentação. Não use outros prefixos (`fix:`,
+`docs:`, `chore:`…) nem escopo entre parênteses (`feat(quizzes):`). Depois do prefixo, descreva a
+mudança em inglês:
 
-- `feat:` para uma funcionalidade nova
-- `fix:` para correção de bug
-- `docs:` para alterações em documentação
-- `refactor:` para refatoração sem mudar comportamento
-- `chore:` para configuração, dependências, build
+```text
+feat: stop sending answers left blank
+```
+
+Faça commits pequenos, um assunto por commit.
+
+> Se você usa o Claude Code neste repositório, um hook (`.claude/hooks/validate-commit-message.mjs`)
+> bloqueia commits fora desse padrão.
 
 ## 9. Envie a alteração para o seu fork
 
