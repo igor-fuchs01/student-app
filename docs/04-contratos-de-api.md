@@ -256,14 +256,14 @@ Lista os simulados disponíveis para o aluno.
     "subjectScope": "all",
     "questionCount": 13,
     "durationMinutes": 15,
-    "attemptsRemaining": 2,
+    "attemptsCount": 2,
     "difficulty": "medium"
   }
 ]
 ```
 
-**Comportamento no cliente:** um simulado com `attemptsRemaining` igual a `0` exibe o botão
-"Iniciar" desabilitado.
+**Comportamento no cliente:** não há limite de tentativas. `attemptsCount` é exibido apenas como
+informação; o botão "Iniciar" está sempre disponível.
 
 ---
 
@@ -308,7 +308,7 @@ Envia as respostas de uma tentativa e retorna a correção.
 
 | Campo | Tipo | Regras |
 |---|---|---|
-| `answers` | [`QuizAnswer`](#313-quizanswer)`[]` | Obrigatório. Pode ser vazio. No máximo uma resposta por questão. |
+| `answers` | [`QuizAnswer`](#313-quizanswer)`[]` | Obrigatório. Pode ser vazio. No máximo uma resposta por questão. Só as questões respondidas são enviadas: questões deixadas em branco, ou com lacunas incompletas, ficam de fora e contam como não respondidas. |
 
 ```json
 {
@@ -445,7 +445,7 @@ A UI mapeia `level` para um badge: `high` → "Prioridade alta", `medium` → "P
 | `subjectName` | string | Opcional. Presente quando `subjectScope` é `"single"`. |
 | `questionCount` | integer | `> 0`. |
 | `durationMinutes` | integer | `> 0`. Duração do modo com tempo limite. |
-| `attemptsRemaining` | integer | `>= 0`. |
+| `attemptsCount` | integer | `>= 0`. Quantas tentativas deste simulado o aluno já enviou. |
 | `difficulty` | enum | `"easy"`, `"medium"`, ou `"hard"`. A UI exibe "Fácil", "Média" e "Difícil". |
 
 ### 3.11 `QuizDetail`
@@ -602,7 +602,8 @@ acima no navegador, com os mesmos status e corpos de erro. Particularidades do m
 - **Rotas desconhecidas** retornam `404` com código `NOT_FOUND`.
 - **Simulados:** todos os simulados da lista têm detalhe. O simulado integrado usa todas as
   questões do banco do mock; os demais usam as questões da sua disciplina, e `questionCount`
-  é calculado a partir delas. `attemptsRemaining` nunca é decrementado.
+  é calculado a partir delas. `attemptsCount` é contado em memória e volta a zero quando a página
+  é recarregada.
 - **Correção:** `multiple_answer` só é correta com exatamente as alternativas corretas;
   `single_choice` e `drag_and_drop` exigem todas as lacunas corretas. Uma dissertativa (ou
   lacuna dissertativa) idêntica à referência, ignorando maiúsculas e espaços extras, é

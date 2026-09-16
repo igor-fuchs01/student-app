@@ -64,7 +64,7 @@ Cada simulado exibe:
 - quantidade de questões;
 - dificuldade estimada;
 - duração recomendada;
-- quantidade de tentativas permitidas, quando aplicável.
+- quantidade de tentativas que o aluno já realizou.
 
 ### Cronômetro
 
