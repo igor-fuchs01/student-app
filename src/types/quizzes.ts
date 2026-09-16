@@ -11,7 +11,7 @@ export const quizSummarySchema = z.object({
   subjectName: z.string().optional(),
   questionCount: z.number().int().positive(),
   durationMinutes: z.number().int().positive(),
-  attemptsRemaining: z.number().int().nonnegative(),
+  attemptsCount: z.number().int().nonnegative(),
   difficulty: difficultySchema,
 });
 

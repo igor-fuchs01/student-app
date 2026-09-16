@@ -5,7 +5,12 @@ import { API_ENDPOINTS } from "../endpoints";
 import type { ApiErrorBody, ApiErrorCode } from "../errors";
 import { buildMockDashboard } from "./dashboard";
 import { buildMockSubjects } from "./subjects";
-import { buildMockQuizList, correctMockQuizAttempt, getMockQuizDetail } from "./quizzes";
+import {
+  buildMockQuizList,
+  correctMockQuizAttempt,
+  getMockQuizDetail,
+  registerMockQuizAttempt,
+} from "./quizzes";
 import { buildMockRanking } from "./ranking";
 import { findAccountById, findAccountByIdentifier, type MockAccount } from "./users";
 
@@ -73,7 +78,7 @@ const routes: Record<string, MockRoute> = {
 
   [`GET ${API_ENDPOINTS.quizzes.list}`]: {
     authenticated: true,
-    handle: () => ({ status: 200, body: buildMockQuizList() }),
+    handle: (_body, account) => ({ status: 200, body: buildMockQuizList(account.user.id) }),
   },
 
   [`GET ${API_ENDPOINTS.ranking}`]: {
@@ -93,7 +98,7 @@ function handleQuizDetail(id: string): MockResult {
   return { status: 200, body: quiz };
 }
 
-function handleQuizAttemptSubmit(id: string, body: unknown): MockResult {
+function handleQuizAttemptSubmit(id: string, body: unknown, studentId: string): MockResult {
   const payload = submitQuizAttemptSchema.safeParse(body);
   if (!payload.success) {
     return errorResult(400, "VALIDATION_ERROR", "Respostas inválidas.");
@@ -103,6 +108,8 @@ function handleQuizAttemptSubmit(id: string, body: unknown): MockResult {
   if (!result) {
     return errorResult(404, "NOT_FOUND", "Simulado não encontrado.");
   }
+
+  registerMockQuizAttempt(studentId, id);
   return { status: 200, body: result };
 }
 
@@ -164,7 +171,7 @@ export async function mockFetch(
     if (quizDetailMatch) {
       return toResponse(handleQuizDetail(quizDetailMatch[1]));
     }
-    return toResponse(handleQuizAttemptSubmit(quizAttemptMatch![1], body));
+    return toResponse(handleQuizAttemptSubmit(quizAttemptMatch![1], body, account.user.id));
   }
 
   const route = routes[`${method} ${url.pathname}`];

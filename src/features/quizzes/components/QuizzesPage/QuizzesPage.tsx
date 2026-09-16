@@ -92,14 +92,10 @@ export function QuizzesPage() {
                     </td>
                     <td>{quiz.questionCount}</td>
                     <td>{quiz.durationMinutes} min</td>
-                    <td>{formatCount(quiz.attemptsRemaining, "restante", "restantes")}</td>
+                    <td>{formatCount(quiz.attemptsCount, "tentativa", "tentativas")}</td>
                     <td>{DIFFICULTY_LABEL[quiz.difficulty]}</td>
                     <td>
-                      <Button
-                        variant="secondary"
-                        disabled={quiz.attemptsRemaining === 0}
-                        onClick={() => setStartModalQuiz(quiz)}
-                      >
+                      <Button variant="secondary" onClick={() => setStartModalQuiz(quiz)}>
                         Iniciar
                       </Button>
                     </td>
