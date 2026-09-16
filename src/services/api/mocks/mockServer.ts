@@ -13,6 +13,7 @@ import {
 } from "./quizzes";
 import { buildMockRanking } from "./ranking";
 import { findAccountById, findAccountByIdentifier, type MockAccount } from "./users";
+import { createMockJwt, verifyMockJwt } from "./jwt";
 
 type MockResult = {
   status: number;
@@ -20,19 +21,17 @@ type MockResult = {
 };
 
 type MockRoute =
-  | { authenticated: false; handle: (body: unknown) => MockResult }
-  | { authenticated: true; handle: (body: unknown, account: MockAccount) => MockResult };
+  | { authenticated: false; handle: (body: unknown) => MockResult | Promise<MockResult> }
+  | {
+      authenticated: true;
+      handle: (body: unknown, account: MockAccount) => MockResult | Promise<MockResult>;
+    };
 
-const TOKEN_PREFIX = "mock";
-
-function createToken(accountId: string): string {
-  return `${TOKEN_PREFIX}.${accountId}.${crypto.randomUUID()}`;
-}
-
-function resolveAccount(authorization: string | null): MockAccount | undefined {
+async function resolveAccount(authorization: string | null): Promise<MockAccount | undefined> {
   const token = authorization?.match(/^Bearer (.+)$/)?.[1];
-  const [prefix, accountId] = token?.split(".") ?? [];
-  if (prefix !== TOKEN_PREFIX || !accountId) return undefined;
+  if (!token) return undefined;
+  const accountId = await verifyMockJwt(token);
+  if (!accountId) return undefined;
   return findAccountById(accountId);
 }
 
@@ -44,7 +43,7 @@ function errorResult(status: number, code: ApiErrorCode, message: string): MockR
 const routes: Record<string, MockRoute> = {
   [`POST ${API_ENDPOINTS.auth.login}`]: {
     authenticated: false,
-    handle(body) {
+    async handle(body) {
       const credentials = loginCredentialsSchema.safeParse(body);
       if (!credentials.success) {
         return errorResult(400, "VALIDATION_ERROR", "Informe matrícula/e-mail e senha.");
@@ -56,7 +55,8 @@ const routes: Record<string, MockRoute> = {
         return errorResult(401, "INVALID_CREDENTIALS", "Matrícula/e-mail ou senha inválidos.");
       }
 
-      const session: AuthSession = { token: createToken(account.user.id), user: account.user };
+      const token = await createMockJwt(account.user.id);
+      const session: AuthSession = { token, user: account.user };
       return { status: 200, body: session };
     },
   },
@@ -163,7 +163,7 @@ export async function mockFetch(
   const quizAttemptMatch = method === "POST" ? url.pathname.match(QUIZ_ATTEMPT_PATTERN) : null;
 
   if (quizDetailMatch || quizAttemptMatch) {
-    const account = resolveAccount(new Headers(init.headers).get("Authorization"));
+    const account = await resolveAccount(new Headers(init.headers).get("Authorization"));
     if (!account) {
       return toResponse(errorResult(401, "UNAUTHORIZED", "Sessão expirada. Faça login novamente."));
     }
@@ -181,13 +181,13 @@ export async function mockFetch(
   }
 
   if (!route.authenticated) {
-    return toResponse(route.handle(body));
+    return toResponse(await route.handle(body));
   }
 
-  const account = resolveAccount(new Headers(init.headers).get("Authorization"));
+  const account = await resolveAccount(new Headers(init.headers).get("Authorization"));
   if (!account) {
     return toResponse(errorResult(401, "UNAUTHORIZED", "Sessão expirada. Faça login novamente."));
   }
 
-  return toResponse(route.handle(body, account));
+  return toResponse(await route.handle(body, account));
 }
