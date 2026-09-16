@@ -1,33 +1,61 @@
-# Banco de dados — Modelo de dados do MVP
+# Modelagem de Dados
 
-O modelo de dados é descrito em três níveis, do mais abstrato ao mais concreto:
+A modelagem de dados é descrita em três níveis, do mais abstrato ao mais concreto:
 
 | Nível | O que responde | Onde está |
 |---|---|---|
 | **Conceitual** | *O que* o sistema precisa guardar, na linguagem do domínio | [Seção 1](#1-modelo-conceitual) |
 | **Lógico** | *Como* isso vira tabelas, colunas, chaves e restrições no modelo relacional | [Seção 2](#2-modelo-lógico) |
-| **Físico** | Os scripts executáveis para PostgreSQL (tipos, índices, extensões, views) | [`schema.sql`](schema.sql), [`seed.sql`](seed.sql), [`reset.sql`](reset.sql) |
+| **Físico** | Os scripts executáveis para PostgreSQL (tipos, índices, extensões, views) | Pasta [`database/`](../database/) na raiz do projeto |
 
 O escopo é **somente o MVP**: o necessário para os contratos implementados em
-[`../04-contratos-de-api.md`](../04-contratos-de-api.md) e para os critérios de aceite em
-[`../99-criterios-de-aceite-mvp.md`](../99-criterios-de-aceite-mvp.md). O que ficou de fora e por
+[`04-contratos-de-api.md`](04-contratos-de-api.md) e para os critérios de aceite em
+[`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md). O que ficou de fora e por
 quê está na [seção 3](#3-fora-do-mvp).
 
-Ainda não existe backend ([`../03-arquitetura-tecnica.md`](../03-arquitetura-tecnica.md)); este é
+Ainda não existe backend ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)); este é
 o modelo proposto para quando ele existir.
 
-### Scripts
+### Arquivos
 
-| Script | Para que serve |
+A documentação fica aqui em `docs/`; tudo o que é executado fica em `database/`:
+
+| Arquivo | Para que serve |
 |---|---|
-| [`schema.sql`](schema.sql) | Cria tipos, tabelas, restrições, índices e views. |
-| [`seed.sql`](seed.sql) | Insere o mínimo de dados para testar: 2 alunos, 1 disciplina com 2 assuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
-| [`reset.sql`](reset.sql) | Esvazia as tabelas preenchidas pelo seed e reinicia os ids, mantendo a estrutura. |
+| [`database/schema.sql`](../database/schema.sql) | Cria tipos, tabelas, restrições, índices e views. |
+| [`database/seed.sql`](../database/seed.sql) | Insere o mínimo de dados para testar: 2 alunos, 1 disciplina com 2 assuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
+| [`database/reset.sql`](../database/reset.sql) | Esvazia as tabelas preenchidas pelo seed e reinicia os ids, mantendo a estrutura. |
+| [`database/docker-compose.yml`](../database/docker-compose.yml) | Sobe um PostgreSQL local já com o schema e o seed. |
+
+### Subindo um PostgreSQL local com Docker
+
+O `docker-compose.yml` monta `schema.sql` e `seed.sql` como scripts de inicialização: a imagem
+oficial do Postgres executa todo `*.sql` em `/docker-entrypoint-initdb.d/`, em ordem, na primeira
+vez que o volume de dados é criado. Os comandos abaixo rodam a partir da raiz do projeto.
 
 ```bash
-psql "$DATABASE_URL" -f docs/database/schema.sql
-psql "$DATABASE_URL" -f docs/database/seed.sql
-psql "$DATABASE_URL" -f docs/database/reset.sql   # quando quiser recomeçar
+docker compose -f database/docker-compose.yml up -d        # sobe o banco (schema + seed na 1ª vez)
+docker compose -f database/docker-compose.yml exec db psql -U student_app -d student_app
+docker compose -f database/docker-compose.yml down         # para o container, mantém os dados
+docker compose -f database/docker-compose.yml down -v      # para e apaga os dados
+```
+
+String de conexão: `postgresql://student_app:student_app@localhost:5432/student_app`.
+
+Como o schema e o seed só rodam automaticamente na criação do volume, para recomeçar os dados sem
+derrubar o container rode o reset e depois o seed:
+
+```bash
+docker compose -f database/docker-compose.yml exec -T db psql -U student_app -d student_app < database/reset.sql
+docker compose -f database/docker-compose.yml exec -T db psql -U student_app -d student_app < database/seed.sql
+```
+
+Sem Docker, os scripts também podem ser aplicados a qualquer PostgreSQL com `psql`:
+
+```bash
+psql "$DATABASE_URL" -f database/schema.sql
+psql "$DATABASE_URL" -f database/seed.sql
+psql "$DATABASE_URL" -f database/reset.sql   # quando quiser recomeçar
 ```
 
 ---
@@ -43,7 +71,7 @@ da equipe, inclusive quem não programa.
 
 | Entidade | O que representa |
 |---|---|
-| **Aluno** | Conta de estudante, pré-provisionada pela instituição (não há cadastro público). Tem uma meta semanal de questões. |
+| **Aluno** | Conta de estudante, pré-provisionada pelo responsável (não há cadastro público). Tem uma meta semanal de questões. |
 | **Sessão** | Um login ativo do aluno. É encerrada no logout. |
 | **Disciplina** | Matéria do curso, ex.: Banco de Dados. |
 | **Assunto** | Tema dentro de uma disciplina, ex.: Normalização. É a unidade usada para identificar dificuldades. |
@@ -52,7 +80,7 @@ da equipe, inclusive quem não programa.
 | **Alternativa** | Opção que o aluno pode escolher: de uma questão (múltipla escolha e múltiplas alternativas) ou de uma lacuna (seleção única). |
 | **Lacuna** | Espaço `{{id}}` no texto de uma questão, preenchido por seleção, por texto ou arrastando um termo. |
 | **Termo** | Item arrastável de uma questão de drag and drop. |
-| **Simulado** | Conjunto ordenado de questões, com duração, tentativas permitidas e dificuldade. Pode ser de uma disciplina ou integrado. |
+| **Simulado** | Conjunto ordenado de questões, com duração e dificuldade. Pode ser de uma disciplina ou integrado. |
 | **Tentativa** | Envio de um simulado por um aluno. |
 | **Resposta** | O que o aluno respondeu em uma questão de uma tentativa, com o resultado da correção. |
 | **Prova** | Próxima avaliação de uma disciplina, exibida na tela de Início. |
@@ -67,7 +95,7 @@ da equipe, inclusive quem não programa.
 | Aluno — Dia de estudo | 1 : N | Um aluno registra vários dias de estudo. |
 | Disciplina — Assunto | 1 : N | Uma disciplina organiza vários assuntos; cada assunto pertence a uma disciplina. |
 | Assunto — Material | 1 : N | Um assunto tem vários materiais. |
-| Assunto — Questão | 1 : N | Toda questão tem exatamente um assunto e, por meio dele, uma disciplina ([`../02-regras-de-negocio.md`](../02-regras-de-negocio.md) §1). |
+| Assunto — Questão | 1 : N | Toda questão tem exatamente um assunto e, por meio dele, uma disciplina ([`02-regras-de-negocio.md`](02-regras-de-negocio.md) §1). |
 | Questão — Alternativa | 1 : N | Só nos tipos múltipla escolha e múltiplas alternativas. |
 | Questão — Lacuna | 1 : N | Só nos tipos seleção única, drag and drop e dissertativa com lacunas. |
 | Lacuna — Alternativa | 1 : N | Só na seleção única. Uma alternativa pertence a uma questão **ou** a uma lacuna, nunca às duas. |
@@ -131,7 +159,7 @@ nota de uma tentativa ficaria errada quando uma dissertativa pendente fosse corr
 O modelo lógico traduz o conceitual para o **modelo relacional**: cada entidade vira uma ou mais
 tabelas, cada atributo vira uma coluna com tipo, e cada relacionamento vira uma chave estrangeira
 (FK) ou uma tabela associativa. Detalhes específicos do PostgreSQL (índices, extensões, texto das
-views) ficam no modelo físico, em [`schema.sql`](schema.sql).
+views) ficam no modelo físico, em [`database/schema.sql`](../database/schema.sql).
 
 ### 2.1 Das entidades para as tabelas
 
@@ -182,9 +210,9 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
   Guardar também `subject_id` seria uma dependência transitiva e permitiria uma questão com assunto
   de Banco de Dados e disciplina de Algoritmos.
 - **Estado da correção** (`review_status`) usa os três estados de
-  [`../02-regras-de-negocio.md`](../02-regras-de-negocio.md) §6: `correct`, `incorrect` e
+  [`02-regras-de-negocio.md`](02-regras-de-negocio.md) §6: `correct`, `incorrect` e
   `pending_review`. A API expõe `pending_review` como `self_review`
-  ([`../05-melhorias-futuras.md`](../05-melhorias-futuras.md), item 5).
+  ([`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 5).
 - **Meta semanal** é uma coluna de `students` (`weekly_goal_target`), porque é o único dado de
   gamificação que não pode ser calculado.
 - **Informações derivadas** (seção 1.4) viram views, listadas na seção 2.4.
@@ -381,21 +409,21 @@ Enums: `question_type`, `quiz_subject_scope` (`single`, `all`), `difficulty_leve
 
 Itens que existiam na primeira versão do modelo e foram removidos por não serem exigidos pelos
 contratos atuais nem pelos critérios de aceite do MVP. Seguem a regra de
-[`../99-criterios-de-aceite-mvp.md`](../99-criterios-de-aceite-mvp.md): *não implementar
+[`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md): *não implementar
 funcionalidades complexas apenas porque foram mencionadas como possibilidades futuras*.
 
 | Removido | Por quê | Quando volta |
 |---|---|---|
-| Subassunto (`subtopics`) | Os critérios de aceite pedem disciplinas, assuntos e materiais; o item 6 de [`../05-melhorias-futuras.md`](../05-melhorias-futuras.md) trata subassuntos como opcionais. Materiais passam a pertencer ao assunto. | Desempenho por subassunto ([`../02-regras-de-negocio.md`](../02-regras-de-negocio.md) §8) |
+| Subassunto (`subtopics`) | Os critérios de aceite pedem disciplinas, assuntos e materiais; o item 6 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) trata subassuntos como opcionais. Materiais passam a pertencer ao assunto. | Desempenho por subassunto ([`02-regras-de-negocio.md`](02-regras-de-negocio.md) §8) |
 | Vínculo questão — material | "Encontrar questões relacionadas aos assuntos" é resolvido pelo assunto. | Recomendação "revisar o material correspondente" (§9) |
 | Disciplina na questão (`questions.subject_id`) | Redundante com o assunto (ver normalização, seção 2.2). | — |
 | Dificuldade por questão | Só o simulado tem dificuldade no contrato; desempenho por dificuldade não está nos critérios de aceite. | Fase 4 — Desempenho |
 | Vínculo prova — simulado | `NextExam` não referencia simulado. | Modo Semana de Provas (Fase 5) |
 | Limite de tentativas (`quizzes.attempts_allowed`) | Não existe limite: o aluno refaz o simulado quantas vezes quiser, e o contrato passa a informar quantas tentativas ele já enviou (`QuizSummary.attemptsCount`). | — |
 | Contadores e nota gravados na tentativa | Derivados das respostas (seção 1.4). | — |
-| Tabela `student_stats` | Contadores derivados; a meta semanal virou coluna de `students`. | Se o ranking ficar lento, depois de medir ([`../03-arquitetura-tecnica.md`](../03-arquitetura-tecnica.md)) |
-| Início da tentativa (`started_at`) e horário de cada resposta | O contrato atual só cria a tentativa no envio, e o cronômetro fica no cliente no MVP. | Item 1 de [`../05-melhorias-futuras.md`](../05-melhorias-futuras.md) |
+| Tabela `student_stats` | Contadores derivados; a meta semanal virou coluna de `students`. | Se o ranking ficar lento, depois de medir ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)) |
+| Início da tentativa (`started_at`) e horário de cada resposta | O contrato atual só cria a tentativa no envio, e o cronômetro fica no cliente no MVP. | Item 1 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) |
 | Colunas de auditoria (`created_at`) | Nenhum contrato ou critério usa. Mantida só em `auth_tokens`, para calcular a expiração do token. | Painel administrativo (Fase 7) |
 
 Continua fora do modelo, como já estava: o plano do dia (`todayPlan`), que hoje é só estado local
-da UI ([`../05-melhorias-futuras.md`](../05-melhorias-futuras.md), item 4).
+da UI ([`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 4).

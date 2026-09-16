@@ -5,7 +5,7 @@
 ## Fases de implementação
 
 ### Fase 1 — Fundação
-arquitetura · autenticação · layout · navegação · disciplinas · assuntos · API/mocks · modelo de dados
+arquitetura · autenticação · layout · navegação · disciplinas · assuntos · API/mocks · modelagem de dados
 
 ### Fase 2 — Motor de questões
 múltipla escolha · seleção única · múltiplas alternativas · dissertativa · drag and drop · navegação · respostas

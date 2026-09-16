@@ -159,7 +159,7 @@ precisa estudar?"*
 
 **Proposta.**
 
-1. **Modelo de dados.** Cadastrar os assuntos (e, opcionalmente, subassuntos) de cada disciplina,
+1. **Modelagem de dados.** Cadastrar os assuntos (e, opcionalmente, subassuntos) de cada disciplina,
    cada um com `id` estável e nome de exibição. Cada questão passa a referenciar um ou mais
    assuntos. Exemplo em Banco de Dados: "Modelagem ER", "Normalização", "SQL básico",
    "Índices".
