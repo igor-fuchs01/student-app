@@ -1,6 +1,6 @@
 import type { ZodType } from "zod";
 import { tokenStorage } from "@services/storage/tokenStorage";
-import { API_BASE_URL, USE_MOCKS } from "./config";
+import { API_BASE_URL, MOCK_API_BASE_URL, USE_MOCKS } from "./config";
 import { ApiError, apiErrorBodySchema } from "./errors";
 
 type HttpMethod = "GET" | "POST";
@@ -10,11 +10,7 @@ type RequestOptions = {
   authenticated?: boolean;
 };
 
-const transport: typeof fetch =
-  import.meta.env.VITE_USE_MOCKS === "true"
-    ? (input, init) => import("./mocks/mockServer").then(({ mockFetch }) => mockFetch(input, init))
-    : fetch.bind(globalThis);
-const baseUrl = USE_MOCKS ? "" : API_BASE_URL;
+const baseUrl = USE_MOCKS ? MOCK_API_BASE_URL : API_BASE_URL;
 
 let unauthorizedHandler: (() => void) | null = null;
 
@@ -48,7 +44,7 @@ async function request<T>(
 
   let response: Response;
   try {
-    response = await transport(`${baseUrl}${path}`, {
+    response = await fetch(`${baseUrl}${path}`, {
       method,
       headers,
       signal,

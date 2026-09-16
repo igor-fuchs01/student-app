@@ -23,4 +23,7 @@ export const USE_MOCKS = env.data.VITE_USE_MOCKS === "true";
 
 export const MOCK_DELAY_MS = env.data.VITE_MOCK_DELAY_MS;
 
+// Same-origin prefix intercepted by MSW; keeps mocked API calls apart from page routes like /ranking.
+export const MOCK_API_BASE_URL = "/api";
+
 export const API_BASE_URL = (env.data.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
