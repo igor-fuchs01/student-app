@@ -93,6 +93,10 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
 `services/` é isolado da UI:
 
 - `services/api/` — clientes HTTP e DTOs;
+- `services/api/mocks/` — servidor mock feito com [MSW](https://mswjs.io/) (Mock Service Worker):
+  `handlers.ts` responde às rotas da API e `mockServer.ts` registra o Service Worker
+  (`public/mockServiceWorker.js`) quando `VITE_USE_MOCKS=true`. O `httpClient` não sabe que existe
+  mock: ele faz `fetch` normalmente, e o MSW intercepta as chamadas sob o prefixo `/api`;
 - `services/storage/` — localStorage para sessão (`tokenStorage`) e resultados de tentativas
   (`quizAttemptStorage`, com chave por aluno). IndexedDB pode ser adotado quando a persistência
   durante a tentativa for implementada.

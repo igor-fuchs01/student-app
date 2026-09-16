@@ -9,7 +9,7 @@ A fonte da verdade é o código; atualize este documento sempre que algo abaixo 
 | Formato de request/response (schemas zod) | `src/types/auth.ts`, `src/types/dashboard.ts`, `src/types/subjects.ts`, `src/types/quizzes.ts`, `src/types/ranking.ts` |
 | Códigos de erro e corpo do erro | `src/services/api/errors.ts` |
 | Transporte, headers, tratamento de erro | `src/services/api/httpClient.ts` |
-| Implementação do mock | `src/services/api/mocks/mockServer.ts` |
+| Implementação do mock (MSW) | `src/services/api/mocks/handlers.ts` |
 
 Funcionalidades planejadas (materiais, desempenho, recomendações, sincronização de tentativas,
 etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
@@ -23,7 +23,7 @@ etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
 
 | Comando | Arquivo de env | Para onde vão as requisições |
 |---|---|---|
-| `npm run mock` | `.env.mock` | Servidor mock no navegador — nenhuma requisição de rede |
+| `npm run mock` | `.env.mock` | Prefixo `/api` na própria origem, interceptado no navegador pelo MSW — nenhum backend |
 | `npm run dev` | `.env.development` (copie de `.env.development.example`) | `VITE_API_BASE_URL` (no exemplo, a URL fictícia `https://api.homologacao.student-app.example/v1`) |
 
 Todo caminho descrito neste documento é relativo à URL base. Exemplo:
@@ -591,15 +591,26 @@ para serem tratados de forma distinta.
 
 ## 5. Comportamento do servidor mock
 
-Com `npm run mock`, `src/services/api/mocks/mockServer.ts` implementa todos os endpoints
-acima no navegador, com os mesmos status e corpos de erro. Particularidades do mock:
+Com `npm run mock`, o [MSW](https://mswjs.io/) (Mock Service Worker) implementa todos os
+endpoints acima no navegador, com os mesmos status e corpos de erro. `mockServer.ts` registra o
+Service Worker (`public/mockServiceWorker.js`) antes de o app renderizar, e as rotas ficam em
+`src/services/api/mocks/handlers.ts`. O `httpClient` faz `fetch` normalmente para `/api/...`; o
+worker intercepta essas chamadas, que aparecem na aba Rede do navegador como requisições reais.
+Particularidades do mock:
 
+- **URL base:** `/api`, na mesma origem do app — por exemplo, `POST /auth/login` vira
+  `POST /api/auth/login`. O prefixo evita confusão com rotas de tela de mesmo nome, como
+  `/ranking`.
 - **Latência:** toda resposta é atrasada por `VITE_MOCK_DELAY_MS` (padrão `500` ms).
 - **Conta de demonstração:** matrícula `senaiigorpereira` ou e-mail `igor@email.com`
   (sem diferenciar maiúsculas/minúsculas), senha `123456`.
-- **Formato do token:** `mock.<userId>.<uuid>`. Esse formato existe apenas no mock; tokens
-  reais devem ser tratados como opacos.
-- **Rotas desconhecidas** retornam `404` com código `NOT_FOUND`.
+- **Formato do token:** um JWT (`header.payload.signature`, assinado com HMAC-SHA256), com o
+  `id` do aluno no claim `sub` e expiração (`exp`) 3 dias após o login. Um token expirado, ou com
+  assinatura inválida, é tratado como ausente e recebe `401 UNAUTHORIZED`. A assinatura usa um
+  segredo fixo só do mock, sem nenhum valor de segurança real — o cliente continua tratando o
+  token como opaco, sem decodificá-lo.
+- **Rotas desconhecidas** sob `/api` retornam `404` com código `NOT_FOUND`. Pedidos fora de `/api`
+  (arquivos da página, Vite) não são interceptados.
 - **Simulados:** todos os simulados da lista têm detalhe. O simulado integrado usa todas as
   questões do banco do mock; os demais usam as questões da sua disciplina, e `questionCount`
   é calculado a partir delas. `attemptsCount` é contado em memória e volta a zero quando a página
@@ -611,8 +622,9 @@ acima no navegador, com os mesmos status e corpos de erro. Particularidades do m
   [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 5).
 - **Nota e desempenho por assunto:** questões `self_review` ficam fora de `scorePercent` e de
   `subjectPerformance`; questões não respondidas entram no denominador dos dois.
-- **Bundle:** o servidor mock é carregado por import dinâmico somente quando
-  `VITE_USE_MOCKS=true`; builds de produção não incluem o código nem os dados do mock.
+- **Bundle:** o MSW e os dados do mock são carregados por import dinâmico somente quando
+  `VITE_USE_MOCKS=true`; builds de produção não incluem esse código. O arquivo estático
+  `public/mockServiceWorker.js` vai em todo build, mas só é registrado em modo mock.
 
 ---
 
@@ -622,7 +634,7 @@ acima no navegador, com os mesmos status e corpos de erro. Particularidades do m
 2. Defina o formato de request/response como um schema zod em `src/types/` e exporte
    seu tipo `z.infer`.
 3. Adicione ou atualize o método no módulo `*Api` da feature, passando o schema.
-4. Implemente a rota em `src/services/api/mocks/mockServer.ts`.
+4. Implemente a rota em `src/services/api/mocks/handlers.ts`.
 5. Atualize este documento.
 
 Prefira mudanças aditivas (novos campos opcionais, novos endpoints). Trate qualquer coisa
