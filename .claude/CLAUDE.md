@@ -101,6 +101,23 @@ When modifying code:
 
 ---
 
+# Claude Code Tooling
+
+Project skills (`.claude/skills/`):
+
+* `api-contract` — checklist for creating or changing an endpoint: path, zod schema, `*Api`, MSW
+  handler, UI query and `docs/04-contratos-de-api.md`.
+* `new-component` — the `ComponentName/` folder convention with `Styled*` primitives.
+* `finish-task` — definition of done and commit proposal; only runs when the user types `/finish-task`.
+
+Hooks (`.claude/settings.json`, scripts in `.claude/hooks/`):
+
+* `validate-commit-message.mjs` blocks `git commit` when the subject doesn't start with `feat: `
+  or the message has a `Co-Authored-By` trailer.
+* `format-on-save.mjs` runs Prettier on every file edited under `src/`.
+
+---
+
 # Code Review Checklist
 
 Before finishing any task verify:
