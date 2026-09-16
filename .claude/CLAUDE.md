@@ -118,18 +118,17 @@ Before finishing any task verify:
 After finishing any task execute:
 
 * Run `git diff --staged` and `git diff` to see all changes
-* Group changes by logical responsibility:
-  - feat: new functionality
-  - fix: bug fix
-  - refactor: refactoring without behavior change
-  - chore: configs, deps, build
-- docs: documentation
+* Group changes by logical responsibility (new functionality, bug fix, refactoring,
+  configs/deps/build, documentation)
 * Use `git add -p` or `git add <file>` for selective staging
-* Make one commit per group using conventional commits
+* Make one commit per group
+* Every commit message starts with `feat: ` — no other type (`fix`, `chore`, `docs`,
+  `refactor`…) and no scope in parentheses, whatever the kind of change.
+  Example: `feat: stop sending answers left blank`
 * Always prefer small commits: split each group into the smallest meaningful units
   (one component, one fix, one config change, one doc topic), and make sure every
   commit builds and passes lint on its own
-* Never mix, for example feat + fix in the same commit
+* Never mix unrelated changes (for example a new feature and a bug fix) in the same commit
 * Never add Co-Authored-By lines to commit messages
 * Never push without prior authorization
 
