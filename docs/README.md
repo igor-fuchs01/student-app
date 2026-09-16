@@ -12,4 +12,6 @@ Especificação completa da plataforma, dividida em partes temáticas:
 
 > Documento fonte: prompt de desenvolvimento fornecido para orientar o design técnico e de produto da plataforma. Mantido na íntegra (dividido em partes) para referência da equipe e de instâncias do Claude Code que trabalharem neste repositório.
 >
+> Acabou de rodar o projeto? Veja [`PRIMEIROS-PASSOS.md`](PRIMEIROS-PASSOS.md).
+>
 > Quer contribuir com o projeto? Veja [`CONTRIBUTING.md`](CONTRIBUTING.md).
