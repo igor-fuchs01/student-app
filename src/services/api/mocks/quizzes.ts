@@ -9,7 +9,7 @@ import type {
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
 
-type MockQuizDefinition = Omit<QuizSummary, "questionCount">;
+type MockQuizDefinition = Omit<QuizSummary, "questionCount" | "attemptsCount">;
 
 type QuestionOutcome = "correct" | "incorrect" | "unanswered" | "self_review";
 
@@ -259,7 +259,6 @@ const QUIZZES: MockQuizDefinition[] = [
     title: "Simulado integrado",
     subjectScope: "all",
     durationMinutes: 15,
-    attemptsRemaining: 2,
     difficulty: "medium",
   },
   {
@@ -268,7 +267,6 @@ const QUIZZES: MockQuizDefinition[] = [
     subjectScope: "single",
     subjectName: "Algoritmos",
     durationMinutes: 5,
-    attemptsRemaining: 3,
     difficulty: "medium",
   },
   {
@@ -277,7 +275,6 @@ const QUIZZES: MockQuizDefinition[] = [
     subjectScope: "single",
     subjectName: "Arquitetura de Computadores",
     durationMinutes: 5,
-    attemptsRemaining: 3,
     difficulty: "easy",
   },
   {
@@ -286,7 +283,6 @@ const QUIZZES: MockQuizDefinition[] = [
     subjectScope: "single",
     subjectName: "Sistemas Operacionais",
     durationMinutes: 5,
-    attemptsRemaining: 3,
     difficulty: "medium",
   },
   {
@@ -295,7 +291,6 @@ const QUIZZES: MockQuizDefinition[] = [
     subjectScope: "single",
     subjectName: "Tecnologia da Informação",
     durationMinutes: 5,
-    attemptsRemaining: 3,
     difficulty: "easy",
   },
   {
@@ -304,10 +299,18 @@ const QUIZZES: MockQuizDefinition[] = [
     subjectScope: "single",
     subjectName: "Banco de Dados",
     durationMinutes: 10,
-    attemptsRemaining: 3,
     difficulty: "hard",
   },
 ];
+
+// Attempts submitted per student, kept only in memory for the mock session.
+const attemptsByStudent = new Map<string, Map<string, number>>();
+
+export function registerMockQuizAttempt(studentId: string, quizId: string): void {
+  const studentAttempts = attemptsByStudent.get(studentId) ?? new Map<string, number>();
+  studentAttempts.set(quizId, (studentAttempts.get(quizId) ?? 0) + 1);
+  attemptsByStudent.set(studentId, studentAttempts);
+}
 
 function findQuiz(id: string): MockQuizDefinition | undefined {
   return QUIZZES.find((quiz) => quiz.id === id);
@@ -318,8 +321,12 @@ function questionsFor(quiz: MockQuizDefinition): Question[] {
   return QUESTION_BANK.filter((question) => question.subjectName === quiz.subjectName);
 }
 
-export function buildMockQuizList(): QuizSummary[] {
-  return QUIZZES.map((quiz) => ({ ...quiz, questionCount: questionsFor(quiz).length }));
+export function buildMockQuizList(studentId: string): QuizSummary[] {
+  return QUIZZES.map((quiz) => ({
+    ...quiz,
+    questionCount: questionsFor(quiz).length,
+    attemptsCount: attemptsByStudent.get(studentId)?.get(quiz.id) ?? 0,
+  }));
 }
 
 export function getMockQuizDetail(id: string): QuizDetail | undefined {
