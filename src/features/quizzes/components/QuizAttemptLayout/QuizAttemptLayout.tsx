@@ -6,6 +6,7 @@ import { PageLayout } from "@components/layout/PageLayout";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import type { QuizAttemptContextValue } from "@features/quizzes/hooks/useQuizAttemptContext";
+import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { quizzesApi } from "@services/api/quizzesApi";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
@@ -103,15 +104,23 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     return () => clearInterval(interval);
   }, [startedAt, isFinished]);
 
+  // Questions left blank or partially filled are not sent; they count as unanswered.
+  const submittedAnswers = quiz
+    ? quiz.questions.flatMap((question) => {
+        const answer = answers[question.id];
+        return answer && isQuestionAnswered(question, answer) ? [answer] : [];
+      })
+    : [];
+
   const {
     mutate: submitAttempt,
     isPending: isSubmitting,
     error: submitError,
   } = useMutation({
-    mutationFn: () => quizzesApi.submitQuizAttempt(quizId, Object.values(answers)),
+    mutationFn: () => quizzesApi.submitQuizAttempt(quizId, submittedAnswers),
     onSuccess: (result) => {
       if (quiz && userId) {
-        quizAttemptStorage.save(userId, { quiz, answers: Object.values(answers), result });
+        quizAttemptStorage.save(userId, { quiz, answers: submittedAnswers, result });
       }
       setIsFinished(true);
       navigate(`${attemptBasePath}/resultado`);
