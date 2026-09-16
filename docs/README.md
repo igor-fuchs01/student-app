@@ -8,6 +8,7 @@ Especificação completa da plataforma, dividida em partes temáticas:
 4. [`04-contratos-de-api.md`](04-contratos-de-api.md) — Contratos de API implementados hoje: endpoints, autenticação, modelos de resposta, códigos de erro e comportamento do mock.
 5. [`05-melhorias-futuras.md`](05-melhorias-futuras.md) — Limitações aceitas no MVP e propostas de melhoria para depois dele.
 6. [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md) — Roadmap e critérios de aceite do MVP.
+7. [`database/`](database/README.md) — Modelo de dados do MVP: modelos conceitual e lógico (MER) e script PostgreSQL (sem backend implementado ainda).
 
 > Documento fonte: prompt de desenvolvimento fornecido para orientar o design técnico e de produto da plataforma. Mantido na íntegra (dividido em partes) para referência da equipe e de instâncias do Claude Code que trabalharem neste repositório.
 >
