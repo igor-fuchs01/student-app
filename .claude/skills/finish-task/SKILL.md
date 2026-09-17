@@ -29,11 +29,11 @@ Report the real exit code of each one. Piping into `tail` or `head` hides it, so
 ## 3. Leftovers and docs
 
 - For every renamed or removed name (field, path, file, component), `Grep` the old name across
-  `src/`, `docs/`, `database/` and `README.md`.
+  `src/`, `docs/`, `supabase/` and `README.md`.
 - Docs in `docs/` are Portuguese and must match the code:
   - contract → `04-contratos-de-api.md`;
   - architecture, folders, state → `03-arquitetura-tecnica.md`;
-  - persisted data → `06-modelagem-de-dados.md` and `database/`;
+  - persisted data or access rules → `06-modelagem-de-dados.md` and `supabase/`;
   - accepted limitations → `05-melhorias-futuras.md`;
   - setup or commands → `PRIMEIROS-PASSOS.md`, `CONTRIBUTING.md`, `README.md`.
 
