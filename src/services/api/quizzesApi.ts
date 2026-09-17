@@ -7,10 +7,12 @@ import {
   type QuizAnswer,
   type QuizResult,
 } from "@models/quizzes";
+import { USE_MOCKS } from "./config";
 import { API_ENDPOINTS } from "./endpoints";
 import { httpClient } from "./httpClient";
+import { supabaseQuizzesApi } from "./supabase/quizzesApi";
 
-export const quizzesApi = {
+const mockQuizzesApi = {
   getQuizzes(signal?: AbortSignal): Promise<QuizSummary[]> {
     return httpClient.get(API_ENDPOINTS.quizzes.list, quizzesResponseSchema, { signal });
   },
@@ -25,3 +27,5 @@ export const quizzesApi = {
     });
   },
 };
+
+export const quizzesApi = USE_MOCKS ? mockQuizzesApi : supabaseQuizzesApi;

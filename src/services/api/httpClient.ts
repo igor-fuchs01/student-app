@@ -1,6 +1,6 @@
 import type { ZodType } from "zod";
 import { tokenStorage } from "@services/storage/tokenStorage";
-import { API_BASE_URL, MOCK_API_BASE_URL, USE_MOCKS } from "./config";
+import { MOCK_API_BASE_URL } from "./config";
 import {
   ApiError,
   apiErrorBodySchema,
@@ -15,8 +15,6 @@ type RequestOptions = {
   signal?: AbortSignal;
   authenticated?: boolean;
 };
-
-const baseUrl = USE_MOCKS ? MOCK_API_BASE_URL : API_BASE_URL;
 
 let unauthorizedHandler: (() => void) | null = null;
 
@@ -55,7 +53,8 @@ async function request<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}${path}`, {
+    // Only mock mode goes through here: MSW answers every request under this prefix.
+    response = await fetch(`${MOCK_API_BASE_URL}${path}`, {
       method,
       headers,
       signal,
