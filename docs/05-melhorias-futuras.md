@@ -62,7 +62,8 @@ Qualquer aluno consegue ver as respostas pelas ferramentas de desenvolvedor do n
 durante o simulado.
 
 **Por que é aceitável no MVP.** Os simulados são ferramentas de estudo, sem valor de nota
-oficial, e hoje só existe o servidor mock.
+oficial. No Supabase, as tabelas de questões já não podem ser listadas pelo app (RLS), mas
+`get_quiz` ainda devolve o gabarito de cada simulado, para seguir o contrato atual.
 
 **Proposta.**
 

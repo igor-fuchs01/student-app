@@ -92,7 +92,10 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
 
 `services/` é isolado da UI:
 
-- `services/api/` — clientes HTTP e DTOs;
+- `services/api/` — módulos `*Api` usados pelas telas. Cada um escolhe o transporte pelo
+  `VITE_USE_MOCKS`: o `httpClient` no modo mock, ou o adaptador de `services/api/supabase/`, que
+  chama as funções do Supabase pelo SDK. Os dois devolvem os mesmos tipos do contrato;
+- `supabase/` (na raiz) — o backend: migrations do banco, seed local e a Edge Function de login;
 - `services/api/mocks/` — servidor mock feito com [MSW](https://mswjs.io/) (Mock Service Worker):
   `handlers.ts` responde às rotas da API e `mockServer.ts` registra o Service Worker
   (`public/mockServiceWorker.js`) quando `VITE_USE_MOCKS=true`. O `httpClient` não sabe que existe
@@ -101,7 +104,7 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
   (`quizAttemptStorage`, com chave por aluno). IndexedDB pode ser adotado quando a persistência
   durante a tentativa for implementada.
 
-Refresh de token ainda não existe; quando existir, deve ficar em `services/`.
+No Supabase, a renovação do token é feita pelo SDK. No modo mock não há renovação.
 
 Componentes não fazem chamadas HTTP diretamente. A separação entre apresentação e lógica é obrigatória.
 

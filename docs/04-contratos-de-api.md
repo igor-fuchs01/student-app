@@ -8,8 +8,10 @@ A fonte da verdade é o código; atualize este documento sempre que algo abaixo 
 | Caminhos dos endpoints | `src/services/api/endpoints.ts` |
 | Formato de request/response (schemas zod) | `src/types/auth.ts`, `src/types/dashboard.ts`, `src/types/subjects.ts`, `src/types/quizzes.ts`, `src/types/ranking.ts` |
 | Códigos de erro e corpo do erro | `src/services/api/errors.ts` |
-| Transporte, headers, tratamento de erro | `src/services/api/httpClient.ts` |
+| Transporte e tratamento de erro no modo mock | `src/services/api/httpClient.ts` |
+| Transporte e tratamento de erro no Supabase | `src/services/api/supabase/` |
 | Implementação do mock (MSW) | `src/services/api/mocks/handlers.ts` |
+| Implementação no Supabase (funções e login) | `supabase/migrations/` e `supabase/functions/sign-in/` |
 
 Funcionalidades planejadas (materiais, desempenho, recomendações, sincronização de tentativas,
 etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
@@ -24,14 +26,29 @@ etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
 | Comando | Arquivo de env | Para onde vão as requisições |
 |---|---|---|
 | `npm run mock` | `.env.mock` | Prefixo `/api` na própria origem, interceptado no navegador pelo MSW — nenhum backend |
-| `npm run dev` | `.env.development` (copie de `.env.development.example`) | `VITE_API_BASE_URL` (no exemplo, a URL fictícia `https://api.homologacao.student-app.example/v1`) |
+| `npm run dev` | `.env.development` (copie de `.env.development.example`) | Supabase em `VITE_SUPABASE_URL` (local: `http://127.0.0.1:54321`) |
 
-Todo caminho descrito neste documento é relativo à URL base. Exemplo:
-`POST /auth/login` → `POST https://api.homologacao.student-app.example/v1/auth/login`.
+No modo mock, todo caminho descrito neste documento é relativo a `/api`. Exemplo:
+`POST /auth/login` → `POST /api/auth/login`.
 
-Quando os mocks estão desativados, `VITE_API_BASE_URL` é obrigatória e precisa ser uma
-URL `http://` ou `https://` válida; caso contrário a aplicação se recusa a iniciar. Barras
-finais são removidas.
+No Supabase, cada endpoint é uma função no banco ou uma Edge Function que recebe os mesmos dados e
+devolve o mesmo JSON (tabela abaixo). Os módulos `*Api` escolhem o transporte, então as telas usam
+os mesmos métodos nos dois modos.
+
+| Endpoint | No Supabase |
+|---|---|
+| `POST /auth/login` | Edge Function `sign-in`, depois `get_current_student()` |
+| `POST /auth/logout` | `supabase.auth.signOut()` |
+| `GET /dashboard` | `get_dashboard()` |
+| `GET /subjects` | `list_subjects()` |
+| `GET /quizzes` | `list_quizzes()` |
+| `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
+| `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
+| `GET /ranking` | `get_ranking()` |
+
+Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https://`) e
+`VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
+regras de acesso do banco estão em [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
 
 ### 1.2 Formato
 
@@ -51,6 +68,9 @@ finais são removidas.
 
 - O token é **opaco** para o cliente: é armazenado e reenviado como está, nunca é interpretado.
 - Um token ausente, inválido ou expirado deve retornar `401` com código `UNAUTHORIZED`.
+- No Supabase, o token é o JWT do Supabase Auth. Ele vale 1 hora e o SDK o renova sozinho; o SDK
+  também envia o header em cada chamada, sem passar pelo `httpClient`. Um `401` ou `403` numa
+  chamada autenticada desloga o aluno, como no modo mock.
 
 ### 1.4 Validação de resposta e compatibilidade
 
@@ -635,7 +655,10 @@ Particularidades do mock:
    seu tipo `z.infer`.
 3. Adicione ou atualize o método no módulo `*Api` da feature, passando o schema.
 4. Implemente a rota em `src/services/api/mocks/handlers.ts`.
-5. Atualize este documento.
+5. No Supabase, crie uma migration nova (`npx supabase migration new <nome>`) com a função que
+   devolve o mesmo JSON, e chame-a no adaptador em `src/services/api/supabase/` com `callRpc`.
+   Siga as regras de acesso de [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
+6. Atualize este documento.
 
 Prefira mudanças aditivas (novos campos opcionais, novos endpoints). Trate qualquer coisa
 listada como incompatível em [1.4](#14-validação-de-resposta-e-compatibilidade) como algo
