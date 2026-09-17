@@ -43,6 +43,9 @@ npx supabase stop       # desliga os containers
 O painel (Supabase Studio) fica em `http://127.0.0.1:54323`, e o banco aceita conexão direta em
 `postgresql://postgres:postgres@127.0.0.1:54322/postgres`.
 
+Sobem 7 containers: banco, login, API REST, gateway, Edge Runtime e o painel. Os serviços que o
+projeto não usa (Storage, Realtime, e-mail de teste e logs) estão desligados no `config.toml`.
+
 Toda mudança no banco é uma **migration nova** (`npx supabase migration new <nome>`), nunca a
 edição de uma migration já aplicada. Para publicar no projeto hospedado, use `npx supabase link` e
 depois `npx supabase db push`.
