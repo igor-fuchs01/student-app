@@ -23,6 +23,7 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 9 | [Dashboards na tela de Início](#9-dashboards-na-tela-de-início) | Produto | 4, 6 |
 | 10 | [Logo e identidade da aplicação](#10-logo-e-identidade-da-aplicação) | Identidade visual | Nome do produto |
 | 11 | [Design e implementação para mobile](#11-design-e-implementação-para-mobile) | UX | 10 |
+| 12 | [Correção de dissertativas por IA com chave do aluno](#12-correção-de-dissertativas-por-ia-com-chave-do-aluno) | Produto | — |
 
 ---
 
@@ -424,3 +425,74 @@ mobile exige primeiro um design dedicado.
 6. **Documentação.** O índice de [`docs/README.md`](README.md) diz que
    [`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md) cobre responsividade, mas essa seção
    não existe. Criá-la com os breakpoints e padrões definidos aqui.
+
+---
+
+## 12. Correção de dissertativas por IA com chave do aluno
+
+**Situação atual.** Uma dissertativa (ou lacuna dissertativa) diferente da resposta de referência
+vira `self_review`: o aluno compara a própria resposta com a referência e se autoavalia (item 5).
+Ele não recebe nenhum retorno sobre *o que* acertou ou deixou de fora.
+
+**Objetivo.** Ao final da prova, uma IA corrige as dissertativas e explica o que está certo e o que
+faltou, usando uma chave de API que o próprio aluno configura. O recurso não depende de um
+provedor específico: qualquer serviço de IA que aceite chamadas com chave de API serve.
+
+**Por que fica para depois do MVP.** O MVP define a correção de dissertativas como manual, e a
+correção por IA como uma evolução posterior.
+
+**Conflita com.** [`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 2.4 (correção
+assistida por IA só depois da implementação manual), e
+[`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md), que coloca IA na Fase 7.
+
+**Decisões já tomadas.**
+
+- **A chave é do aluno e fica só no front-end.** Nenhum servidor do projeto recebe ou guarda a
+  chave: o navegador chama a API do provedor diretamente. É a única forma de o sistema nunca ter
+  acesso a ela.
+- **A correção acontece no final da prova.** Ela roda depois do envio, na tela de resultado, só
+  para os itens `self_review`, que já trazem `studentAnswer` e `referenceAnswer`
+  ([`04-contratos-de-api.md`](04-contratos-de-api.md), seção 3.14). O contrato com o backend não
+  muda.
+- **A validação reduzida é um trade-off aceito.** Como a correção roda no navegador, ninguém confere
+  o veredito da IA no servidor, e o aluno pode alterar o resultado pelas ferramentas de
+  desenvolvedor. É aceitável porque os simulados são ferramentas de estudo sem valor de nota
+  oficial e o ranking nunca usa desempenho acadêmico
+  ([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11).
+
+**Proposta.**
+
+1. **Configuração da chave.** Uma tela (na feature planejada `profile`) para informar o provedor e o
+   modelo, colar a chave, testá-la e removê-la.
+   - Por padrão, a chave fica só na memória e some ao recarregar a página. Se for desejável
+     lembrá-la durante a sessão, usar `sessionStorage` e deixar essa escolha explícita para o aluno.
+   - A chave nunca é enviada ao backend nem aparece em logs.
+   - Antes de ativar, avisar que as respostas do aluno saem do sistema para o provedor escolhido,
+     sob a conta dele, e pedir consentimento. Os termos de uso de dados de cada provedor são
+     responsabilidade do aluno conferir.
+   - Orientar o aluno a criar uma chave restrita: só para o serviço de IA, com limite de gasto e,
+     quando o provedor permitir, restrição ao domínio da aplicação.
+2. **Camada de serviço.** Um módulo em `src/services/` (por exemplo, `services/ai/`) esconde o
+   provedor atrás de uma única operação, "corrigir dissertativa", que devolve um veredito. Trocar de
+   IA não mexe nas telas. Componentes não chamam a API diretamente
+   ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)). Usar `fetch`, sem SDK de provedor.
+3. **Prompt e resposta.**
+   - O prompt leva o enunciado, a resposta de referência e a resposta do aluno, com esta última
+     claramente delimitada, para reduzir tentativas de manipular a IA pelo texto da resposta.
+   - Pedir saída em JSON estruturado, como `{ "verdict": "correct" | "incorrect", "feedback": "..." }`,
+     e validá-la com zod, como qualquer resposta de API do projeto.
+4. **Resultado.**
+   - O veredito substitui a autoavaliação na tela de resultado e na revisão da prova, com a
+     explicação da IA e a indicação de que a correção foi feita por IA.
+   - Acertos, erros e nota exibidos são recalculados no navegador, e o resultado corrigido fica
+     salvo só localmente (`quizAttemptStorage`). Enviá-lo ao backend exigiria um contrato novo e fica
+     fora deste item.
+5. **Falhas.** Sem chave, chave inválida (`401`/`403`), limite de uso atingido (`429`), falta de
+   conexão ou resposta fora do formato esperado: mostrar uma mensagem em português e voltar para a
+   autoavaliação manual. O resultado da prova nunca fica bloqueado pela IA.
+6. **Mock e testes.** Um handler do MSW que imita a resposta do provedor permite desenvolver e
+   testar sem chave real e sem custo.
+7. **Documentação.** Ao implementar, atualizar [`02-regras-de-negocio.md`](02-regras-de-negocio.md)
+   (seções 2.4 e 6), [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md) e
+   [`04-contratos-de-api.md`](04-contratos-de-api.md) (seção 5, se o mock ganhar o handler do
+   provedor), e remover este item daqui.
