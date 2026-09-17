@@ -6,57 +6,82 @@ A modelagem de dados é descrita em três níveis, do mais abstrato ao mais conc
 |---|---|---|
 | **Conceitual** | *O que* o sistema precisa guardar, na linguagem do domínio | [Seção 1](#1-modelo-conceitual) |
 | **Lógico** | *Como* isso vira tabelas, colunas, chaves e restrições no modelo relacional | [Seção 2](#2-modelo-lógico) |
-| **Físico** | Os scripts executáveis para PostgreSQL (tipos, índices, extensões, views) | Pasta [`database/`](../database/) na raiz do projeto |
+| **Físico** | As migrations do PostgreSQL no Supabase (tipos, índices, views, regras de acesso e funções) | Pasta [`supabase/migrations/`](../supabase/migrations/) na raiz do projeto |
 
 O escopo é **somente o MVP**: o necessário para os contratos implementados em
 [`04-contratos-de-api.md`](04-contratos-de-api.md) e para os critérios de aceite em
 [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md). O que ficou de fora e por
 quê está na [seção 3](#3-fora-do-mvp).
 
-Ainda não existe backend ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)); este é
-o modelo proposto para quando ele existir.
+O backend é o [Supabase](https://supabase.com/): o banco PostgreSQL, o login (Supabase Auth) e as
+funções que o app chama ficam nele ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)).
 
 ### Arquivos
 
-A documentação fica aqui em `docs/`; tudo o que é executado fica em `database/`:
+A documentação fica aqui em `docs/`; o banco é um projeto [Supabase](https://supabase.com/) na
+pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`database/schema.sql`](../database/schema.sql) | Cria tipos, tabelas, restrições, índices e views. |
-| [`database/seed.sql`](../database/seed.sql) | Insere o mínimo de dados para testar: 2 alunos, 1 disciplina com 2 assuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
-| [`database/reset.sql`](../database/reset.sql) | Esvazia as tabelas preenchidas pelo seed e reinicia os ids, mantendo a estrutura. |
-| [`database/docker-compose.yml`](../database/docker-compose.yml) | Sobe um PostgreSQL local já com o schema e o seed. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, aplicado em ordem: o schema (`…_initial_schema.sql`), o login e as regras de acesso (`…_auth_and_security.sql`) e as funções chamadas pelo app (`…_api_read_functions.sql` e `…_submit_quiz_attempt.sql`). |
+| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
+| [`supabase/functions/sign-in/`](../supabase/functions/sign-in/) | Função de login que aceita matrícula ou e-mail. |
+| [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado. |
 
-### Subindo um PostgreSQL local com Docker
+### Rodando o banco localmente
 
-O `docker-compose.yml` monta `schema.sql` e `seed.sql` como scripts de inicialização: a imagem
-oficial do Postgres executa todo `*.sql` em `/docker-entrypoint-initdb.d/`, em ordem, na primeira
-vez que o volume de dados é criado. Os comandos abaixo rodam a partir da raiz do projeto.
-
-```bash
-docker compose -f database/docker-compose.yml up -d        # sobe o banco (schema + seed na 1ª vez)
-docker compose -f database/docker-compose.yml exec db psql -U student_app -d student_app
-docker compose -f database/docker-compose.yml down         # para o container, mantém os dados
-docker compose -f database/docker-compose.yml down -v      # para e apaga os dados
-```
-
-String de conexão: `postgresql://student_app:student_app@localhost:5432/student_app`.
-
-Como o schema e o seed só rodam automaticamente na criação do volume, para recomeçar os dados sem
-derrubar o container rode o reset e depois o seed:
+É preciso ter o [Docker](https://www.docker.com/products/docker-desktop/) aberto: o Supabase CLI
+sobe o banco, o login e a API em containers. Os comandos rodam a partir da raiz do projeto.
 
 ```bash
-docker compose -f database/docker-compose.yml exec -T db psql -U student_app -d student_app < database/reset.sql
-docker compose -f database/docker-compose.yml exec -T db psql -U student_app -d student_app < database/seed.sql
+npx supabase start      # sobe tudo; na primeira vez aplica as migrations e o seed
+npx supabase status     # mostra a URL da API e a publishable key para o .env.development
+npx supabase db reset   # recria o banco do zero: migrations + seed
+npx supabase stop       # desliga os containers
 ```
 
-Sem Docker, os scripts também podem ser aplicados a qualquer PostgreSQL com `psql`:
+O painel (Supabase Studio) fica em `http://127.0.0.1:54323`, e o banco aceita conexão direta em
+`postgresql://postgres:postgres@127.0.0.1:54322/postgres`.
 
-```bash
-psql "$DATABASE_URL" -f database/schema.sql
-psql "$DATABASE_URL" -f database/seed.sql
-psql "$DATABASE_URL" -f database/reset.sql   # quando quiser recomeçar
-```
+Toda mudança no banco é uma **migration nova** (`npx supabase migration new <nome>`), nunca a
+edição de uma migration já aplicada. Para publicar no projeto hospedado, use `npx supabase link` e
+depois `npx supabase db push`.
+
+### Como o app acessa o banco
+
+Com `npm run dev`, os módulos `*Api` chamam o Supabase pelo SDK; com `npm run mock`, continuam
+usando o servidor mock. O app não consulta tabelas diretamente: cada endpoint do contrato é uma
+função no banco que devolve o mesmo JSON.
+
+| Contrato ([`04-contratos-de-api.md`](04-contratos-de-api.md)) | No Supabase |
+|---|---|
+| `POST /auth/login` | Edge Function `sign-in`, seguida de `get_current_student()` |
+| `POST /auth/logout` | `supabase.auth.signOut()` |
+| `GET /dashboard` | `get_dashboard()` |
+| `GET /subjects` | `list_subjects()` |
+| `GET /quizzes` | `list_quizzes()` |
+| `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
+| `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
+| `GET /ranking` | `get_ranking()` |
+
+A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
+chamar a API sem passar pelo app, então a segurança fica no banco:
+
+- **RLS em todas as tabelas.** Tabela sem política não devolve nenhuma linha. O aluno só lê as
+  próprias linhas (perfil, tentativas, respostas e dias de estudo) e o conteúdo sem gabarito. As
+  tabelas de questões não têm política de leitura.
+- **Nenhuma escrita direta.** Não existe política de `INSERT`, `UPDATE` ou `DELETE`. O envio de uma
+  prova passa por `submit_quiz_attempt`, que valida cada id recebido e corrige no servidor.
+- **Views fechadas.** Views ignoram o RLS, então o app não acessa nenhuma. Os dados delas só saem
+  pelas funções, com os campos permitidos: o ranking nunca expõe notas.
+- **Funções protegidas.** São `SECURITY DEFINER` com `search_path` vazio e nomes completos,
+  identificam o aluno só por `auth.uid()` (nunca por um parâmetro) e não montam SQL com texto.
+  Funções auxiliares não podem ser chamadas pelo app.
+- **Login.** As contas são criadas pela instituição, sem cadastro público. A busca da matrícula
+  acontece na Edge Function, para nenhum aluno conseguir ler o e-mail de outro.
+- **Ainda em aberto.** `get_quiz` devolve o gabarito junto com as questões, porque o contrato atual
+  do `QuizDetail` inclui essas respostas ([`05-melhorias-futuras.md`](05-melhorias-futuras.md),
+  item 2).
 
 ---
 
@@ -72,7 +97,7 @@ da equipe, inclusive quem não programa.
 | Entidade | O que representa |
 |---|---|
 | **Aluno** | Conta de estudante, pré-provisionada pelo responsável (não há cadastro público). Tem uma meta semanal de questões. |
-| **Sessão** | Um login ativo do aluno. É encerrada no logout. |
+| **Sessão** | Um login ativo do aluno, controlado pelo Supabase Auth. É encerrada no logout. |
 | **Disciplina** | Matéria do curso, ex.: Banco de Dados. |
 | **Assunto** | Tema dentro de uma disciplina, ex.: Normalização. É a unidade usada para identificar dificuldades. |
 | **Material** | Material didático (PDF) de um assunto. |
@@ -159,14 +184,14 @@ nota de uma tentativa ficaria errada quando uma dissertativa pendente fosse corr
 O modelo lógico traduz o conceitual para o **modelo relacional**: cada entidade vira uma ou mais
 tabelas, cada atributo vira uma coluna com tipo, e cada relacionamento vira uma chave estrangeira
 (FK) ou uma tabela associativa. Detalhes específicos do PostgreSQL (índices, extensões, texto das
-views) ficam no modelo físico, em [`database/schema.sql`](../database/schema.sql).
+views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](../supabase/migrations/).
 
 ### 2.1 Das entidades para as tabelas
 
 | Entidade (conceitual) | Tabela (lógico) |
 |---|---|
 | Aluno | `students` |
-| Sessão | `auth_tokens` |
+| Sessão | Supabase Auth (`auth.users` e as sessões dele), ligado ao aluno por `students.auth_user_id` |
 | Disciplina | `subjects` |
 | Assunto | `topics` |
 | Material | `materials` |
@@ -190,8 +215,9 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
   `question_id`) e `student_activity_days` (`student_id`, `activity_date`). O contrato trata ids
   como string, então a API envia o número como texto (ex.: `"12"`).
 - **Relacionamentos 1 : N** viram uma FK na tabela do lado N. `ON DELETE CASCADE` só é usado quando
-  o filho não existe sem o pai (alternativas de uma questão, respostas de uma tentativa, sessões de
-  um aluno).
+  o filho não existe sem o pai (alternativas de uma questão, respostas de uma tentativa).
+- **Login fica com o Supabase Auth.** O banco não guarda senha nem token: cada aluno aponta para um
+  usuário do Auth por `students.auth_user_id` (uuid, único). Apagar o usuário apaga o aluno.
 - **Relacionamento N : M** entre Simulado e Questão vira a tabela associativa `quiz_questions`, que
   também guarda o atributo do relacionamento (`order_index`).
 - **Tipos de questão em uma única tabela.** Os seis tipos diferem em poucas colunas (`prompt`,
@@ -226,7 +252,7 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
 
 ```mermaid
 erDiagram
-    students ||--o{ auth_tokens : ""
+    auth_users ||--o| students : ""
     students ||--o{ quiz_attempts : ""
     students ||--o{ student_activity_days : ""
 
@@ -251,22 +277,19 @@ erDiagram
 
     subjects ||--o{ scheduled_exams : ""
 
+    auth_users {
+        uuid id PK
+        text email
+    }
+
     students {
         int id PK
+        uuid auth_user_id UK, FK
         text name
         citext email UK
         text registration_id UK
         text course
-        text password_hash
         int weekly_goal_target
-    }
-
-    auth_tokens {
-        int id PK
-        int student_id FK
-        text token UK
-        timestamptz created_at
-        timestamptz revoked_at
     }
 
     subjects {
@@ -423,7 +446,8 @@ funcionalidades complexas apenas porque foram mencionadas como possibilidades fu
 | Contadores e nota gravados na tentativa | Derivados das respostas (seção 1.4). | — |
 | Tabela `student_stats` | Contadores derivados; a meta semanal virou coluna de `students`. | Se o ranking ficar lento, depois de medir ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)) |
 | Início da tentativa (`started_at`) e horário de cada resposta | O contrato atual só cria a tentativa no envio, e o cronômetro fica no cliente no MVP. | Item 1 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) |
-| Colunas de auditoria (`created_at`) | Nenhum contrato ou critério usa. Mantida só em `auth_tokens`, para calcular a expiração do token. | Painel administrativo (Fase 7) |
+| Colunas de auditoria (`created_at`) | Nenhum contrato ou critério usa. Sessões e expiração de login ficam com o Supabase Auth. | Painel administrativo (Fase 7) |
+| Tabela `auth_tokens` e coluna `students.password_hash` | O Supabase Auth guarda senhas e sessões. | — |
 
 Continua fora do modelo, como já estava: o plano do dia (`todayPlan`), que hoje é só estado local
 da UI ([`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 4).
