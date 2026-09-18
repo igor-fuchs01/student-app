@@ -15,10 +15,11 @@ lives in `docs/` (start at `docs/README.md`); do not duplicate that content here
 - styled-components per component, using a shared theme (colors, radii, shadows)
   from `src/styles/theme.ts` via `ThemeProvider`, plus `src/styles/GlobalStyle.ts`
   for the base reset.
-- Backend: Supabase (`supabase/`: migrations, local seed, `sign-in` edge function),
-  called through `src/services/api/supabase/`. With `VITE_USE_MOCKS=true` the same
-  `*Api` modules use MSW (`src/services/api/mocks/`) instead. Database access rules
-  are in `docs/06-modelagem-de-dados.md`.
+- Backend: Supabase (`supabase/`: migrations and local seed), called through
+  `src/services/api/supabase/`; login is email + password via Supabase Auth.
+  With `VITE_USE_MOCKS=true` the same `*Api` modules use MSW
+  (`src/services/api/mocks/`) instead. Database access rules are in
+  `docs/06-modelagem-de-dados.md`.
 
 ## Architecture
 
