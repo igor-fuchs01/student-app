@@ -22,13 +22,9 @@ const MOCK_ACCOUNTS: MockAccount[] = [
   },
 ];
 
-export function findAccountByIdentifier(identifier: string): MockAccount | undefined {
-  const normalized = identifier.trim();
-  return MOCK_ACCOUNTS.find(
-    (account) =>
-      account.user.email.toLowerCase() === normalized.toLowerCase() ||
-      account.user.registrationId === normalized,
-  );
+export function findAccountByEmail(email: string): MockAccount | undefined {
+  const normalized = email.trim().toLowerCase();
+  return MOCK_ACCOUNTS.find((account) => account.user.email.toLowerCase() === normalized);
 }
 
 export function findAccountById(id: string): MockAccount | undefined {

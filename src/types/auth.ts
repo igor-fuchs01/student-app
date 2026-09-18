@@ -11,7 +11,11 @@ export const studentUserSchema = z.object({
 export type StudentUser = z.infer<typeof studentUserSchema>;
 
 export const loginCredentialsSchema = z.object({
-  identifier: z.string().trim().min(1, "Informe sua matrícula ou e-mail institucional."),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Informe seu e-mail institucional.")
+    .pipe(z.email("Informe um e-mail válido.")),
   password: z.string().min(1, "Informe sua senha."),
 });
 

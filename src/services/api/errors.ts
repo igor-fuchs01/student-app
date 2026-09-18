@@ -18,6 +18,8 @@ export const NETWORK_ERROR_MESSAGE =
 export const INVALID_RESPONSE_MESSAGE =
   "Recebemos uma resposta inválida do servidor. Tente novamente.";
 
+export const INVALID_CREDENTIALS_MESSAGE = "E-mail ou senha inválidos.";
+
 export const UNKNOWN_ERROR_MESSAGE = "Ocorreu um erro inesperado. Tente novamente.";
 
 export const SESSION_EXPIRED_MESSAGE = "Sessão expirada. Faça login novamente.";
