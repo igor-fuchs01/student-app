@@ -19,7 +19,7 @@ ligar o app, veja o [`README`](../README.md).
 
 | Tela | O que você encontra |
 |---|---|
-| 🔐 **Login** | Entrada com matrícula ou e-mail. Não existe cadastro: as contas são criadas pelo responsável. |
+| 🔐 **Login** | Entrada com o e-mail institucional. Não existe cadastro: as contas são criadas pelo responsável. |
 | 🏠 **Início** | A próxima prova, os assuntos que merecem mais atenção e um plano de estudo do dia. |
 | 📘 **Disciplinas** | As matérias do curso, com quantidade de materiais, questões e o seu nível de preparo. |
 | 📝 **Simulados** | Provas de treino com cronômetro (ou sem limite), 6 tipos de questão, marcação para revisar depois e revisão antes de enviar. |
@@ -37,8 +37,7 @@ Os 6 tipos de questão:
 | Dissertativa | Você escreve a resposta. |
 | Dissertativa com lacunas | Você completa um texto digitando nas lacunas. |
 
-A conta de teste aceita a matrícula `senaiigorpereira` ou o e-mail `igor@email.com`, com a senha
-`123456`.
+A conta de teste é o e-mail `igor@email.com`, com a senha `123456`.
 
 ## O que é o "mock"?
 

@@ -11,7 +11,7 @@ A fonte da verdade é o código; atualize este documento sempre que algo abaixo 
 | Transporte e tratamento de erro no modo mock | `src/services/api/httpClient.ts` |
 | Transporte e tratamento de erro no Supabase | `src/services/api/supabase/` |
 | Implementação do mock (MSW) | `src/services/api/mocks/handlers.ts` |
-| Implementação no Supabase (funções e login) | `supabase/migrations/` e `supabase/functions/sign-in/` |
+| Implementação no Supabase (funções do banco e login) | `supabase/migrations/` e o Supabase Auth |
 
 Funcionalidades planejadas (materiais, desempenho, recomendações, sincronização de tentativas,
 etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
@@ -31,13 +31,13 @@ etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
 No modo mock, todo caminho descrito neste documento é relativo a `/api`. Exemplo:
 `POST /auth/login` → `POST /api/auth/login`.
 
-No Supabase, cada endpoint é uma função no banco ou uma Edge Function que recebe os mesmos dados e
-devolve o mesmo JSON (tabela abaixo). Os módulos `*Api` escolhem o transporte, então as telas usam
-os mesmos métodos nos dois modos.
+No Supabase, cada endpoint é uma função no banco ou uma chamada do Supabase Auth que recebe os
+mesmos dados e devolve o mesmo JSON (tabela abaixo). Os módulos `*Api` escolhem o transporte, então
+as telas usam os mesmos métodos nos dois modos.
 
 | Endpoint | No Supabase |
 |---|---|
-| `POST /auth/login` | Edge Function `sign-in`, depois `get_current_student()` |
+| `POST /auth/login` | `supabase.auth.signInWithPassword()`, depois `get_current_student()` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
 | `GET /dashboard` | `get_dashboard()` |
 | `GET /subjects` | `list_subjects()` |
@@ -113,12 +113,12 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
 
 | Campo | Tipo | Regras | Descrição |
 |---|---|---|---|
-| `identifier` | string | Obrigatório. Sofre trim; não pode ficar vazio após o trim. | Matrícula do aluno ou e-mail institucional. A comparação do e-mail não diferencia maiúsculas/minúsculas. |
+| `email` | string | Obrigatório. Sofre trim; precisa ser um e-mail válido. | E-mail institucional do aluno. A comparação não diferencia maiúsculas/minúsculas. |
 | `password` | string | Obrigatório. Não pode ser vazio. | Senha da conta. |
 
 ```json
 {
-  "identifier": "20231234",
+  "email": "igor@email.com",
   "password": "123456"
 }
 ```
@@ -128,8 +128,8 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
 | Status | Corpo | Quando |
 |---|---|---|
 | `200` | [`AuthSession`](#32-authsession) | As credenciais são válidas. |
-| `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, identificador em branco, ou senha vazia. |
-| `401` | Erro, código `INVALID_CREDENTIALS` | Nenhuma conta corresponde ao identificador, ou a senha está errada. |
+| `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, e-mail em branco ou malformado, ou senha vazia. |
+| `401` | Erro, código `INVALID_CREDENTIALS` | Nenhuma conta corresponde ao e-mail, ou a senha está errada. |
 
 ```json
 {
@@ -569,7 +569,7 @@ Toda resposta não-`2xx` do servidor deve usar este corpo:
 ```json
 {
   "code": "INVALID_CREDENTIALS",
-  "message": "Matrícula/e-mail ou senha inválidos."
+  "message": "E-mail ou senha inválidos."
 }
 ```
 
@@ -585,7 +585,7 @@ O cliente expõe toda falha como um `ApiError` com `status`, `code` e `message`.
 | Código | Status HTTP | Produzido por | Significado |
 |---|---|---|---|
 | `VALIDATION_ERROR` | `400` | Servidor | O corpo da requisição está ausente ou inválido. |
-| `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: identificador desconhecido ou senha errada. |
+| `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: e-mail desconhecido ou senha errada. |
 | `UNAUTHORIZED` | `401` | Servidor | Endpoint autenticado chamado sem um token válido. |
 | `NOT_FOUND` | `404` | Servidor | A rota ou o recurso não existe. |
 | `NETWORK_ERROR` | `0` | Cliente | Nenhuma resposta foi recebida (offline, falha de DNS, CORS, servidor fora do ar). |
@@ -622,8 +622,8 @@ Particularidades do mock:
   `POST /api/auth/login`. O prefixo evita confusão com rotas de tela de mesmo nome, como
   `/ranking`.
 - **Latência:** toda resposta é atrasada por `VITE_MOCK_DELAY_MS` (padrão `500` ms).
-- **Conta de demonstração:** matrícula `senaiigorpereira` ou e-mail `igor@email.com`
-  (sem diferenciar maiúsculas/minúsculas), senha `123456`.
+- **Conta de demonstração:** e-mail `igor@email.com` (sem diferenciar maiúsculas/minúsculas),
+  senha `123456`.
 - **Formato do token:** um JWT (`header.payload.signature`, assinado com HMAC-SHA256), com o
   `id` do aluno no claim `sub` e expiração (`exp`) 3 dias após o login. Um token expirado, ou com
   assinatura inválida, é tratado como ausente e recebe `401 UNAUTHORIZED`. A assinatura usa um

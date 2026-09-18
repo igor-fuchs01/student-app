@@ -25,7 +25,6 @@ pasta `supabase/`:
 |---|---|
 | [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, aplicado em ordem: o schema (`…_initial_schema.sql`), o login e as regras de acesso (`…_auth_and_security.sql`) e as funções chamadas pelo app (`…_api_read_functions.sql` e `…_submit_quiz_attempt.sql`). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
-| [`supabase/functions/sign-in/`](../supabase/functions/sign-in/) | Função de login que aceita matrícula ou e-mail. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado. |
 
 ### Rodando o banco localmente
@@ -43,8 +42,8 @@ npx supabase stop       # desliga os containers
 O painel (Supabase Studio) fica em `http://127.0.0.1:54323`, e o banco aceita conexão direta em
 `postgresql://postgres:postgres@127.0.0.1:54322/postgres`.
 
-Sobem 7 containers: banco, login, API REST, gateway, Edge Runtime e o painel. Os serviços que o
-projeto não usa (Storage, Realtime, e-mail de teste e logs) estão desligados no `config.toml`.
+Sobem 6 containers: banco, login, API REST, gateway e o painel. Os serviços que o projeto não usa
+(Storage, Realtime, Edge Functions, e-mail de teste e logs) estão desligados no `config.toml`.
 
 Toda mudança no banco é uma **migration nova** (`npx supabase migration new <nome>`), nunca a
 edição de uma migration já aplicada. Para publicar no projeto hospedado, use `npx supabase link` e
@@ -58,7 +57,7 @@ função no banco que devolve o mesmo JSON.
 
 | Contrato ([`04-contratos-de-api.md`](04-contratos-de-api.md)) | No Supabase |
 |---|---|
-| `POST /auth/login` | Edge Function `sign-in`, seguida de `get_current_student()` |
+| `POST /auth/login` | `supabase.auth.signInWithPassword()`, seguida de `get_current_student()` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
 | `GET /dashboard` | `get_dashboard()` |
 | `GET /subjects` | `list_subjects()` |
@@ -80,8 +79,8 @@ chamar a API sem passar pelo app, então a segurança fica no banco:
 - **Funções protegidas.** São `SECURITY DEFINER` com `search_path` vazio e nomes completos,
   identificam o aluno só por `auth.uid()` (nunca por um parâmetro) e não montam SQL com texto.
   Funções auxiliares não podem ser chamadas pelo app.
-- **Login.** As contas são criadas pela instituição, sem cadastro público. A busca da matrícula
-  acontece na Edge Function, para nenhum aluno conseguir ler o e-mail de outro.
+- **Login.** As contas são criadas pela instituição, sem cadastro público. O aluno entra com o
+  e-mail institucional e a senha, validados pelo Supabase Auth.
 - **Ainda em aberto.** `get_quiz` devolve o gabarito junto com as questões, porque o contrato atual
   do `QuizDetail` inclui essas respostas ([`05-melhorias-futuras.md`](05-melhorias-futuras.md),
   item 2).
