@@ -19,10 +19,10 @@ export function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const status = useAuthStore((state) => state.status);
 
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ identifier?: string; password?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
   const isSubmitting = status === "authenticating";
 
@@ -30,11 +30,11 @@ export function LoginPage() {
     event.preventDefault();
     setFormError(null);
 
-    const result = loginCredentialsSchema.safeParse({ identifier, password });
+    const result = loginCredentialsSchema.safeParse({ email, password });
     if (!result.success) {
       const issues = z.flattenError(result.error).fieldErrors;
       setFieldErrors({
-        identifier: issues.identifier?.[0],
+        email: issues.email?.[0],
         password: issues.password?.[0],
       });
       return;
@@ -58,15 +58,16 @@ export function LoginPage() {
         <StyledTitle>Que bom ter você de volta!</StyledTitle>
 
         <TextField
-          label="Matrícula ou e-mail"
-          placeholder="Matrícula ou e-mail institucional"
-          autoComplete="username"
-          value={identifier}
+          label="E-mail"
+          type="email"
+          placeholder="E-mail institucional"
+          autoComplete="email"
+          value={email}
           onChange={(event) => {
-            setIdentifier(event.target.value);
-            setFieldErrors((current) => ({ ...current, identifier: undefined }));
+            setEmail(event.target.value);
+            setFieldErrors((current) => ({ ...current, email: undefined }));
           }}
-          errorMessage={fieldErrors.identifier}
+          errorMessage={fieldErrors.email}
           disabled={isSubmitting}
           required
         />

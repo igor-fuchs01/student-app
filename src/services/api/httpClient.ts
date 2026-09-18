@@ -1,7 +1,13 @@
 import type { ZodType } from "zod";
 import { tokenStorage } from "@services/storage/tokenStorage";
-import { API_BASE_URL, MOCK_API_BASE_URL, USE_MOCKS } from "./config";
-import { ApiError, apiErrorBodySchema } from "./errors";
+import { MOCK_API_BASE_URL } from "./config";
+import {
+  ApiError,
+  apiErrorBodySchema,
+  INVALID_RESPONSE_MESSAGE,
+  NETWORK_ERROR_MESSAGE,
+  UNKNOWN_ERROR_MESSAGE,
+} from "./errors";
 
 type HttpMethod = "GET" | "POST";
 
@@ -10,12 +16,15 @@ type RequestOptions = {
   authenticated?: boolean;
 };
 
-const baseUrl = USE_MOCKS ? MOCK_API_BASE_URL : API_BASE_URL;
-
 let unauthorizedHandler: (() => void) | null = null;
 
 export function onUnauthorized(handler: () => void): void {
   unauthorizedHandler = handler;
+}
+
+export function notifyUnauthorized(): void {
+  tokenStorage.clearSession();
+  unauthorizedHandler?.();
 }
 
 async function parseBody(response: Response): Promise<unknown> {
@@ -44,7 +53,8 @@ async function request<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}${path}`, {
+    // Only mock mode goes through here: MSW answers every request under this prefix.
+    response = await fetch(`${MOCK_API_BASE_URL}${path}`, {
       method,
       headers,
       signal,
@@ -52,39 +62,26 @@ async function request<T>(
     });
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw new ApiError(
-      0,
-      "NETWORK_ERROR",
-      "Não foi possível conectar ao servidor. Verifique sua conexão.",
-    );
+    throw new ApiError(0, "NETWORK_ERROR", NETWORK_ERROR_MESSAGE);
   }
 
   const payload = await parseBody(response);
 
   if (!response.ok) {
     if (response.status === 401 && authenticated) {
-      tokenStorage.clearSession();
-      unauthorizedHandler?.();
+      notifyUnauthorized();
     }
 
     const errorBody = apiErrorBodySchema.safeParse(payload);
     if (errorBody.success) {
       throw new ApiError(response.status, errorBody.data.code, errorBody.data.message);
     }
-    throw new ApiError(
-      response.status,
-      "UNKNOWN_ERROR",
-      "Ocorreu um erro inesperado. Tente novamente.",
-    );
+    throw new ApiError(response.status, "UNKNOWN_ERROR", UNKNOWN_ERROR_MESSAGE);
   }
 
   const result = schema.safeParse(payload);
   if (!result.success) {
-    throw new ApiError(
-      response.status,
-      "INVALID_RESPONSE",
-      "Recebemos uma resposta inválida do servidor. Tente novamente.",
-    );
+    throw new ApiError(response.status, "INVALID_RESPONSE", INVALID_RESPONSE_MESSAGE);
   }
 
   return result.data;

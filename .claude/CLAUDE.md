@@ -15,6 +15,11 @@ lives in `docs/` (start at `docs/README.md`); do not duplicate that content here
 - styled-components per component, using a shared theme (colors, radii, shadows)
   from `src/styles/theme.ts` via `ThemeProvider`, plus `src/styles/GlobalStyle.ts`
   for the base reset.
+- Backend: Supabase (`supabase/`: migrations and local seed), called through
+  `src/services/api/supabase/`; login is email + password via Supabase Auth.
+  With `VITE_USE_MOCKS=true` the same `*Api` modules use MSW
+  (`src/services/api/mocks/`) instead. Database access rules are in
+  `docs/06-modelagem-de-dados.md`.
 
 ## Architecture
 
@@ -139,8 +144,8 @@ After finishing any task execute:
   configs/deps/build, documentation)
 * Use `git add -p` or `git add <file>` for selective staging
 * Make one commit per group
-* Every commit message starts with `feat: ` — no other type (`fix`, `chore`, `docs`,
-  `refactor`…) and no scope in parentheses, whatever the kind of change.
+* Every commit message starts with `feat: ` or other type (`fix`, `chore`, `docs`,
+  `refactor`…), but no scope in parentheses, whatever the kind of change.
   Example: `feat: stop sending answers left blank`
 * Always prefer small commits: split each group into the smallest meaningful units
   (one component, one fix, one config change, one doc topic), and make sure every

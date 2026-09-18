@@ -1,6 +1,6 @@
 ---
 name: api-contract
-description: Add or change an API endpoint end to end in this project — endpoint path, zod schema, *Api module, MSW mock handler, UI query and docs/04-contratos-de-api.md — so no layer is left out of sync.
+description: Add or change an API endpoint end to end in this project — endpoint path, zod schema, *Api module, MSW mock handler, Supabase function and adapter, UI query and docs/04-contratos-de-api.md — so no layer is left out of sync.
 when_to_use: Whenever an endpoint, request body, response field or error of the backend contract is created, renamed, removed or changes shape (e.g. "add a field to QuizSummary", "create GET /materials", "the mock should return X").
 ---
 
@@ -52,24 +52,39 @@ GET methods accept `signal`. Components never call `httpClient` or `fetch` direc
 - Fixture data lives in the feature's mock file (`mocks/<feature>.ts`), with Portuguese content.
 - Keep the catch-all 404 handler as the last entry of `handlers`.
 
-## 5. UI — `src/features/<feature>/`
+## 5. Supabase — `supabase/migrations/` and `src/services/api/supabase/`
+
+- Create a new migration (`npx supabase migration new <name>`); never edit one that was already
+  applied. The function returns exactly the JSON shape of the contract DTO (camelCase keys, ids as
+  text).
+- Follow the access rules in `docs/06-modelagem-de-dados.md` ("Como o app acessa o banco"):
+  `SECURITY DEFINER`, `set search_path = ''`, fully qualified names, the student only from
+  `public.require_student_id()` (never from an argument), `revoke execute ... from public, anon` and
+  `grant execute ... to authenticated`.
+- Validate every value that comes from the client before using it; never build SQL from strings.
+  Errors go through `public.raise_api_error(status, code, message)`.
+- New tables get RLS enabled and, at most, SELECT policies; writes go through functions.
+- In the adapter, call it with `callRpc("<function>", schema, { args, signal })` and select it in
+  the `*Api` facade next to the mock implementation.
+
+## 6. UI — `src/features/<feature>/`
 
 - Reads use TanStack Query: `useQuery({ queryKey: [...], queryFn: ({ signal }) => xApi.getX(signal) })`.
   Put the user id in the key when the data is per student (see `RankingPage`, `DashboardPage`).
 - Writes use `useMutation`. Never copy server data into Zustand or `useState`
   (`docs/03-arquitetura-tecnica.md`, "Gerenciamento de estado").
 
-## 6. Docs — `docs/04-contratos-de-api.md` (Portuguese)
+## 7. Docs — `docs/04-contratos-de-api.md` (Portuguese)
 
 - §2 summary table: method, path, auth, success response, client method.
 - The endpoint section: auth, request body table, a responses table with every status and error
   code, a JSON example, and "Comportamento no cliente" when the UI does something non-obvious.
 - The §3.x model table for each new or changed DTO, with the same rules as the zod schema.
+- §1.1: the endpoint → Supabase function table.
 - §5 when the mock behaves differently from a real backend.
-- When the data would be persisted, also update `docs/06-modelagem-de-dados.md` and
-  `database/schema.sql` (and `seed.sql` / `reset.sql` if tables change).
+- When tables change, also update `docs/06-modelagem-de-dados.md` and `supabase/seed.sql`.
 
-## 7. Verify
+## 8. Verify
 
 - `npm run build`, `npm run lint` and `npm run format:check`, checking each exit code.
-- `Grep` the old field or path name across `src/`, `docs/` and `database/` and fix every leftover.
+- `Grep` the old field or path name across `src/`, `docs/` and `supabase/` and fix every leftover.

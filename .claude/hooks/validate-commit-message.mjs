@@ -2,7 +2,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-const RULE = 'the subject must start with "feat: " (no other type such as fix/chore/docs, no scope in parentheses)';
+const TYPES = ["feat", "fix", "chore", "docs", "refactor", "perf", "test", "build", "ci", "style", "revert"];
+const SUBJECT = new RegExp(`^(?:${TYPES.join("|")}): \\S`);
+const SCOPED = /^[a-z]+\([^)]*\)!?:/;
+
+const RULE = `the subject must start with one of ${TYPES.join("/")} followed by ": ", with no scope in parentheses`;
 
 const input = JSON.parse(readFileSync(0, "utf8"));
 const command = input?.tool_input?.command ?? "";
@@ -46,5 +50,6 @@ if (subjects.length === 0) {
 
 // No readable message (e.g. --amend --no-edit, -C <commit>): nothing to validate.
 for (const subject of subjects) {
-  if (!/^feat: \S/.test(subject)) block(`${RULE}. Got: "${subject}"`);
+  if (SCOPED.test(subject)) block(`${RULE}. Got: "${subject}"`);
+  if (!SUBJECT.test(subject)) block(`${RULE}. Got: "${subject}"`);
 }

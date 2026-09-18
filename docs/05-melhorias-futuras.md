@@ -24,6 +24,9 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 10 | [Logo e identidade da aplicação](#10-logo-e-identidade-da-aplicação) | Identidade visual | Nome do produto |
 | 11 | [Design e implementação para mobile](#11-design-e-implementação-para-mobile) | UX | 10 |
 | 12 | [Correção de dissertativas por IA com chave do aluno](#12-correção-de-dissertativas-por-ia-com-chave-do-aluno) | Produto | — |
+| 13 | [Simulados criados pelo próprio aluno](#13-simulados-criados-pelo-próprio-aluno) | Produto | 6 |
+| 14 | [Gráficos escolhidos pelo aluno](#14-gráficos-escolhidos-pelo-aluno) | Produto | 8, 9 |
+| 15 | [Histórico de provas realizadas](#15-histórico-de-provas-realizadas) | Produto | — |
 
 ---
 
@@ -62,7 +65,8 @@ Qualquer aluno consegue ver as respostas pelas ferramentas de desenvolvedor do n
 durante o simulado.
 
 **Por que é aceitável no MVP.** Os simulados são ferramentas de estudo, sem valor de nota
-oficial, e hoje só existe o servidor mock.
+oficial. No Supabase, as tabelas de questões já não podem ser listadas pelo app (RLS), mas
+`get_quiz` ainda devolve o gabarito de cada simulado, para seguir o contrato atual.
 
 **Proposta.**
 
@@ -496,3 +500,107 @@ assistida por IA só depois da implementação manual), e
    (seções 2.4 e 6), [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md) e
    [`04-contratos-de-api.md`](04-contratos-de-api.md) (seção 5, se o mock ganhar o handler do
    provedor), e remover este item daqui.
+
+---
+
+## 13. Simulados criados pelo próprio aluno
+
+**Situação atual.** Os simulados são fixos e curados pela equipe: existem como linhas em `quizzes`
+com as questões escolhidas em `quiz_questions`, e o aluno só escolhe qual fazer na lista de
+`GET /quizzes`.
+
+**Objetivo.** O aluno monta o próprio simulado: escolhe a disciplina e os assuntos, quantas questões
+quer, a dificuldade e a duração, e o sistema seleciona as questões.
+
+**Por que fica para depois do MVP.** Escolher bem as questões depende da classificação por assunto
+(item 6). Antes disso, um simulado montado pelo aluno só conseguiria filtrar por disciplina, que é o
+que a lista fixa já faz.
+
+**Proposta.**
+
+1. **Modelo de dados.** `quizzes` ganha o dono do simulado (por exemplo `created_by_student_id`,
+   nulo nos oficiais). O RLS passa a permitir que o aluno leia os simulados oficiais e os seus, e
+   nunca os de outro aluno ([`06-modelagem-de-dados.md`](06-modelagem-de-dados.md)).
+2. **Criação no servidor.** Uma função `create_custom_quiz(p_subject_id, p_topic_ids,
+   p_question_count, p_difficulty, p_duration_minutes)` sorteia as questões e grava o simulado. O
+   cliente **não** envia a lista de questões: ele só descreve o que quer, e o servidor decide. Isso
+   evita que o aluno monte um simulado com questões escolhidas a dedo pelo id.
+3. **Contrato** (mudança aditiva, [`04-contratos-de-api.md`](04-contratos-de-api.md), seção 1.4):
+   `POST /quizzes` recebe os filtros e devolve o [`QuizSummary`](04-contratos-de-api.md#310-quizsummary)
+   criado. `QuizSummary` ganha um campo opcional indicando que o simulado é do aluno, para a UI
+   separar "Oficiais" de "Meus simulados".
+4. **Regras.**
+   - A quantidade pedida é limitada pelas questões que existem nos assuntos escolhidos; se houver
+     menos, o simulado é criado com o que existe e a UI avisa.
+   - Apagar um simulado próprio só é permitido enquanto ele não tiver tentativas; com tentativas, ele
+     é arquivado, para o histórico (item 15) não ficar com buracos.
+   - Simulados próprios contam normalmente no desempenho e nos dias de estudo. O ranking continua
+     medindo esforço, nunca nota ([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11).
+5. **UI.** Botão "Criar simulado" na lista de simulados, com um formulário curto (disciplina,
+   assuntos, número de questões, dificuldade e duração) e um resumo antes de confirmar.
+6. **Mock.** `handlers.ts` ganha a rota, gerando o simulado a partir do banco de questões do mock.
+
+---
+
+## 14. Gráficos escolhidos pelo aluno
+
+**Situação atual.** Não há gráficos no app. Os itens 8 e 9 propõem gráficos fixos no Ranking e na
+tela de Início, iguais para todo mundo.
+
+**Objetivo.** O aluno escolhe quais gráficos quer ver, dentre as opções disponíveis, e em que ordem.
+Cada um acompanha o que interessa: evolução por disciplina, questões por dia, assuntos mais errados,
+dias de estudo.
+
+**Por que fica para depois do MVP.** Só faz sentido depois que os gráficos existirem (itens 8 e 9) e
+que o desempenho por assunto estiver pronto (item 6). Sem isso, não há opções para escolher.
+
+**Proposta.**
+
+1. **Catálogo de gráficos.** Uma lista fechada de gráficos disponíveis, cada um com id estável,
+   título e fonte de dados. O aluno escolhe **dentre essas opções**; não existe gráfico livre, para
+   nenhuma escolha expor dado que o produto não permite.
+2. **Preferências do aluno.** Guardar por aluno quais gráficos estão visíveis e em que posição.
+   São dados do próprio aluno: leitura e escrita só das próprias linhas, pelas regras de acesso do
+   banco.
+3. **Contrato** (aditivo): `GET /me/charts` devolve o catálogo com a escolha atual, e
+   `PUT /me/charts` salva a nova seleção.
+4. **UI.** Um modo "Personalizar" na tela de Início e no Ranking, com as opções em caixas de
+   seleção e ordenação simples. Manter no máximo 4 ou 5 gráficos visíveis, como já decidido no
+   item 9, para a tela não virar um painel poluído.
+5. **Regras que não mudam.** Nenhum gráfico pode mostrar nota ou desempenho de outro aluno
+   ([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11), e todo gráfico precisa de
+   alternativa textual, com os valores acessíveis por leitor de tela.
+
+---
+
+## 15. Histórico de provas realizadas
+
+**Situação atual.** O banco já guarda todas as tentativas (`quiz_attempts` e
+`quiz_attempt_answers`), mas o app só mostra o resultado da tentativa que acabou de ser enviada, e
+ele vem do `localStorage` (`quizAttemptStorage`). Trocando de navegador ou limpando os dados, o
+aluno perde o acesso ao que já fez.
+
+**Objetivo.** Uma tela com todas as provas que o aluno já realizou: data, simulado, nota e acertos,
+com a opção de abrir a revisão completa de qualquer uma delas.
+
+**Por que fica para depois do MVP.** O MVP fecha o ciclo com o resultado da prova recém-enviada.
+Vale registrar, porém, que [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md) lista
+"visualizar histórico" como critério de aceite, e
+[`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 10, descreve o histórico como parte do
+produto: este item fecha essa lacuna.
+
+**Proposta.**
+
+1. **Contrato** (aditivo): `GET /attempts` devolve a lista das tentativas do aluno (id, simulado,
+   data de envio, nota e contadores), da mais recente para a mais antiga; `GET /attempts/:id`
+   devolve o [`QuizResult`](04-contratos-de-api.md#314-quizresult) daquela tentativa, com as
+   respostas, para reabrir a revisão.
+2. **No servidor.** Duas funções de leitura que filtram pelo aluno autenticado. Nenhum aluno enxerga
+   tentativa de outro.
+3. **Fonte da verdade.** A tela de resultado passa a buscar a tentativa pela API, e o `localStorage`
+   deixa de ser o único lugar onde o resultado existe (relacionado ao item 1).
+4. **UI.** Nova tela "Histórico", com a lista das tentativas, filtro por disciplina e um resumo da
+   evolução da nota. Cada linha abre a revisão da prova, reaproveitando as telas de resultado e de
+   revisão que já existem.
+5. **Cuidado com o crescimento.** A lista é paginada, porque um aluno pode acumular muitas
+   tentativas ao longo do curso.

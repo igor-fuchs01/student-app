@@ -10,7 +10,7 @@ import { loginCredentialsSchema, type AuthSession } from "@models/auth";
 import { submitQuizAttemptSchema } from "@models/quizzes";
 import { MOCK_API_BASE_URL, MOCK_DELAY_MS } from "../config";
 import { API_ENDPOINTS } from "../endpoints";
-import type { ApiErrorBody, ApiErrorCode } from "../errors";
+import { INVALID_CREDENTIALS_MESSAGE, type ApiErrorBody, type ApiErrorCode } from "../errors";
 import { buildMockDashboard } from "./dashboard";
 import { createMockJwt, verifyMockJwt } from "./jwt";
 import {
@@ -21,7 +21,7 @@ import {
 } from "./quizzes";
 import { buildMockRanking } from "./ranking";
 import { buildMockSubjects } from "./subjects";
-import { findAccountById, findAccountByIdentifier, type MockAccount } from "./users";
+import { findAccountByEmail, findAccountById, type MockAccount } from "./users";
 
 type AuthenticatedInfo = {
   request: Request;
@@ -74,13 +74,13 @@ export const handlers = [
   http.post(api(API_ENDPOINTS.auth.login), async ({ request }) => {
     const credentials = loginCredentialsSchema.safeParse(await readJson(request));
     if (!credentials.success) {
-      return errorResponse(400, "VALIDATION_ERROR", "Informe matrícula/e-mail e senha.");
+      return errorResponse(400, "VALIDATION_ERROR", "Informe e-mail e senha.");
     }
 
-    const { identifier, password } = credentials.data;
-    const account = findAccountByIdentifier(identifier);
+    const { email, password } = credentials.data;
+    const account = findAccountByEmail(email);
     if (!account || account.password !== password) {
-      return errorResponse(401, "INVALID_CREDENTIALS", "Matrícula/e-mail ou senha inválidos.");
+      return errorResponse(401, "INVALID_CREDENTIALS", INVALID_CREDENTIALS_MESSAGE);
     }
 
     const session: AuthSession = {

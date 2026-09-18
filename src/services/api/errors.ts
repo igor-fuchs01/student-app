@@ -12,6 +12,18 @@ const API_ERROR_CODES = [
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
 
+export const NETWORK_ERROR_MESSAGE =
+  "Não foi possível conectar ao servidor. Verifique sua conexão.";
+
+export const INVALID_RESPONSE_MESSAGE =
+  "Recebemos uma resposta inválida do servidor. Tente novamente.";
+
+export const INVALID_CREDENTIALS_MESSAGE = "E-mail ou senha inválidos.";
+
+export const UNKNOWN_ERROR_MESSAGE = "Ocorreu um erro inesperado. Tente novamente.";
+
+export const SESSION_EXPIRED_MESSAGE = "Sessão expirada. Faça login novamente.";
+
 export const apiErrorBodySchema = z.object({
   code: z.enum(API_ERROR_CODES).catch("UNKNOWN_ERROR"),
   message: z.string().min(1),

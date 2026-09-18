@@ -15,10 +15,9 @@
 --   * fields the API computes from other rows (counts, percentages, streak,
 --     ranking position, attempt result) are views, never stored columns.
 --
--- Companion scripts: seed.sql (minimal test data) and reset.sql (empties the
--- tables the seed fills).
+-- Copied from database/schema.sql. Supabase-specific changes (Auth, RLS, RPC) live in
+-- the next migration, 20260916000100_auth_and_security.sql.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS citext; -- case-insensitive email lookups/uniqueness
 
@@ -474,4 +473,3 @@ SELECT
 FROM students s
 LEFT JOIN v_student_streak st ON st.student_id = s.id;
 
-COMMIT;

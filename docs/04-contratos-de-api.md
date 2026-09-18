@@ -8,8 +8,10 @@ A fonte da verdade é o código; atualize este documento sempre que algo abaixo 
 | Caminhos dos endpoints | `src/services/api/endpoints.ts` |
 | Formato de request/response (schemas zod) | `src/types/auth.ts`, `src/types/dashboard.ts`, `src/types/subjects.ts`, `src/types/quizzes.ts`, `src/types/ranking.ts` |
 | Códigos de erro e corpo do erro | `src/services/api/errors.ts` |
-| Transporte, headers, tratamento de erro | `src/services/api/httpClient.ts` |
+| Transporte e tratamento de erro no modo mock | `src/services/api/httpClient.ts` |
+| Transporte e tratamento de erro no Supabase | `src/services/api/supabase/` |
 | Implementação do mock (MSW) | `src/services/api/mocks/handlers.ts` |
+| Implementação no Supabase (funções do banco e login) | `supabase/migrations/` e o Supabase Auth |
 
 Funcionalidades planejadas (materiais, desempenho, recomendações, sincronização de tentativas,
 etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
@@ -24,14 +26,29 @@ etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
 | Comando | Arquivo de env | Para onde vão as requisições |
 |---|---|---|
 | `npm run mock` | `.env.mock` | Prefixo `/api` na própria origem, interceptado no navegador pelo MSW — nenhum backend |
-| `npm run dev` | `.env.development` (copie de `.env.development.example`) | `VITE_API_BASE_URL` (no exemplo, a URL fictícia `https://api.homologacao.student-app.example/v1`) |
+| `npm run dev` | `.env.development` (copie de `.env.development.example`) | Supabase em `VITE_SUPABASE_URL` (local: `http://127.0.0.1:54321`) |
 
-Todo caminho descrito neste documento é relativo à URL base. Exemplo:
-`POST /auth/login` → `POST https://api.homologacao.student-app.example/v1/auth/login`.
+No modo mock, todo caminho descrito neste documento é relativo a `/api`. Exemplo:
+`POST /auth/login` → `POST /api/auth/login`.
 
-Quando os mocks estão desativados, `VITE_API_BASE_URL` é obrigatória e precisa ser uma
-URL `http://` ou `https://` válida; caso contrário a aplicação se recusa a iniciar. Barras
-finais são removidas.
+No Supabase, cada endpoint é uma função no banco ou uma chamada do Supabase Auth que recebe os
+mesmos dados e devolve o mesmo JSON (tabela abaixo). Os módulos `*Api` escolhem o transporte, então
+as telas usam os mesmos métodos nos dois modos.
+
+| Endpoint | No Supabase |
+|---|---|
+| `POST /auth/login` | `supabase.auth.signInWithPassword()`, depois `get_current_student()` |
+| `POST /auth/logout` | `supabase.auth.signOut()` |
+| `GET /dashboard` | `get_dashboard()` |
+| `GET /subjects` | `list_subjects()` |
+| `GET /quizzes` | `list_quizzes()` |
+| `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
+| `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
+| `GET /ranking` | `get_ranking()` |
+
+Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https://`) e
+`VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
+regras de acesso do banco estão em [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
 
 ### 1.2 Formato
 
@@ -51,6 +68,9 @@ finais são removidas.
 
 - O token é **opaco** para o cliente: é armazenado e reenviado como está, nunca é interpretado.
 - Um token ausente, inválido ou expirado deve retornar `401` com código `UNAUTHORIZED`.
+- No Supabase, o token é o JWT do Supabase Auth. Ele vale 1 hora e o SDK o renova sozinho; o SDK
+  também envia o header em cada chamada, sem passar pelo `httpClient`. Um `401` ou `403` numa
+  chamada autenticada desloga o aluno, como no modo mock.
 
 ### 1.4 Validação de resposta e compatibilidade
 
@@ -93,12 +113,12 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
 
 | Campo | Tipo | Regras | Descrição |
 |---|---|---|---|
-| `identifier` | string | Obrigatório. Sofre trim; não pode ficar vazio após o trim. | Matrícula do aluno ou e-mail institucional. A comparação do e-mail não diferencia maiúsculas/minúsculas. |
+| `email` | string | Obrigatório. Sofre trim; precisa ser um e-mail válido. | E-mail institucional do aluno. A comparação não diferencia maiúsculas/minúsculas. |
 | `password` | string | Obrigatório. Não pode ser vazio. | Senha da conta. |
 
 ```json
 {
-  "identifier": "20231234",
+  "email": "igor@email.com",
   "password": "123456"
 }
 ```
@@ -108,8 +128,8 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
 | Status | Corpo | Quando |
 |---|---|---|
 | `200` | [`AuthSession`](#32-authsession) | As credenciais são válidas. |
-| `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, identificador em branco, ou senha vazia. |
-| `401` | Erro, código `INVALID_CREDENTIALS` | Nenhuma conta corresponde ao identificador, ou a senha está errada. |
+| `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, e-mail em branco ou malformado, ou senha vazia. |
+| `401` | Erro, código `INVALID_CREDENTIALS` | Nenhuma conta corresponde ao e-mail, ou a senha está errada. |
 
 ```json
 {
@@ -549,7 +569,7 @@ Toda resposta não-`2xx` do servidor deve usar este corpo:
 ```json
 {
   "code": "INVALID_CREDENTIALS",
-  "message": "Matrícula/e-mail ou senha inválidos."
+  "message": "E-mail ou senha inválidos."
 }
 ```
 
@@ -565,7 +585,7 @@ O cliente expõe toda falha como um `ApiError` com `status`, `code` e `message`.
 | Código | Status HTTP | Produzido por | Significado |
 |---|---|---|---|
 | `VALIDATION_ERROR` | `400` | Servidor | O corpo da requisição está ausente ou inválido. |
-| `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: identificador desconhecido ou senha errada. |
+| `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: e-mail desconhecido ou senha errada. |
 | `UNAUTHORIZED` | `401` | Servidor | Endpoint autenticado chamado sem um token válido. |
 | `NOT_FOUND` | `404` | Servidor | A rota ou o recurso não existe. |
 | `NETWORK_ERROR` | `0` | Cliente | Nenhuma resposta foi recebida (offline, falha de DNS, CORS, servidor fora do ar). |
@@ -602,8 +622,8 @@ Particularidades do mock:
   `POST /api/auth/login`. O prefixo evita confusão com rotas de tela de mesmo nome, como
   `/ranking`.
 - **Latência:** toda resposta é atrasada por `VITE_MOCK_DELAY_MS` (padrão `500` ms).
-- **Conta de demonstração:** matrícula `senaiigorpereira` ou e-mail `igor@email.com`
-  (sem diferenciar maiúsculas/minúsculas), senha `123456`.
+- **Conta de demonstração:** e-mail `igor@email.com` (sem diferenciar maiúsculas/minúsculas),
+  senha `123456`.
 - **Formato do token:** um JWT (`header.payload.signature`, assinado com HMAC-SHA256), com o
   `id` do aluno no claim `sub` e expiração (`exp`) 3 dias após o login. Um token expirado, ou com
   assinatura inválida, é tratado como ausente e recebe `401 UNAUTHORIZED`. A assinatura usa um
@@ -635,7 +655,10 @@ Particularidades do mock:
    seu tipo `z.infer`.
 3. Adicione ou atualize o método no módulo `*Api` da feature, passando o schema.
 4. Implemente a rota em `src/services/api/mocks/handlers.ts`.
-5. Atualize este documento.
+5. No Supabase, crie uma migration nova (`npx supabase migration new <nome>`) com a função que
+   devolve o mesmo JSON, e chame-a no adaptador em `src/services/api/supabase/` com `callRpc`.
+   Siga as regras de acesso de [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
+6. Atualize este documento.
 
 Prefira mudanças aditivas (novos campos opcionais, novos endpoints). Trate qualquer coisa
 listada como incompatível em [1.4](#14-validação-de-resposta-e-compatibilidade) como algo

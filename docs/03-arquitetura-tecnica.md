@@ -76,6 +76,18 @@ Responsável por tudo que vem da API:
 - mutations;
 - sincronização / revalidação.
 
+**Quando o app busca de novo.** Os defaults ficam no `QueryProvider`
+(`src/app/providers/`), e a regra é: **entrar numa página busca os dados dela outra vez**.
+Cada página é uma rota própria, então navegar até ela, voltar para ela ou recarregar a aba monta o
+componente de novo — e todo mount refaz a requisição (`refetchOnMount: "always"`), em vez de exibir
+o que ficou no cache de uma visita anterior. Trazer a aba de volta para a frente não é entrar numa
+página e não dispara requisição (`refetchOnWindowFocus: false`).
+
+O cache continua valendo: enquanto a nova resposta não chega, a página mostra o que já tinha, sem
+piscar uma tela de "Carregando…" a cada visita. A exceção é o simulado em andamento
+(`QuizAttemptLayout`), que é o layout de `/simulados/:quizId`: ir da prova para a revisão e voltar
+não desmonta o layout, então a prova não é buscada de novo no meio da tentativa.
+
 ### Zustand — estado global do cliente
 
 Usado **somente quando houver necessidade real** de estado global que não venha do servidor.
@@ -92,7 +104,10 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
 
 `services/` é isolado da UI:
 
-- `services/api/` — clientes HTTP e DTOs;
+- `services/api/` — módulos `*Api` usados pelas telas. Cada um escolhe o transporte pelo
+  `VITE_USE_MOCKS`: o `httpClient` no modo mock, ou o adaptador de `services/api/supabase/`, que
+  chama as funções do Supabase pelo SDK. Os dois devolvem os mesmos tipos do contrato;
+- `supabase/` (na raiz) — o backend: migrations do banco e seed local;
 - `services/api/mocks/` — servidor mock feito com [MSW](https://mswjs.io/) (Mock Service Worker):
   `handlers.ts` responde às rotas da API e `mockServer.ts` registra o Service Worker
   (`public/mockServiceWorker.js`) quando `VITE_USE_MOCKS=true`. O `httpClient` não sabe que existe
@@ -101,7 +116,7 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
   (`quizAttemptStorage`, com chave por aluno). IndexedDB pode ser adotado quando a persistência
   durante a tentativa for implementada.
 
-Refresh de token ainda não existe; quando existir, deve ficar em `services/`.
+No Supabase, a renovação do token é feita pelo SDK. No modo mock não há renovação.
 
 Componentes não fazem chamadas HTTP diretamente. A separação entre apresentação e lógica é obrigatória.
 
