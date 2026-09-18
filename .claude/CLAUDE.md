@@ -144,8 +144,8 @@ After finishing any task execute:
   configs/deps/build, documentation)
 * Use `git add -p` or `git add <file>` for selective staging
 * Make one commit per group
-* Every commit message starts with `feat: ` — no other type (`fix`, `chore`, `docs`,
-  `refactor`…) and no scope in parentheses, whatever the kind of change.
+* Every commit message starts with `feat: ` or other type (`fix`, `chore`, `docs`,
+  `refactor`…), but no scope in parentheses, whatever the kind of change.
   Example: `feat: stop sending answers left blank`
 * Always prefer small commits: split each group into the smallest meaningful units
   (one component, one fix, one config change, one doc topic), and make sure every
