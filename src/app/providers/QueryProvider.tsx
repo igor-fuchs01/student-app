@@ -10,7 +10,12 @@ export function QueryProvider({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             retry: 1,
-            staleTime: 5 * 60_000,
+            // Entering a page mounts its component: navigating to it, coming back to it
+            // or reloading the tab. Every mount asks the API for that page's data again,
+            // so what the student reads is never a cached copy of an earlier visit.
+            refetchOnMount: "always",
+            // Bringing the tab back to the front is not entering a page, so it doesn't refetch.
+            refetchOnWindowFocus: false,
           },
         },
       }),
