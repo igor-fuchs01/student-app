@@ -76,6 +76,18 @@ Responsável por tudo que vem da API:
 - mutations;
 - sincronização / revalidação.
 
+**Quando o app busca de novo.** Os defaults ficam no `QueryProvider`
+(`src/app/providers/`), e a regra é: **entrar numa página busca os dados dela outra vez**.
+Cada página é uma rota própria, então navegar até ela, voltar para ela ou recarregar a aba monta o
+componente de novo — e todo mount refaz a requisição (`refetchOnMount: "always"`), em vez de exibir
+o que ficou no cache de uma visita anterior. Trazer a aba de volta para a frente não é entrar numa
+página e não dispara requisição (`refetchOnWindowFocus: false`).
+
+O cache continua valendo: enquanto a nova resposta não chega, a página mostra o que já tinha, sem
+piscar uma tela de "Carregando…" a cada visita. A exceção é o simulado em andamento
+(`QuizAttemptLayout`), que é o layout de `/simulados/:quizId`: ir da prova para a revisão e voltar
+não desmonta o layout, então a prova não é buscada de novo no meio da tentativa.
+
 ### Zustand — estado global do cliente
 
 Usado **somente quando houver necessidade real** de estado global que não venha do servidor.
