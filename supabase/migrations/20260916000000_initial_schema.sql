@@ -94,7 +94,9 @@ CREATE TABLE materials (
 
 COMMENT ON TABLE materials IS 'Study materials (PDFs) of a topic.';
 
-CREATE INDEX idx_topics_subject_id ON topics (subject_id);
+-- Only a foreign key that no UNIQUE constraint already indexes by its first
+-- column needs an index of its own: Postgres does not index the referencing
+-- side, and ON DELETE has to find the child rows.
 CREATE INDEX idx_materials_topic_id ON materials (topic_id);
 
 -- =============================================================================
@@ -190,11 +192,6 @@ CREATE TABLE question_slots (
 
 COMMENT ON TABLE question_slots IS 'Drop targets of a drag_and_drop question; slot_key matches a {{id}} in questions.template.';
 
-CREATE INDEX idx_question_options_question_id ON question_options (question_id);
-CREATE INDEX idx_question_blanks_question_id ON question_blanks (question_id);
-CREATE INDEX idx_question_blank_options_blank_id ON question_blank_options (blank_id);
-CREATE INDEX idx_question_terms_question_id ON question_terms (question_id);
-CREATE INDEX idx_question_slots_question_id ON question_slots (question_id);
 CREATE INDEX idx_question_slots_correct_term_id ON question_slots (correct_term_id);
 
 -- =============================================================================
