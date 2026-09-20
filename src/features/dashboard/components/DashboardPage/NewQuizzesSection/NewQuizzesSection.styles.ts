@@ -7,6 +7,7 @@ export const StyledSectionHeader = styled.div`
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: 18px;
   margin-bottom: 14px;
 `;
 
