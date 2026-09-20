@@ -68,7 +68,6 @@ CREATE TABLE students (
   id                 INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name               TEXT NOT NULL CHECK (btrim(name) <> ''),
   email              extensions.citext NOT NULL UNIQUE,
-  registration_id    TEXT NOT NULL UNIQUE CHECK (btrim(registration_id) <> ''),
   course             TEXT NOT NULL DEFAULT '',
   weekly_goal_target INTEGER NOT NULL DEFAULT 50 CHECK (weekly_goal_target > 0),
   -- Accounts are created by the institution in Supabase Auth, with public signups

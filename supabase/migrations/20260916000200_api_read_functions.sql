@@ -227,7 +227,6 @@ begin
       'id', s.id::text,
       'name', s.name,
       'email', s.email,
-      'registrationId', s.registration_id,
       'course', s.course
     )
     from public.students s

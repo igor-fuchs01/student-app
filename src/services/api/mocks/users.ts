@@ -16,7 +16,6 @@ const MOCK_ACCOUNTS: MockAccount[] = [
       id: "u_igorpereira",
       name: "Igor Pereira",
       email: "igor@email.com",
-      registrationId: "senaiigorpereira",
       course: "Análise e Desenvolvimento de Sistemas",
     },
   },

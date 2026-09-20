@@ -300,7 +300,6 @@ erDiagram
         uuid auth_user_id UK, FK
         text name
         citext email UK
-        text registration_id UK
         text course
         int weekly_goal_target
     }

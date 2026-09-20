@@ -138,7 +138,6 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
     "id": "u_marina",
     "name": "Marina Alves",
     "email": "marina@aluno.ifpr.edu.br",
-    "registrationId": "20231234",
     "course": "Análise e Desenvolvimento de Sistemas"
   }
 }
@@ -381,7 +380,6 @@ Retorna o perfil de consistência do aluno e o ranking de consistência da turma
 | `id` | string | Não vazio. Identificador único e estável do aluno. |
 | `name` | string | Não vazio. Nome completo; a UI cumprimenta o aluno pela primeira palavra. |
 | `email` | string | Não vazio. E-mail institucional. |
-| `registrationId` | string | Não vazio. Matrícula. |
 | `course` | string | Nome do curso. Pode ser vazio. |
 
 ### 3.2 `AuthSession`

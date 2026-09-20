@@ -4,7 +4,6 @@ export const studentUserSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   email: z.string().min(1),
-  registrationId: z.string().min(1),
   course: z.string(),
 });
 
