@@ -67,18 +67,24 @@ função no banco que devolve o mesmo JSON.
 | `GET /ranking` | `get_ranking()` |
 
 A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
-chamar a API sem passar pelo app, então a segurança fica no banco:
+chamar a API sem passar pelo app, então a segurança fica no banco, em camadas:
 
-- **RLS em todas as tabelas.** Tabela sem política não devolve nenhuma linha. O aluno só lê as
-  próprias linhas (perfil, tentativas, respostas e dias de estudo) e o conteúdo sem gabarito. As
-  tabelas de questões não têm política de leitura.
+- **As funções do contrato são a API inteira.** `anon` e `authenticated` não têm privilégio em
+  nenhuma tabela nem sequência, então `GET /rest/v1/students` responde 403. As views e as funções
+  auxiliares ficam no schema `private`, que não entra em `[api] schemas` do `config.toml`: a API
+  nem enxerga esses objetos (404). Views ignoram o RLS, e é por isso que nenhuma fica em `public`.
+- **Fechado por padrão.** O Supabase concede automaticamente às roles da API tudo que `postgres`
+  cria em `public`; `ALTER DEFAULT PRIVILEGES` cancela essa concessão, então uma tabela ou função
+  criada depois nasce inalcançável e cada endpoint novo precisa liberar o próprio `EXECUTE`.
+- **RLS como segunda camada.** Todas as tabelas têm RLS, e tabela sem política não devolve nenhuma
+  linha: o aluno só leria as próprias linhas (perfil, tentativas, respostas e dias de estudo) e o
+  conteúdo sem gabarito, e as tabelas de questões não têm política nenhuma. Nada do app depende
+  disso hoje — a camada existe para que um `GRANT` dado por engano continue não vazando linha.
 - **Nenhuma escrita direta.** Não existe política de `INSERT`, `UPDATE` ou `DELETE`. O envio de uma
   prova passa por `submit_quiz_attempt`, que valida cada id recebido e corrige no servidor.
-- **Views fechadas.** Views ignoram o RLS, então o app não acessa nenhuma. Os dados delas só saem
-  pelas funções, com os campos permitidos: o ranking nunca expõe notas.
-- **Funções protegidas.** São `SECURITY DEFINER` com `search_path` vazio e nomes completos,
-  identificam o aluno só por `auth.uid()` (nunca por um parâmetro) e não montam SQL com texto.
-  Funções auxiliares não podem ser chamadas pelo app.
+- **Funções protegidas.** As do contrato são `SECURITY DEFINER` com `search_path` vazio e nomes
+  completos, identificam o aluno só por `auth.uid()` (nunca por um parâmetro) e não montam SQL com
+  texto. O ranking devolve nome e sequência dos outros alunos, nunca nota.
 - **Login.** As contas são criadas pela instituição, sem cadastro público. O aluno entra com o
   e-mail institucional e a senha, validados pelo Supabase Auth.
 - **Ainda em aberto.** `get_quiz` devolve o gabarito junto com as questões, porque o contrato atual
@@ -244,6 +250,9 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
 - **Meta semanal** é uma coluna de `students` (`weekly_goal_target`), porque é o único dado de
   gamificação que não pode ser calculado.
 - **Informações derivadas** (seção 1.4) viram views, listadas na seção 2.4.
+- **Índices.** Só recebe índice próprio a chave estrangeira que nenhuma restrição `UNIQUE` já
+  indexa pela primeira coluna: o PostgreSQL não cria índice para o lado que referencia, e o
+  `ON DELETE` precisa achar as linhas filhas.
 - **Convenções do script.** Restrições de tabela têm nome próprio (ex.:
   `questions_statement_per_type_check`), para que o erro do banco diga qual regra falhou; toda
   chave estrangeira declara seu `ON DELETE` (`CASCADE` quando o filho não existe sem o pai,
@@ -415,18 +424,22 @@ Enums: `question_type`, `quiz_subject_scope` (`single`, `all`), `difficulty_leve
 
 ### 2.4 Views (informações derivadas)
 
+Todas ficam no schema `private` e são lidas só pelas funções. `private.percent(parte, total)`
+concentra o arredondamento das porcentagens; cada view decide o que conta como resposta corrigida.
+
 | View | Campo(s) do contrato |
 |---|---|
 | `v_subject_summary` | `Subject.materialsCount`, `Subject.questionsCount` |
 | `v_student_subject_performance` | `Subject.preparationPercent`, `NextExam.overallPreparation` |
 | `v_student_topic_performance` | `NextExam.priorities` (o nível alta/média/baixa é um corte aplicado pela aplicação) |
 | `v_quiz_summary` | `QuizSummary.questionCount` |
-| `v_student_quiz_attempts` | `QuizSummary.attemptsCount` |
 | `v_quiz_attempt_result` | `QuizResult` — contadores e `scorePercent` |
 | `v_quiz_attempt_subject_performance` | `QuizResult.subjectPerformance` |
-| `v_quiz_review_items` | `QuizResult.reviewItems` |
 | `v_student_streak`, `v_student_ranking` | `streakDays`, `RankingData.entries` |
 | `v_student_ranking_profile` | `RankingData.profile` |
+
+`QuizSummary.attemptsCount` e `QuizResult.reviewItems` são montados dentro de `list_quizzes` e
+`submit_quiz_attempt`, já filtrados pelo aluno e pela tentativa.
 
 ---
 
