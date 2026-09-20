@@ -2,8 +2,11 @@
 --
 -- Security model: the anon key ships inside the browser bundle, so anyone can
 -- call the REST API directly, without the app. Nothing here trusts the frontend:
---   * every table has RLS enabled, and a table without a policy returns no rows;
---   * students read only their own rows, plus content that has no answer keys;
+--   * the endpoint functions are the whole API. No client role reaches a table,
+--     a view or a helper through the Data API, so an endpoint is the only way in;
+--   * RLS stays enabled on every table as the second layer: a table without a
+--     policy returns no rows and a student reads only their own, so a privilege
+--     granted by mistake still leaks nothing;
 --   * clients get no INSERT/UPDATE/DELETE policy: writes go through functions
 --     that validate them on the server;
 --   * views run with their owner's rights and would bypass RLS, so they live in
@@ -106,10 +109,20 @@ create policy "signed-in students read scheduled exams"
 -- current QuizDetail contract does (docs/05-melhorias-futuras.md, item 2).
 
 -- =============================================================================
--- 3. Nothing in public is public
+-- 3. The Data API reaches nothing but the endpoint functions
 -- =============================================================================
 
--- The views used to need one revoke each; now they sit in a schema the Data API
--- does not serve, so there is no list left to keep in sync.
-revoke all on all tables in schema public from anon;
+-- The app never selects from a table: every endpoint of the contract is a
+-- function, so no client role needs table access at all. That is what makes the
+-- policies above a second layer instead of the only barrier. The views used to
+-- need one revoke each; they are in a schema the Data API does not serve now.
+revoke all on all tables in schema public from anon, authenticated;
+revoke all on all sequences in schema public from anon, authenticated;
+
+-- Supabase hands the Data API roles everything postgres creates in public, so
+-- without this a table or function added later would become an endpoint by
+-- accident. From here on each endpoint grants its own EXECUTE.
+alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public revoke execute on routines from public, anon, authenticated;
 
