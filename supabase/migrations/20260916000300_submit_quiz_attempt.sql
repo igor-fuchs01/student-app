@@ -14,7 +14,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_student_id integer := public.require_student_id();
+  v_student_id integer := private.require_student_id();
   v_attempt_id integer;
   v_answer jsonb;
   v_question public.questions%rowtype;
@@ -26,11 +26,11 @@ declare
   v_status public.review_status;
 begin
   if not exists (select 1 from public.quiz_questions qq where qq.quiz_id = p_quiz_id) then
-    perform public.raise_api_error(404, 'NOT_FOUND', 'Simulado não encontrado.');
+    perform private.raise_api_error(404, 'NOT_FOUND', 'Simulado não encontrado.');
   end if;
 
   if p_answers is null or jsonb_typeof(p_answers) <> 'array' then
-    perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+    perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
   end if;
 
   insert into public.quiz_attempts (quiz_id, student_id)
@@ -39,7 +39,7 @@ begin
 
   for v_answer in select value from jsonb_array_elements(p_answers) loop
     if jsonb_typeof(v_answer) <> 'object' or coalesce(v_answer ->> 'questionId', '') !~ '^[0-9]{1,9}$' then
-      perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+      perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
     end if;
     v_question_id := (v_answer ->> 'questionId')::integer;
 
@@ -52,7 +52,7 @@ begin
       select 1 from public.quiz_attempt_answers a
       where a.attempt_id = v_attempt_id and a.question_id = v_question_id
     ) then
-      perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+      perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
     end if;
 
     -- Stays null when the question was left blank or partially filled: no row, counted as unanswered.
@@ -62,7 +62,7 @@ begin
       when 'multiple_choice' then
         if coalesce(v_answer ->> 'optionId', '') <> '' then
           if (v_answer ->> 'optionId') !~ '^[0-9]{1,9}$' then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
           v_option_id := (v_answer ->> 'optionId')::integer;
 
@@ -70,7 +70,7 @@ begin
             select 1 from public.question_options o
             where o.id = v_option_id and o.question_id = v_question_id
           ) then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           v_status := case
@@ -89,7 +89,7 @@ begin
             select 1 from jsonb_array_elements(v_answer -> 'optionIds') e
             where jsonb_typeof(e) <> 'string' or (e #>> '{}') !~ '^[0-9]{1,9}$'
           ) then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           select array_agg(distinct (e #>> '{}')::integer order by (e #>> '{}')::integer)
@@ -103,7 +103,7 @@ begin
               where o.id = selected.id and o.question_id = v_question_id
             )
           ) then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           select coalesce(array_agg(o.id order by o.id), '{}')
@@ -128,7 +128,7 @@ begin
             where b.question_id = v_question_id
               and (v_answer -> 'blankAnswers' ->> b.blank_key) !~ '^[0-9]{1,9}$'
           ) then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           if exists (
@@ -140,7 +140,7 @@ begin
                   and bo.id = (v_answer -> 'blankAnswers' ->> b.blank_key)::integer
               )
           ) then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           v_status := case
@@ -178,7 +178,7 @@ begin
             where slot.question_id = v_question_id
               and (v_answer -> 'slotAnswers' ->> slot.slot_key) !~ '^[0-9]{1,9}$'
           ) then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           if exists (
@@ -190,7 +190,7 @@ begin
                   and term.id = (v_answer -> 'slotAnswers' ->> slot.slot_key)::integer
               )
           ) then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           v_status := case
@@ -214,12 +214,12 @@ begin
       when 'essay' then
         if btrim(coalesce(v_answer ->> 'text', '')) <> '' then
           if length(v_answer ->> 'text') > v_question.max_length then
-            perform public.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
           end if;
 
           v_status := case
-            when public.normalize_answer_text(v_answer ->> 'text')
-              = public.normalize_answer_text(v_question.reference_answer)
+            when private.normalize_answer_text(v_answer ->> 'text')
+              = private.normalize_answer_text(v_question.reference_answer)
               then 'correct'
             else 'pending_review'
           end;
@@ -238,8 +238,8 @@ begin
             when not exists (
               select 1 from public.question_blanks b
               where b.question_id = v_question_id
-                and public.normalize_answer_text(v_answer -> 'blankAnswers' ->> b.blank_key)
-                  <> public.normalize_answer_text(b.reference_answer)
+                and private.normalize_answer_text(v_answer -> 'blankAnswers' ->> b.blank_key)
+                  <> private.normalize_answer_text(b.reference_answer)
             ) then 'correct'
             else 'pending_review'
           end;
@@ -275,7 +275,7 @@ begin
             jsonb_build_object('subjectName', s.name, 'percent', performance.percent)
             order by s.name
           )
-          from public.v_quiz_attempt_subject_performance performance
+          from private.v_quiz_attempt_subject_performance performance
           join public.subjects s on s.id = performance.subject_id
           where performance.attempt_id = v_attempt_id and performance.percent is not null
         ),
@@ -291,16 +291,16 @@ begin
                 jsonb_build_object(
                   'questionId', q.id::text,
                   'subjectName', s.name,
-                  'promptExcerpt', public.question_prompt_excerpt(q.type, q.prompt, q.template),
+                  'promptExcerpt', private.question_prompt_excerpt(q.type, q.prompt, q.template),
                   'status', case a.review_status when 'incorrect' then 'incorrect' else 'self_review' end,
                   'explanation', case when a.review_status = 'incorrect' then q.explanation end,
                   'studentAnswer', case
                     when a.review_status = 'pending_review' and q.type = 'essay' then btrim(a.essay_text)
-                    when a.review_status = 'pending_review' then public.fill_template(q.template, a.blank_answers)
+                    when a.review_status = 'pending_review' then private.fill_template(q.template, a.blank_answers)
                   end,
                   'referenceAnswer', case
                     when a.review_status = 'pending_review' and q.type = 'essay' then q.reference_answer
-                    when a.review_status = 'pending_review' then public.fill_template(
+                    when a.review_status = 'pending_review' then private.fill_template(
                       q.template,
                       (
                         select jsonb_object_agg(b.blank_key, b.reference_answer)
@@ -323,11 +323,12 @@ begin
         '[]'::jsonb
       )
     )
-    from public.v_quiz_attempt_result result
+    from private.v_quiz_attempt_result result
     where result.attempt_id = v_attempt_id
   );
 end;
 $$;
 
-revoke execute on function public.submit_quiz_attempt(integer, jsonb) from public, anon;
-grant execute on function public.submit_quiz_attempt(integer, jsonb) to authenticated;
+-- Per schema, as in the previous migration: public holds only the endpoints.
+revoke execute on all routines in schema public from public, anon;
+grant execute on all routines in schema public to authenticated;

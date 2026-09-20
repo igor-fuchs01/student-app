@@ -5,16 +5,17 @@
 --
 -- Every client-facing function is SECURITY DEFINER with search_path = '' and
 -- fully qualified names, identifies the student only through auth.uid() (never
--- through an argument), and is executable by the authenticated role only.
--- Helpers are not executable by clients at all.
+-- through an argument), and is executable by the authenticated role only. The
+-- helpers and views they build on live in the private schema, which the Data API
+-- does not serve, so public holds nothing but the endpoints themselves.
 
 -- =============================================================================
--- 1. Internal helpers
+-- 1. Internal helpers (private schema)
 -- =============================================================================
 
 -- Raises an error that PostgREST turns into this HTTP status and a body in the
 -- ApiErrorBody shape ({ code, message }), with a Portuguese message for the student.
-create function public.raise_api_error(p_status integer, p_code text, p_message text)
+create function private.raise_api_error(p_status integer, p_code text, p_message text)
 returns void
 language plpgsql
 set search_path = ''
@@ -26,7 +27,7 @@ begin
 end;
 $$;
 
-create function public.require_student_id()
+create function private.require_student_id()
 returns integer
 language plpgsql
 stable
@@ -40,7 +41,7 @@ begin
   where s.auth_user_id = (select auth.uid());
 
   if v_student_id is null then
-    perform public.raise_api_error(401, 'UNAUTHORIZED', 'Sessão expirada. Faça login novamente.');
+    perform private.raise_api_error(401, 'UNAUTHORIZED', 'Sessão expirada. Faça login novamente.');
   end if;
 
   return v_student_id;
@@ -48,7 +49,7 @@ end;
 $$;
 
 -- Same rule as src/features/quizzes/normalizeAnswerText.ts.
-create function public.normalize_answer_text(p_text text)
+create function private.normalize_answer_text(p_text text)
 returns text
 language sql
 immutable
@@ -58,7 +59,7 @@ as $$
 $$;
 
 -- Replaces each {{key}} of a template with its value; unknown keys become "___".
-create function public.fill_template(p_template text, p_values jsonb)
+create function private.fill_template(p_template text, p_values jsonb)
 returns text
 language plpgsql
 immutable
@@ -77,7 +78,7 @@ end;
 $$;
 
 -- QuizReviewItem.promptExcerpt, same rule as the mock server.
-create function public.question_prompt_excerpt(
+create function private.question_prompt_excerpt(
   p_type public.question_type,
   p_prompt text,
   p_template text
@@ -94,16 +95,16 @@ as $$
   from (
     select case
       when p_type in ('single_choice', 'drag_and_drop')
-        then public.fill_template(p_template, null)
+        then private.fill_template(p_template, null)
       when p_type = 'essay_blanks'
-        then p_prompt || ' ' || public.fill_template(p_template, null)
+        then p_prompt || ' ' || private.fill_template(p_template, null)
       else p_prompt
     end as text
   ) v
 $$;
 
 -- Question (docs/04-contratos-de-api.md §3.12), in the shape of its type.
-create function public.question_json(p_question_id integer)
+create function private.question_json(p_question_id integer)
 returns jsonb
 language sql
 stable
@@ -209,15 +210,6 @@ as $$
   where q.id = p_question_id
 $$;
 
-revoke execute on function
-  public.raise_api_error(integer, text, text),
-  public.require_student_id(),
-  public.normalize_answer_text(text),
-  public.fill_template(text, jsonb),
-  public.question_prompt_excerpt(public.question_type, text, text),
-  public.question_json(integer)
-from public, anon, authenticated;
-
 -- =============================================================================
 -- 2. Read endpoints
 -- =============================================================================
@@ -231,7 +223,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_student_id integer := public.require_student_id();
+  v_student_id integer := private.require_student_id();
 begin
   return (
     select jsonb_build_object(
@@ -256,7 +248,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_student_id integer := public.require_student_id();
+  v_student_id integer := private.require_student_id();
 begin
   return (
     select coalesce(
@@ -274,8 +266,8 @@ begin
       '[]'::jsonb
     )
     from public.subjects s
-    join public.v_subject_summary summary on summary.subject_id = s.id
-    left join public.v_student_subject_performance performance
+    join private.v_subject_summary summary on summary.subject_id = s.id
+    left join private.v_student_subject_performance performance
       on performance.subject_id = s.id and performance.student_id = v_student_id
   );
 end;
@@ -291,7 +283,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_student_id integer := public.require_student_id();
+  v_student_id integer := private.require_student_id();
   v_streak_days integer;
   v_exam_date date;
   v_exam_note text;
@@ -303,7 +295,7 @@ declare
   v_quiz_count integer;
 begin
   select coalesce(
-    (select st.streak_days from public.v_student_streak st where st.student_id = v_student_id),
+    (select st.streak_days from private.v_student_streak st where st.student_id = v_student_id),
     0
   ) into v_streak_days;
 
@@ -333,7 +325,7 @@ begin
       'overallPreparation', coalesce(
         (
           select performance.preparation_percent
-          from public.v_student_subject_performance performance
+          from private.v_student_subject_performance performance
           where performance.student_id = v_student_id and performance.subject_id = v_exam_subject_id
         ),
         0
@@ -352,7 +344,7 @@ begin
             )
             order by performance.percent, topic.name
           )
-          from public.v_student_topic_performance performance
+          from private.v_student_topic_performance performance
           join public.topics topic on topic.id = performance.topic_id
           where performance.student_id = v_student_id
             and topic.subject_id = v_exam_subject_id
@@ -368,7 +360,7 @@ begin
   from public.subjects s;
 
   select count(*) into v_quiz_count
-  from public.v_quiz_summary summary
+  from private.v_quiz_summary summary
   where summary.question_count > 0;
 
   return jsonb_build_object(
@@ -408,7 +400,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_student_id integer := public.require_student_id();
+  v_student_id integer := private.require_student_id();
 begin
   return (
     select coalesce(jsonb_agg(quiz.item order by quiz.is_integrated desc, quiz.title), '[]'::jsonb)
@@ -433,7 +425,7 @@ begin
           )
         ) as item
       from public.quizzes z
-      join public.v_quiz_summary summary on summary.quiz_id = z.id
+      join private.v_quiz_summary summary on summary.quiz_id = z.id
       left join public.subjects s on s.id = z.subject_id
       where summary.question_count > 0
     ) quiz
@@ -452,14 +444,14 @@ as $$
 declare
   v_quiz jsonb;
 begin
-  perform public.require_student_id();
+  perform private.require_student_id();
 
   select jsonb_build_object(
     'id', z.id::text,
     'title', z.title,
     'durationMinutes', z.duration_minutes,
     'questions', (
-      select jsonb_agg(public.question_json(qq.question_id) order by qq.order_index)
+      select jsonb_agg(private.question_json(qq.question_id) order by qq.order_index)
       from public.quiz_questions qq
       where qq.quiz_id = z.id
     )
@@ -470,7 +462,7 @@ begin
     and exists (select 1 from public.quiz_questions qq where qq.quiz_id = z.id);
 
   if v_quiz is null then
-    perform public.raise_api_error(404, 'NOT_FOUND', 'Simulado não encontrado.');
+    perform private.raise_api_error(404, 'NOT_FOUND', 'Simulado não encontrado.');
   end if;
 
   return v_quiz;
@@ -487,7 +479,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_student_id integer := public.require_student_id();
+  v_student_id integer := private.require_student_id();
 begin
   return jsonb_build_object(
     'profile', (
@@ -498,7 +490,7 @@ begin
         'questionsAnswered', profile.questions_answered,
         'quizzesCompleted', profile.quizzes_completed
       )
-      from public.v_student_ranking_profile profile
+      from private.v_student_ranking_profile profile
       where profile.student_id = v_student_id
     ),
     'entries', coalesce(
@@ -513,7 +505,7 @@ begin
           )
           order by ranking.position, ranking.student_name
         )
-        from public.v_student_ranking ranking
+        from private.v_student_ranking ranking
       ),
       '[]'::jsonb
     )
@@ -521,20 +513,7 @@ begin
 end;
 $$;
 
-revoke execute on function
-  public.get_current_student(),
-  public.list_subjects(),
-  public.get_dashboard(),
-  public.list_quizzes(),
-  public.get_quiz(integer),
-  public.get_ranking()
-from public, anon;
-
-grant execute on function
-  public.get_current_student(),
-  public.list_subjects(),
-  public.get_dashboard(),
-  public.list_quizzes(),
-  public.get_quiz(integer),
-  public.get_ranking()
-to authenticated;
+-- Written per schema, not as a list of names: public holds only the endpoints
+-- above, so this stays right when one is added, renamed or given an argument.
+revoke execute on all routines in schema public from public, anon;
+grant execute on all routines in schema public to authenticated;

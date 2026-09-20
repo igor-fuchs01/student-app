@@ -13,13 +13,28 @@
 --     parent would destroy history;
 --   * COMMENT ON TABLE documents each table inside the database itself;
 --   * fields the API computes from other rows (counts, percentages, streak,
---     ranking position, attempt result) are views, never stored columns.
+--     ranking position, attempt result) are views, never stored columns;
+--   * tables are the only thing this file puts in the public schema: the views
+--     below go to private, which the Data API never serves, so the web can reach
+--     nothing but the endpoint functions.
 --
 -- Supabase-specific changes (RLS, RPC) live in the next migration,
 -- 20260916000100_auth_and_security.sql.
 
 
-CREATE EXTENSION IF NOT EXISTS citext; -- case-insensitive email lookups/uniqueness
+-- In extensions, not public: its functions would otherwise sit next to the
+-- endpoints and be granted along with them.
+CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA extensions; -- case-insensitive email lookups/uniqueness
+
+-- Everything the app must not reach directly. It is left out of the Data API
+-- schemas ([api] schemas in supabase/config.toml), so PostgREST never sees it.
+CREATE SCHEMA private;
+
+COMMENT ON SCHEMA private IS 'Internal views and helpers; not served by the Data API.';
+
+-- Postgres makes every new function executable by PUBLIC. In here they belong to
+-- the owner alone until a migration grants them, so nothing leaks by omission.
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA private REVOKE EXECUTE ON ROUTINES FROM PUBLIC;
 
 -- =============================================================================
 -- 1. Enums
@@ -52,7 +67,7 @@ CREATE TYPE review_status AS ENUM ('correct', 'incorrect', 'pending_review');
 CREATE TABLE students (
   id                 INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name               TEXT NOT NULL CHECK (btrim(name) <> ''),
-  email              CITEXT NOT NULL UNIQUE,
+  email              extensions.citext NOT NULL UNIQUE,
   registration_id    TEXT NOT NULL UNIQUE CHECK (btrim(registration_id) <> ''),
   course             TEXT NOT NULL DEFAULT '',
   weekly_goal_target INTEGER NOT NULL DEFAULT 50 CHECK (weekly_goal_target > 0),
@@ -287,11 +302,11 @@ CREATE TABLE student_activity_days (
 COMMENT ON TABLE student_activity_days IS 'One row per day the student studied; source of the streak.';
 
 -- =============================================================================
--- 8. Views — derived fields
+-- 8. Views — derived fields (private: reachable only through the functions)
 -- =============================================================================
 
 -- Subject.materialsCount / questionsCount (§3.9).
-CREATE VIEW v_subject_summary AS
+CREATE VIEW private.v_subject_summary AS
 SELECT
   s.id AS subject_id,
   (SELECT COUNT(*) FROM materials m JOIN topics t ON t.id = m.topic_id WHERE t.subject_id = s.id) AS materials_count,
@@ -299,7 +314,7 @@ SELECT
 FROM subjects s;
 
 -- Subject.preparationPercent (§3.9) and NextExam.overallPreparation (§3.5).
-CREATE VIEW v_student_subject_performance AS
+CREATE VIEW private.v_student_subject_performance AS
 SELECT
   qa.student_id,
   t.subject_id,
@@ -316,7 +331,7 @@ GROUP BY qa.student_id, t.subject_id;
 
 -- Source for NextExam.priorities (§3.6); the high/medium/low level is a
 -- threshold applied by the application.
-CREATE VIEW v_student_topic_performance AS
+CREATE VIEW private.v_student_topic_performance AS
 SELECT
   qa.student_id,
   q.topic_id,
@@ -332,7 +347,7 @@ JOIN questions q ON q.id = qaa.question_id
 GROUP BY qa.student_id, q.topic_id;
 
 -- QuizSummary.questionCount (§3.10).
-CREATE VIEW v_quiz_summary AS
+CREATE VIEW private.v_quiz_summary AS
 SELECT
   quiz.id AS quiz_id,
   COUNT(qq.question_id) AS question_count
@@ -341,7 +356,7 @@ LEFT JOIN quiz_questions qq ON qq.quiz_id = quiz.id
 GROUP BY quiz.id;
 
 -- QuizSummary.attemptsCount (§3.10): attempts the student already submitted.
-CREATE VIEW v_student_quiz_attempts AS
+CREATE VIEW private.v_student_quiz_attempts AS
 SELECT
   quiz.id AS quiz_id,
   s.id AS student_id,
@@ -353,7 +368,7 @@ GROUP BY quiz.id, s.id;
 
 -- QuizResult counters and scorePercent (§3.14). pending_review answers are
 -- left out of the score; unanswered questions count in the denominator.
-CREATE VIEW v_quiz_attempt_result AS
+CREATE VIEW private.v_quiz_attempt_result AS
 SELECT
   qa.id AS attempt_id,
   qa.quiz_id,
@@ -373,7 +388,7 @@ LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = qa.id AND qaa.question_id
 GROUP BY qa.id;
 
 -- QuizResult.subjectPerformance (§3.14), same rules as score_percent.
-CREATE VIEW v_quiz_attempt_subject_performance AS
+CREATE VIEW private.v_quiz_attempt_subject_performance AS
 SELECT
   qa.id AS attempt_id,
   t.subject_id,
@@ -390,7 +405,7 @@ LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = qa.id AND qaa.question_id
 GROUP BY qa.id, t.subject_id;
 
 -- QuizResult.reviewItems (§3.14).
-CREATE VIEW v_quiz_review_items AS
+CREATE VIEW private.v_quiz_review_items AS
 SELECT
   qaa.attempt_id,
   qaa.question_id,
@@ -408,7 +423,7 @@ JOIN topics t ON t.id = q.topic_id
 WHERE qaa.review_status IN ('incorrect', 'pending_review');
 
 -- streakDays: consecutive activity days ending today or yesterday.
-CREATE VIEW v_student_streak AS
+CREATE VIEW private.v_student_streak AS
 WITH islands AS (
   SELECT
     student_id,
@@ -429,17 +444,17 @@ WHERE run_end >= CURRENT_DATE - 1
 ORDER BY student_id, run_end DESC;
 
 -- RankingData.entries (§3.15).
-CREATE VIEW v_student_ranking AS
+CREATE VIEW private.v_student_ranking AS
 SELECT
   s.id AS student_id,
   s.name AS student_name,
   COALESCE(st.streak_days, 0) AS streak_days,
   RANK() OVER (ORDER BY COALESCE(st.streak_days, 0) DESC, s.name ASC) AS position
 FROM students s
-LEFT JOIN v_student_streak st ON st.student_id = s.id;
+LEFT JOIN private.v_student_streak st ON st.student_id = s.id;
 
 -- RankingData.profile (§3.15).
-CREATE VIEW v_student_ranking_profile AS
+CREATE VIEW private.v_student_ranking_profile AS
 SELECT
   s.id AS student_id,
   COALESCE(st.streak_days, 0) AS streak_days,
@@ -458,5 +473,5 @@ SELECT
   ) AS questions_answered,
   (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.student_id = s.id) AS quizzes_completed
 FROM students s
-LEFT JOIN v_student_streak st ON st.student_id = s.id;
+LEFT JOIN private.v_student_streak st ON st.student_id = s.id;
 

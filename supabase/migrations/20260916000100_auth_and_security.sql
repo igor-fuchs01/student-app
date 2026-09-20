@@ -6,9 +6,10 @@
 --   * students read only their own rows, plus content that has no answer keys;
 --   * clients get no INSERT/UPDATE/DELETE policy: writes go through functions
 --     that validate them on the server;
---   * views run with their owner's rights and would bypass RLS, so clients
---     can't reach them; their data is exposed only through the functions in
---     20260916000200_api_read_functions.sql, which return only allowed fields;
+--   * views run with their owner's rights and would bypass RLS, so they live in
+--     the private schema, which the Data API does not serve; their data is exposed
+--     only through the functions in 20260916000200_api_read_functions.sql, which
+--     return only allowed fields;
 --   * SECURITY DEFINER functions pin search_path to '' and qualify every name,
 --     and no function builds SQL from strings, so arguments never become SQL.
 
@@ -16,18 +17,24 @@
 -- 1. The signed-in student
 -- =============================================================================
 
--- Runs with the caller's rights, so RLS on students limits it to the caller's own row.
-create function public.current_student_id()
+-- Lets the policies below reach private.current_student_id(). It exposes nothing:
+-- PostgREST only serves the schemas in [api] schemas of config.toml.
+grant usage on schema private to authenticated;
+
+-- Translates the Auth user of the current request into a students.id. SECURITY
+-- DEFINER so a policy on students does not have to evaluate its own RLS again;
+-- safe because it takes no argument and reads nothing but auth.uid().
+create function private.current_student_id()
 returns integer
 language sql
 stable
+security definer
 set search_path = ''
 as $$
   select s.id from public.students s where s.auth_user_id = (select auth.uid())
 $$;
 
-revoke execute on function public.current_student_id() from public, anon;
-grant execute on function public.current_student_id() to authenticated;
+grant execute on function private.current_student_id() to authenticated;
 
 -- =============================================================================
 -- 2. Row level security
@@ -57,7 +64,7 @@ create policy "students read their own profile"
 
 create policy "students read their own attempts"
   on public.quiz_attempts for select to authenticated
-  using (student_id = (select public.current_student_id()));
+  using (student_id = (select private.current_student_id()));
 
 create policy "students read their own answers"
   on public.quiz_attempt_answers for select to authenticated
@@ -65,13 +72,13 @@ create policy "students read their own answers"
     exists (
       select 1
       from public.quiz_attempts a
-      where a.id = attempt_id and a.student_id = (select public.current_student_id())
+      where a.id = attempt_id and a.student_id = (select private.current_student_id())
     )
   );
 
 create policy "students read their own study days"
   on public.student_activity_days for select to authenticated
-  using (student_id = (select public.current_student_id()));
+  using (student_id = (select private.current_student_id()));
 
 -- Content without answer keys: readable by any signed-in student.
 create policy "signed-in students read subjects"
@@ -99,22 +106,10 @@ create policy "signed-in students read scheduled exams"
 -- current QuizDetail contract does (docs/05-melhorias-futuras.md, item 2).
 
 -- =============================================================================
--- 3. Nothing is public, and views stay internal
+-- 3. Nothing in public is public
 -- =============================================================================
 
+-- The views used to need one revoke each; now they sit in a schema the Data API
+-- does not serve, so there is no list left to keep in sync.
 revoke all on all tables in schema public from anon;
-
-revoke all on
-  public.v_subject_summary,
-  public.v_student_subject_performance,
-  public.v_student_topic_performance,
-  public.v_quiz_summary,
-  public.v_student_quiz_attempts,
-  public.v_quiz_attempt_result,
-  public.v_quiz_attempt_subject_performance,
-  public.v_quiz_review_items,
-  public.v_student_streak,
-  public.v_student_ranking,
-  public.v_student_ranking_profile
-from authenticated;
 
