@@ -54,6 +54,10 @@ Abra **http://localhost:5173** e entre com `igor@email.com` / `123456`.
 | 🤝 [Como contribuir](docs/CONTRIBUTING.md) | Do fork ao Pull Request, passo a passo. |
 | 📚 [Documentação do produto](docs/README.md) | Regras de negócio, arquitetura e contratos de API. |
 
+## 🏆 Contribuidores
+- Igor Fuchs Pereira
+- Enzo Fuchs Bento
+
 <div align="center">
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:7F5AF0,100:2E9EF7&height=110&section=footer" alt="" width="100%" />
