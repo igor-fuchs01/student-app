@@ -27,6 +27,7 @@ begin
 end;
 $$;
 
+-- private.current_student_id() plus the 401 the endpoints owe the client.
 create function private.require_student_id()
 returns integer
 language plpgsql
@@ -34,12 +35,8 @@ stable
 set search_path = ''
 as $$
 declare
-  v_student_id integer;
+  v_student_id integer := private.current_student_id();
 begin
-  select s.id into v_student_id
-  from public.students s
-  where s.auth_user_id = (select auth.uid());
-
   if v_student_id is null then
     perform private.raise_api_error(401, 'UNAUTHORIZED', 'Sessão expirada. Faça login novamente.');
   end if;

@@ -6,6 +6,19 @@
 -- student always comes from auth.uid(). Any invalid answer aborts the whole call,
 -- so a rejected submission leaves no attempt behind.
 
+-- The only rejection the grading below ever gives back: a 400 that never says
+-- which answer was refused, whatever the reason (a non-numeric id, an id from
+-- another question or quiz, an essay past its limit, a repeated question).
+create function private.reject_answers()
+returns void
+language plpgsql
+set search_path = ''
+as $$
+begin
+  perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+end;
+$$;
+
 create function public.submit_quiz_attempt(p_quiz_id integer, p_answers jsonb)
 returns jsonb
 language plpgsql
@@ -30,7 +43,7 @@ begin
   end if;
 
   if p_answers is null or jsonb_typeof(p_answers) <> 'array' then
-    perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+    perform private.reject_answers();
   end if;
 
   insert into public.quiz_attempts (quiz_id, student_id)
@@ -39,7 +52,7 @@ begin
 
   for v_answer in select value from jsonb_array_elements(p_answers) loop
     if jsonb_typeof(v_answer) <> 'object' or coalesce(v_answer ->> 'questionId', '') !~ '^[0-9]{1,9}$' then
-      perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+      perform private.reject_answers();
     end if;
     v_question_id := (v_answer ->> 'questionId')::integer;
 
@@ -52,7 +65,7 @@ begin
       select 1 from public.quiz_attempt_answers a
       where a.attempt_id = v_attempt_id and a.question_id = v_question_id
     ) then
-      perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+      perform private.reject_answers();
     end if;
 
     -- Stays null when the question was left blank or partially filled: no row, counted as unanswered.
@@ -62,7 +75,7 @@ begin
       when 'multiple_choice' then
         if coalesce(v_answer ->> 'optionId', '') <> '' then
           if (v_answer ->> 'optionId') !~ '^[0-9]{1,9}$' then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
           v_option_id := (v_answer ->> 'optionId')::integer;
 
@@ -70,7 +83,7 @@ begin
             select 1 from public.question_options o
             where o.id = v_option_id and o.question_id = v_question_id
           ) then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           v_status := case
@@ -89,7 +102,7 @@ begin
             select 1 from jsonb_array_elements(v_answer -> 'optionIds') e
             where jsonb_typeof(e) <> 'string' or (e #>> '{}') !~ '^[0-9]{1,9}$'
           ) then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           select array_agg(distinct (e #>> '{}')::integer order by (e #>> '{}')::integer)
@@ -103,7 +116,7 @@ begin
               where o.id = selected.id and o.question_id = v_question_id
             )
           ) then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           select coalesce(array_agg(o.id order by o.id), '{}')
@@ -128,7 +141,7 @@ begin
             where b.question_id = v_question_id
               and (v_answer -> 'blankAnswers' ->> b.blank_key) !~ '^[0-9]{1,9}$'
           ) then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           if exists (
@@ -140,7 +153,7 @@ begin
                   and bo.id = (v_answer -> 'blankAnswers' ->> b.blank_key)::integer
               )
           ) then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           v_status := case
@@ -178,7 +191,7 @@ begin
             where slot.question_id = v_question_id
               and (v_answer -> 'slotAnswers' ->> slot.slot_key) !~ '^[0-9]{1,9}$'
           ) then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           if exists (
@@ -190,7 +203,7 @@ begin
                   and term.id = (v_answer -> 'slotAnswers' ->> slot.slot_key)::integer
               )
           ) then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           v_status := case
@@ -214,7 +227,7 @@ begin
       when 'essay' then
         if btrim(coalesce(v_answer ->> 'text', '')) <> '' then
           if length(v_answer ->> 'text') > v_question.max_length then
-            perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
+            perform private.reject_answers();
           end if;
 
           v_status := case

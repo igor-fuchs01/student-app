@@ -305,6 +305,19 @@ COMMENT ON TABLE student_activity_days IS 'One row per day the student studied; 
 -- 8. Views — derived fields (private: reachable only through the functions)
 -- =============================================================================
 
+-- Every percentage below is graded hits over graded answers, rounded to two
+-- decimals, and NULL when nothing was graded; each caller decides what an absent
+-- score shows as. Which answers count as graded differs per view, so the FILTER
+-- stays at the call site.
+CREATE FUNCTION private.percent(p_part bigint, p_total bigint)
+RETURNS numeric
+LANGUAGE sql
+IMMUTABLE
+SET search_path = ''
+AS $$
+  SELECT ROUND(100.0 * p_part / NULLIF(p_total, 0), 2)
+$$;
+
 -- Subject.materialsCount / questionsCount (§3.9).
 CREATE VIEW private.v_subject_summary AS
 SELECT
@@ -318,10 +331,9 @@ CREATE VIEW private.v_student_subject_performance AS
 SELECT
   qa.student_id,
   t.subject_id,
-  ROUND(
-    100.0 * COUNT(*) FILTER (WHERE qaa.review_status = 'correct')
-      / NULLIF(COUNT(*) FILTER (WHERE qaa.review_status <> 'pending_review'), 0),
-    2
+  private.percent(
+    COUNT(*) FILTER (WHERE qaa.review_status = 'correct'),
+    COUNT(*) FILTER (WHERE qaa.review_status <> 'pending_review')
   ) AS preparation_percent
 FROM quiz_attempt_answers qaa
 JOIN quiz_attempts qa ON qa.id = qaa.attempt_id
@@ -336,10 +348,9 @@ SELECT
   qa.student_id,
   q.topic_id,
   COUNT(*) FILTER (WHERE qaa.review_status <> 'pending_review') AS graded_count,
-  ROUND(
-    100.0 * COUNT(*) FILTER (WHERE qaa.review_status = 'correct')
-      / NULLIF(COUNT(*) FILTER (WHERE qaa.review_status <> 'pending_review'), 0),
-    2
+  private.percent(
+    COUNT(*) FILTER (WHERE qaa.review_status = 'correct'),
+    COUNT(*) FILTER (WHERE qaa.review_status <> 'pending_review')
   ) AS percent
 FROM quiz_attempt_answers qaa
 JOIN quiz_attempts qa ON qa.id = qaa.attempt_id
@@ -355,8 +366,9 @@ FROM quizzes quiz
 LEFT JOIN quiz_questions qq ON qq.quiz_id = quiz.id
 GROUP BY quiz.id;
 
--- QuizResult counters and scorePercent (§3.14). pending_review answers are
--- left out of the score; unanswered questions count in the denominator.
+-- QuizResult counters and scorePercent (§3.14). pending_review answers are left
+-- out of the score; unanswered questions count in the denominator, which is why
+-- the filter here is IS DISTINCT FROM and not <>.
 CREATE VIEW private.v_quiz_attempt_result AS
 SELECT
   qa.id AS attempt_id,
@@ -366,10 +378,9 @@ SELECT
   COUNT(*) FILTER (WHERE qaa.review_status = 'incorrect') AS incorrect_count,
   COUNT(*) FILTER (WHERE qaa.id IS NULL) AS unanswered_count,
   COUNT(*) FILTER (WHERE qaa.review_status = 'pending_review') AS self_review_count,
-  ROUND(
-    100.0 * COUNT(*) FILTER (WHERE qaa.review_status = 'correct')
-      / NULLIF(COUNT(*) FILTER (WHERE qaa.review_status IS DISTINCT FROM 'pending_review'), 0),
-    2
+  private.percent(
+    COUNT(*) FILTER (WHERE qaa.review_status = 'correct'),
+    COUNT(*) FILTER (WHERE qaa.review_status IS DISTINCT FROM 'pending_review')
   ) AS score_percent
 FROM quiz_attempts qa
 JOIN quiz_questions qq ON qq.quiz_id = qa.quiz_id
@@ -381,10 +392,9 @@ CREATE VIEW private.v_quiz_attempt_subject_performance AS
 SELECT
   qa.id AS attempt_id,
   t.subject_id,
-  ROUND(
-    100.0 * COUNT(*) FILTER (WHERE qaa.review_status = 'correct')
-      / NULLIF(COUNT(*) FILTER (WHERE qaa.review_status IS DISTINCT FROM 'pending_review'), 0),
-    2
+  private.percent(
+    COUNT(*) FILTER (WHERE qaa.review_status = 'correct'),
+    COUNT(*) FILTER (WHERE qaa.review_status IS DISTINCT FROM 'pending_review')
   ) AS percent
 FROM quiz_attempts qa
 JOIN quiz_questions qq ON qq.quiz_id = qa.quiz_id
