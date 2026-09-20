@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, aplicado em ordem: o schema (`…_initial_schema.sql`), o login e as regras de acesso (`…_auth_and_security.sql`) e as funções chamadas pelo app (`…_api_read_functions.sql` e `…_submit_quiz_attempt.sql`). |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, aplicado em ordem: o schema, já com o vínculo de cada aluno ao Supabase Auth (`…_initial_schema.sql`), as regras de acesso (`…_auth_and_security.sql`) e as funções chamadas pelo app (`…_api_read_functions.sql` e `…_submit_quiz_attempt.sql`). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado. |
 
