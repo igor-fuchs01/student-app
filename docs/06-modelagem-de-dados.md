@@ -225,7 +225,9 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
 - **Relacionamentos 1 : N** viram uma FK na tabela do lado N. `ON DELETE CASCADE` só é usado quando
   o filho não existe sem o pai (alternativas de uma questão, respostas de uma tentativa).
 - **Login fica com o Supabase Auth.** O banco não guarda senha nem token: cada aluno aponta para um
-  usuário do Auth por `students.auth_user_id` (uuid, único). Apagar o usuário apaga o aluno.
+  usuário do Auth por `students.auth_user_id` (uuid, único). É o único uuid do modelo, obrigatório
+  porque `auth.users.id` e `auth.uid()` são uuid; todo id próprio da aplicação é inteiro. Apagar o
+  usuário apaga o aluno.
 - **Relacionamento N : M** entre Simulado e Questão vira a tabela associativa `quiz_questions`, que
   também guarda o atributo do relacionamento (`order_index`).
 - **Tipos de questão em uma única tabela.** Os seis tipos diferem em poucas colunas (`prompt`,
