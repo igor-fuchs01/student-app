@@ -13,17 +13,8 @@
 --     and no function builds SQL from strings, so arguments never become SQL.
 
 -- =============================================================================
--- 1. Supabase Auth replaces the app's own passwords and tokens
+-- 1. The signed-in student
 -- =============================================================================
-
-alter table public.students drop column password_hash;
-
--- Accounts are created by the institution in Supabase Auth, with public signups
--- disabled ([auth] enable_signup = false in supabase/config.toml).
-alter table public.students
-  add column auth_user_id uuid not null unique references auth.users (id) on delete cascade;
-
-drop table public.auth_tokens;
 
 -- Runs with the caller's rights, so RLS on students limits it to the caller's own row.
 create function public.current_student_id()

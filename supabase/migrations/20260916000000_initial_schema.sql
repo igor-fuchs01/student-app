@@ -15,8 +15,8 @@
 --   * fields the API computes from other rows (counts, percentages, streak,
 --     ranking position, attempt result) are views, never stored columns.
 --
--- Copied from database/schema.sql. Supabase-specific changes (Auth, RLS, RPC) live in
--- the next migration, 20260916000100_auth_and_security.sql.
+-- Supabase-specific changes (RLS, RPC) live in the next migration,
+-- 20260916000100_auth_and_security.sql.
 
 
 CREATE EXTENSION IF NOT EXISTS citext; -- case-insensitive email lookups/uniqueness
@@ -55,24 +55,14 @@ CREATE TABLE students (
   email              CITEXT NOT NULL UNIQUE,
   registration_id    TEXT NOT NULL UNIQUE CHECK (btrim(registration_id) <> ''),
   course             TEXT NOT NULL DEFAULT '',
-  password_hash      TEXT NOT NULL,
-  weekly_goal_target INTEGER NOT NULL DEFAULT 50 CHECK (weekly_goal_target > 0)
+  weekly_goal_target INTEGER NOT NULL DEFAULT 50 CHECK (weekly_goal_target > 0),
+  -- Accounts are created by the institution in Supabase Auth, with public signups
+  -- disabled ([auth] enable_signup = false in supabase/config.toml).
+  auth_user_id       UUID NOT NULL UNIQUE REFERENCES auth.users (id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE students IS 'Pre-provisioned student accounts; there is no public signup.';
 COMMENT ON COLUMN students.weekly_goal_target IS 'Weekly goal in answered questions (RankingData.profile.weeklyGoalTarget).';
-
-CREATE TABLE auth_tokens (
-  id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  student_id INTEGER NOT NULL REFERENCES students (id) ON DELETE CASCADE,
-  token      TEXT NOT NULL UNIQUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  revoked_at TIMESTAMPTZ
-);
-
-COMMENT ON TABLE auth_tokens IS 'Opaque bearer tokens; expiry is computed from created_at, revoked_at is set on logout.';
-
-CREATE INDEX idx_auth_tokens_student_id ON auth_tokens (student_id);
 
 -- =============================================================================
 -- 3. Content: subject -> topic -> material (docs/02-regras-de-negocio.md §1)
