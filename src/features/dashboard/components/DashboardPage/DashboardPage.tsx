@@ -8,6 +8,7 @@ import { PageLayout } from "@components/layout/PageLayout";
 import { dashboardApi } from "@services/api/dashboardApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
 import type { PriorityLevel, StudyPlanItem } from "@models/dashboard";
+import { NewQuizzesSection } from "./NewQuizzesSection";
 import {
   StyledGreeting,
   StyledPageTitle,
@@ -140,6 +141,8 @@ export function DashboardPage() {
               </StyledSummaryCard>
             ))}
           </StyledSummaryGrid>
+
+          <NewQuizzesSection />
         </>
       )}
     </PageLayout>
