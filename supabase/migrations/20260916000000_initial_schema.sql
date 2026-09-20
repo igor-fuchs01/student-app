@@ -57,7 +57,7 @@ CREATE TYPE difficulty_level AS ENUM ('easy', 'medium', 'hard');
 CREATE TYPE quiz_subject_scope AS ENUM ('single', 'all');
 
 -- docs/02-regras-de-negocio.md §6. The API exposes pending_review as
--- 'self_review' (see v_quiz_review_items).
+-- 'self_review' (see submit_quiz_attempt).
 CREATE TYPE review_status AS ENUM ('correct', 'incorrect', 'pending_review');
 
 -- =============================================================================
@@ -214,7 +214,7 @@ CREATE INDEX idx_question_slots_correct_term_id ON question_slots (correct_term_
 -- =============================================================================
 
 -- There is no attempt limit: QuizSummary.attemptsCount reports how many
--- attempts the student has already submitted (see v_student_quiz_attempts).
+-- attempts the student has already submitted (counted by list_quizzes).
 CREATE TABLE quizzes (
   id               INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   title            TEXT NOT NULL CHECK (btrim(title) <> ''),
@@ -355,17 +355,6 @@ FROM quizzes quiz
 LEFT JOIN quiz_questions qq ON qq.quiz_id = quiz.id
 GROUP BY quiz.id;
 
--- QuizSummary.attemptsCount (§3.10): attempts the student already submitted.
-CREATE VIEW private.v_student_quiz_attempts AS
-SELECT
-  quiz.id AS quiz_id,
-  s.id AS student_id,
-  COUNT(qa.id) AS attempts_count
-FROM quizzes quiz
-CROSS JOIN students s
-LEFT JOIN quiz_attempts qa ON qa.quiz_id = quiz.id AND qa.student_id = s.id
-GROUP BY quiz.id, s.id;
-
 -- QuizResult counters and scorePercent (§3.14). pending_review answers are
 -- left out of the score; unanswered questions count in the denominator.
 CREATE VIEW private.v_quiz_attempt_result AS
@@ -403,24 +392,6 @@ JOIN questions q ON q.id = qq.question_id
 JOIN topics t ON t.id = q.topic_id
 LEFT JOIN quiz_attempt_answers qaa ON qaa.attempt_id = qa.id AND qaa.question_id = qq.question_id
 GROUP BY qa.id, t.subject_id;
-
--- QuizResult.reviewItems (§3.14).
-CREATE VIEW private.v_quiz_review_items AS
-SELECT
-  qaa.attempt_id,
-  qaa.question_id,
-  t.subject_id,
-  CASE qaa.review_status
-    WHEN 'incorrect' THEN 'incorrect'
-    WHEN 'pending_review' THEN 'self_review'
-  END AS status,
-  q.explanation,
-  q.reference_answer,
-  qaa.essay_text AS student_answer
-FROM quiz_attempt_answers qaa
-JOIN questions q ON q.id = qaa.question_id
-JOIN topics t ON t.id = q.topic_id
-WHERE qaa.review_status IN ('incorrect', 'pending_review');
 
 -- streakDays: consecutive activity days ending today or yesterday.
 CREATE VIEW private.v_student_streak AS
