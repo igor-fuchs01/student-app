@@ -20,7 +20,7 @@ import {
   registerMockQuizAttempt,
 } from "./quizzes";
 import { buildMockRanking } from "./ranking";
-import { buildMockSubjects } from "./subjects";
+import { buildMockSubjects, getMockSubjectDetail } from "./subjects";
 import { findAccountByEmail, findAccountById, type MockAccount } from "./users";
 
 type AuthenticatedInfo = {
@@ -101,8 +101,17 @@ export const handlers = [
   ),
 
   http.get(
-    api(API_ENDPOINTS.subjects),
+    api(API_ENDPOINTS.subjects.list),
     authenticated(() => HttpResponse.json(buildMockSubjects())),
+  ),
+
+  http.get(
+    api(API_ENDPOINTS.subjects.detail(":subjectId")),
+    authenticated(({ params }) => {
+      const subject = getMockSubjectDetail(String(params.subjectId));
+      if (!subject) return errorResponse(404, "NOT_FOUND", "Disciplina não encontrada.");
+      return HttpResponse.json(subject);
+    }),
   ),
 
   http.get(

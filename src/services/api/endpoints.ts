@@ -4,7 +4,10 @@ export const API_ENDPOINTS = {
     logout: "/auth/logout",
   },
   dashboard: "/dashboard",
-  subjects: "/subjects",
+  subjects: {
+    list: "/subjects",
+    detail: (id: string) => `/subjects/${id}`,
+  },
   ranking: "/ranking",
   quizzes: {
     list: "/quizzes",
