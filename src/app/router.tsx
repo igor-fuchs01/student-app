@@ -36,6 +36,13 @@ export const router = createBrowserRouter([
           })),
       },
       {
+        path: "/disciplinas/:subjectId",
+        lazy: () =>
+          import("@features/subjects/components/SubjectDetailPage").then(
+            ({ SubjectDetailPage }) => ({ Component: SubjectDetailPage }),
+          ),
+      },
+      {
         path: "/simulados",
         lazy: () =>
           import("@features/quizzes/components/QuizzesPage").then(({ QuizzesPage }) => ({
