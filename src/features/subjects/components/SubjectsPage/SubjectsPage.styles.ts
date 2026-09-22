@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { Link } from "react-router-dom";
 import { Card } from "@components/ui/Card";
 
 export const StyledPageTitle = styled.h1`
@@ -24,8 +25,20 @@ export const StyledGrid = styled.div`
   }
 `;
 
+export const StyledSubjectLink = styled(Link)`
+  display: block;
+  color: inherit;
+  text-decoration: none;
+`;
+
 export const StyledSubjectCard = styled(Card)`
   padding: 18px;
+  height: 100%;
+  transition: box-shadow 0.15s ease;
+
+  ${StyledSubjectLink}:hover & {
+    box-shadow: ${({ theme }) => theme.shadows.md};
+  }
 `;
 
 export const StyledIntegratedCard = styled(Card)`

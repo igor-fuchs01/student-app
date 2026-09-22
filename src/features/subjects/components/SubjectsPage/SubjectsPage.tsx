@@ -7,6 +7,7 @@ import {
   StyledPageTitle,
   StyledPageSubtitle,
   StyledGrid,
+  StyledSubjectLink,
   StyledSubjectCard,
   StyledIntegratedCard,
   StyledInitial,
@@ -44,17 +45,19 @@ export function SubjectsPage() {
 
           <StyledGrid>
             {subjectsQuery.data.map((subject, index) => (
-              <StyledSubjectCard key={subject.id}>
-                <StyledInitial $accent2={index % 2 === 0}>{subject.shortLabel}</StyledInitial>
-                <StyledSubjectName>{subject.name}</StyledSubjectName>
-                <StyledSubjectMeta>
-                  {formatCount(subject.materialsCount, "material", "materiais")} ·{" "}
-                  {formatCount(subject.questionsCount, "questão", "questões")}
-                </StyledSubjectMeta>
-                <StyledSubjectPreparation>
-                  Preparo: {subject.preparationPercent}%
-                </StyledSubjectPreparation>
-              </StyledSubjectCard>
+              <StyledSubjectLink key={subject.id} to={`/disciplinas/${subject.id}`}>
+                <StyledSubjectCard>
+                  <StyledInitial $accent2={index % 2 === 0}>{subject.shortLabel}</StyledInitial>
+                  <StyledSubjectName>{subject.name}</StyledSubjectName>
+                  <StyledSubjectMeta>
+                    {formatCount(subject.materialsCount, "material", "materiais")} ·{" "}
+                    {formatCount(subject.questionsCount, "questão", "questões")}
+                  </StyledSubjectMeta>
+                  <StyledSubjectPreparation>
+                    Preparo: {subject.preparationPercent}%
+                  </StyledSubjectPreparation>
+                </StyledSubjectCard>
+              </StyledSubjectLink>
             ))}
 
             <StyledIntegratedCard tone="accent">
