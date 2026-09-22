@@ -140,3 +140,6 @@ dist
 .env*
 !.env.development.example
 !.env.mock
+
+# Scratch area for throwaway prototypes and mockups.
+temp/
