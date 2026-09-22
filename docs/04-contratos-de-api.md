@@ -13,8 +13,9 @@ A fonte da verdade é o código; atualize este documento sempre que algo abaixo 
 | Implementação do mock (MSW) | `src/services/api/mocks/handlers.ts` |
 | Implementação no Supabase (funções do banco e login) | `supabase/migrations/` e o Supabase Auth |
 
-Funcionalidades planejadas (materiais, desempenho, recomendações, sincronização de tentativas,
-etc.) ainda não têm contrato. As mudanças de contrato já previstas estão em
+Funcionalidades planejadas (desempenho, recomendações, sincronização de tentativas, etc.) ainda
+não têm contrato; os materiais só aparecem como link dentro do detalhe da disciplina, sem tela
+própria. As mudanças de contrato já previstas estão em
 [`05-melhorias-futuras.md`](05-melhorias-futuras.md). Apenas os endpoints listados abaixo existem hoje.
 
 ---
@@ -41,6 +42,7 @@ as telas usam os mesmos métodos nos dois modos.
 | `POST /auth/logout` | `supabase.auth.signOut()` |
 | `GET /dashboard` | `get_dashboard()` |
 | `GET /subjects` | `list_subjects()` |
+| `GET /subjects/:id` | `get_subject(p_subject_id)` — ainda não implementada (ver [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 7) |
 | `GET /quizzes` | `list_quizzes()` |
 | `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
 | `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
@@ -94,6 +96,7 @@ O cliente valida todo corpo de resposta contra um schema zod antes de utilizá-l
 | `POST` | `/auth/logout` | Sim | `204` (sem corpo) | `authApi.logout` |
 | `GET` | `/dashboard` | Sim | `200` [`DashboardData`](#34-dashboarddata) | `dashboardApi.getDashboard` |
 | `GET` | `/subjects` | Sim | `200` [`Subject`](#39-subject)`[]` | `subjectsApi.getSubjects` |
+| `GET` | `/subjects/:id` | Sim | `200` [`SubjectDetail`](#316-subjectdetail) | `subjectsApi.getSubject` |
 | `GET` | `/quizzes` | Sim | `200` [`QuizSummary`](#310-quizsummary)`[]` | `quizzesApi.getQuizzes` |
 | `GET` | `/quizzes/:id` | Sim | `200` [`QuizDetail`](#311-quizdetail) | `quizzesApi.getQuiz` |
 | `POST` | `/quizzes/:id/attempts` | Sim | `200` [`QuizResult`](#314-quizresult) | `quizzesApi.submitQuizAttempt` |
@@ -249,8 +252,79 @@ Retorna as disciplinas do curso do aluno autenticado.
 ]
 ```
 
-**Comportamento no cliente:** as disciplinas são renderizadas na ordem do array. O card do
-simulado integrado é fixo na UI e informa quantas disciplinas foram retornadas.
+**Comportamento no cliente:** as disciplinas são renderizadas na ordem do array. Cada card é um
+link para `/disciplinas/:subjectId`. O card do simulado integrado é fixo na UI, informa quantas
+disciplinas foram retornadas e não é clicável.
+
+---
+
+### `GET /subjects/:id`
+
+Retorna uma disciplina com os assuntos cobrados nela, os subassuntos de cada assunto e os materiais
+de cada subassunto. É o que a tela `/disciplinas/:subjectId` exibe.
+
+**Autenticação:** exigida. **Corpo da requisição:** nenhum.
+
+**Respostas**
+
+| Status | Corpo | Quando |
+|---|---|---|
+| `200` | [`SubjectDetail`](#316-subjectdetail) | A disciplina existe. |
+| `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
+| `404` | Erro, código `NOT_FOUND` | Nenhuma disciplina com esse `id`. |
+
+```json
+{
+  "id": "banco-de-dados",
+  "name": "Banco de Dados",
+  "shortLabel": "BD",
+  "materialsCount": 8,
+  "questionsCount": 84,
+  "preparationPercent": 72,
+  "topics": [
+    {
+      "id": "modelagem-conceitual",
+      "number": 1,
+      "name": "Fundamentos e Modelagem Conceitual",
+      "description": "Como transformar um problema do mundo real em um modelo entidade-relacionamento.",
+      "subtopics": [
+        {
+          "id": "modelo-er",
+          "name": "Modelo Entidade-Relacionamento",
+          "summary": "O modelo ER descreve o domínio em entidades, atributos e relacionamentos, antes de qualquer decisão sobre tabelas.",
+          "keyPoints": ["Entidade: objeto do mundo real com existência própria."],
+          "materials": [
+            {
+              "id": "apostila-modelagem-er",
+              "title": "Apostila — Modelagem ER",
+              "fileUrl": "/materiais/banco-de-dados/apostila-modelagem-er.pdf"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Comportamento no cliente**
+
+- Os assuntos já vêm ordenados por `number`, que é a ordem alfabética do rótulo lido pelo aluno
+  ("Aula 1 - …", "Aula 2 - …") e continua correta a partir da décima aula. A posição no array nunca
+  é usada para numerar.
+- A lista lateral monta o rótulo do assunto como `Aula {number} - {name}`; o cabeçalho da direita
+  mostra "Aula {number}" e o nome em linhas separadas.
+- Os subassuntos, os pontos-chave e os materiais seguem a ordem do array, que é a ordem de estudo
+  definida pela equipe — não é alfabética.
+- A lista lateral agrupa os subassuntos por assunto. O primeiro subassunto do primeiro assunto já
+  vem selecionado, e escolher outro troca as duas seções da direita sem nova requisição.
+- Uma disciplina sem assuntos, ou cujos assuntos não têm subassuntos, exibe um aviso no lugar da
+  lista.
+- `summary`, `keyPoints` e `description` são texto simples, sem HTML ou Markdown, para não exigir um
+  renderizador de conteúdo rico nesta etapa.
+- Os materiais abrem `fileUrl` em outra aba; não existe tela de materiais.
+- "Praticar questões" leva para `/simulados`, porque ainda não há como praticar um subassunto
+  específico (ver [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 6).
 
 ---
 
@@ -556,6 +630,44 @@ como "Não respondida" caso contrário.
 | `streakDays` | integer | `>= 0`. |
 | `isCurrentUser` | boolean | `true` apenas na linha do aluno autenticado. |
 
+### 3.16 `SubjectDetail`
+
+Todos os campos de [`Subject`](#39-subject), mais:
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `topics` | [`SubjectTopic`](#317-subjecttopic)`[]` | Assuntos da disciplina, na ordem de exibição. Pode ser vazio. |
+
+### 3.17 `SubjectTopic`
+
+Um assunto (aula) da disciplina, como em [`02-regras-de-negocio.md`](02-regras-de-negocio.md) §1.
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id` | string | Não vazio. Único na disciplina. |
+| `number` | integer | `>= 1`. Único na disciplina. Número da aula na ementa; é ele que a tela exibe, não a posição no array. |
+| `name` | string | Não vazio. Nome do assunto, sem o prefixo "Aula N" — a tela o compõe. |
+| `description` | string | Não vazio. Uma frase sobre o que o assunto cobre. Texto simples. |
+| `subtopics` | [`Subtopic`](#318-subtopic)`[]` | Subassuntos, na ordem de exibição. Pode ser vazio. |
+
+### 3.18 `Subtopic`
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id` | string | Não vazio. Único na disciplina. |
+| `name` | string | Não vazio. Nome do subassunto. |
+| `summary` | string | Não vazio. Resumo curto, para revisar antes de estudar ou fazer um simulado. Texto simples. |
+| `keyPoints` | string[] | Cada item não vazio. Pode ser vazio. Texto simples. |
+| `materials` | [`Material`](#319-material)`[]` | Materiais do subassunto. Pode ser vazio. |
+
+### 3.19 `Material`
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id` | string | Não vazio. Único na disciplina. |
+| `title` | string | Não vazio. Título exibido na lista. |
+| `fileUrl` | string | Não vazio. Endereço do arquivo, aberto em outra aba. |
+
 ---
 
 ## 4. Erros
@@ -629,6 +741,11 @@ Particularidades do mock:
   token como opaco, sem decodificá-lo.
 - **Rotas desconhecidas** sob `/api` retornam `404` com código `NOT_FOUND`. Pedidos fora de `/api`
   (arquivos da página, Vite) não são interceptados.
+- **Disciplinas:** `GET /subjects/:id` existe **só no mock**, porque `get_subject` ainda não foi
+  criada no Supabase (ver [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 7): a tela
+  `/disciplinas/:subjectId` só funciona com `VITE_USE_MOCKS=true`. Todas as disciplinas da lista
+  têm detalhe, os assuntos saem ordenados por `number`, `materialsCount` é a soma dos materiais
+  dos subassuntos, e os `fileUrl` apontam para arquivos que não existem no projeto.
 - **Simulados:** todos os simulados da lista têm detalhe. O simulado integrado usa todas as
   questões do banco do mock; os demais usam as questões da sua disciplina, e `questionCount`
   é calculado a partir delas. `attemptsCount` é contado em memória e volta a zero quando a página

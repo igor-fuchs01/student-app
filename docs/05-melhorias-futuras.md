@@ -18,7 +18,7 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 4 | [Plano do dia do dashboard copiado para estado local](#4-plano-do-dia-do-dashboard-copiado-para-estado-local) | Limitação técnica | Backend |
 | 5 | [Correção de dissertativas no mock](#5-correção-de-dissertativas-no-mock) | Regra de negócio | Painel de correção |
 | 6 | [Questões classificadas por assunto](#6-questões-classificadas-por-assunto-para-diagnóstico-de-dificuldades) | Produto | Backend |
-| 7 | [Detalhe da disciplina com assuntos e resumos](#7-detalhe-da-disciplina-com-assuntos-e-resumos) | Produto | 6 |
+| 7 | [Detalhe da disciplina servido pelo banco](#7-detalhe-da-disciplina-servido-pelo-banco) | Limitação técnica | Backend |
 | 8 | [Ranking com gráficos e filtros](#8-ranking-com-gráficos-e-filtros) | Produto | Backend |
 | 9 | [Dashboards na tela de Início](#9-dashboards-na-tela-de-início) | Produto | 4, 6 |
 | 10 | [Logo e identidade da aplicação](#10-logo-e-identidade-da-aplicação) | Identidade visual | Nome do produto |
@@ -219,53 +219,42 @@ precisa estudar?"*
 
 ---
 
-## 7. Detalhe da disciplina com assuntos e resumos
+## 7. Detalhe da disciplina servido pelo banco
 
-**Situação atual.** A tela de Disciplinas (`/disciplinas`) mostra um card por disciplina com
-quantidade de materiais, quantidade de questões e percentual de preparo. Os cards não são
-clicáveis e não existe tela de detalhe; o card do simulado integrado também não leva a lugar
-nenhum.
+**Situação atual.** A tela existe: os cards de `/disciplinas` são links para
+`/disciplinas/:subjectId`, que mostra os assuntos da disciplina, os subassuntos de cada assunto e,
+para o subassunto selecionado, resumo, pontos-chave e materiais
+([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). Só que ela funciona
+**apenas no modo mock**: o conteúdo vem das fixtures de `src/services/api/mocks/subjects.ts` e a
+função `get_subject` ainda não existe no Supabase, embora o adaptador já a chame.
 
-**Objetivo.** Ao clicar em uma disciplina, o aluno vê os assuntos cobrados nela, cada um com um
-resumo curto, para relembrar o conteúdo antes de estudar ou fazer um simulado.
+**Objetivo.** Servir a mesma tela pelo banco, com conteúdo curado pela equipe.
 
-**Por que fica para depois do MVP.** Depende da classificação das questões por assunto (item 6)
-e de conteúdo de resumo curado pela equipe, que ainda não existe.
+**Por que fica para depois do MVP.** O modelo físico não comporta o contrato: `subtopics` foi
+deixado fora do MVP ([`06-modelagem-de-dados.md`](06-modelagem-de-dados.md), seção 3) e `topics`
+não guarda descrição, resumo nem pontos-chave. Além disso, os resumos são conteúdo curado que
+ainda não existe, e o preparo por assunto depende da classificação das questões (item 6).
 
 **Proposta.**
 
-1. **Rota e navegação.** Criar `/disciplinas/:subjectId`. Os cards da tela de Disciplinas viram
-   links (acessíveis por teclado), e o card do simulado integrado leva para o simulado.
-2. **Contrato.** Criar `GET /subjects/:id`, retornando a disciplina e seus assuntos:
-
-   ```json
-   {
-     "id": "banco-de-dados",
-     "name": "Banco de Dados",
-     "topics": [
-       {
-         "id": "normalization",
-         "name": "Normalização",
-         "summary": "Processo de organizar tabelas para reduzir redundância e anomalias.",
-         "keyPoints": ["1FN: valores atômicos", "2FN: sem dependências parciais", "3FN: sem dependências transitivas"],
-         "questionsCount": 18,
-         "materialsCount": 3,
-         "preparationPercent": 40
-       }
-     ]
-   }
-   ```
-
-   `summary` e `keyPoints` são texto simples, sem HTML ou Markdown, para não exigir um
-   renderizador de conteúdo rico nesta etapa.
-3. **Tela.** Cabeçalho com a disciplina e o preparo geral; lista de assuntos em cards
-   expansíveis com resumo, pontos-chave, preparo do aluno no assunto (item 6) e ações
-   "Praticar questões" e "Ver materiais" (quando as features `study` e `materials` existirem).
-   Ordenação padrão: assuntos com menor preparo primeiro.
-4. **Conteúdo.** Os resumos são curados pela equipe a partir dos materiais da disciplina
+1. **Modelo de dados.** Trazer `subtopics` de volta (assunto, nome, resumo, ordem), mover
+   `materials.topic_id` para o subassunto, e adicionar `topics.number` (o número da aula, único na
+   disciplina), `topics.description` e os pontos-chave do subassunto (texto simples, na ordem de
+   exibição). Atualizar
+   [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md) e `supabase/seed.sql`.
+2. **Função.** Criar `get_subject(p_subject_id)` devolvendo exatamente o JSON de `SubjectDetail`
+   (§3.16 de [`04-contratos-de-api.md`](04-contratos-de-api.md)), seguindo as regras de acesso de
+   [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md). O adaptador
+   `supabaseSubjectsApi.getSubject` já está pronto.
+3. **Arquivos dos materiais.** Hoje `fileUrl` aponta para caminhos que não existem. Definir onde os
+   PDFs ficam (Supabase Storage) antes de a tela sair do mock.
+4. **Preparo por subassunto.** Com as questões classificadas (item 6), incluir o preparo do aluno em
+   cada subassunto e permitir ordenar a lista lateral pelos mais fracos primeiro. O rótulo continua
+   vindo de `number`, então reordenar não renumera as aulas.
+5. **Conteúdo.** Os resumos são curados pela equipe a partir dos materiais da disciplina
    ([`01-visao-do-produto.md`](01-visao-do-produto.md)) e servem para revisão rápida: não
    substituem o material completo. Deixar isso claro na UI.
-5. **Organização do código.** A tela fica em `features/subjects/`; se crescer para materiais e
+6. **Organização do código.** A tela fica em `features/subjects/`; se crescer para materiais e
    estudo guiado, extrair para as features planejadas `materials` e `study`
    ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)).
 
@@ -334,7 +323,7 @@ backend, do plano do dia persistido (item 4) e do desempenho por assunto (item 6
 
 1. **Widgets, em ordem de prioridade.**
    1. **O que revisar agora:** os 3 assuntos com menor desempenho recente (item 6), com acesso
-      direto ao detalhe do assunto (item 7).
+      direto ao detalhe da disciplina (`/disciplinas/:subjectId`).
    2. **Evolução de desempenho:** percentual de acerto por semana nas últimas semanas, geral e
       por disciplina.
    3. **Questões erradas recentemente:** lista curta com link para rever cada questão.

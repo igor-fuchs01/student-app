@@ -453,7 +453,7 @@ funcionalidades complexas apenas porque foram mencionadas como possibilidades fu
 
 | Removido | Por quê | Quando volta |
 |---|---|---|
-| Subassunto (`subtopics`) | Os critérios de aceite pedem disciplinas, assuntos e materiais; o item 6 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) trata subassuntos como opcionais. Materiais passam a pertencer ao assunto. | Desempenho por subassunto ([`02-regras-de-negocio.md`](02-regras-de-negocio.md) §8) |
+| Subassunto (`subtopics`) | Os critérios de aceite pedem disciplinas, assuntos e materiais; o item 6 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) trata subassuntos como opcionais. Materiais passam a pertencer ao assunto. | Detalhe da disciplina servido pelo banco (item 7 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md)): `GET /subjects/:id` já expõe subassuntos, resumo e pontos-chave, hoje só no mock. Também é o que falta para o desempenho por subassunto ([`02-regras-de-negocio.md`](02-regras-de-negocio.md) §8) |
 | Vínculo questão — material | "Encontrar questões relacionadas aos assuntos" é resolvido pelo assunto. | Recomendação "revisar o material correspondente" (§9) |
 | Disciplina na questão (`questions.subject_id`) | Redundante com o assunto (ver normalização, seção 2.2). | — |
 | Dificuldade por questão | Só o simulado tem dificuldade no contrato; desempenho por dificuldade não está nos critérios de aceite. | Fase 4 — Desempenho |
