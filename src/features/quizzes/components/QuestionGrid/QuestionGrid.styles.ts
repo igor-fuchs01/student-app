@@ -68,6 +68,11 @@ export const StyledGrid = styled.div<{ $variant: QuestionGridVariant }>`
           max-height: 320px;
           overflow-y: auto;
           margin-bottom: 14px;
+
+          @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+            max-height: none;
+            overflow-y: visible;
+          }
         `
       : css`
           grid-template-columns: repeat(10, 1fr);
@@ -94,6 +99,11 @@ export const StyledTile = styled.button<TileStateProps & { $variant: QuestionGri
 
   &:disabled {
     cursor: default;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    height: 44px;
+    font-size: 13px;
   }
 
   ${tileStateStyles}

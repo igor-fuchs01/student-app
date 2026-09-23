@@ -1,3 +1,4 @@
+import { useEffect, useId, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@components/ui/Button";
 import { QuestionField } from "@features/quizzes/components/QuestionField";
@@ -16,10 +17,15 @@ import {
   StyledTimerToggle,
   StyledLayout,
   StyledQuestionCard,
+  StyledSheetBackdrop,
   StyledSidebar,
+  StyledSheetHandle,
   StyledSidebarHeader,
   StyledSidebarLabel,
+  StyledSidebarActions,
   StyledMarkCurrentButton,
+  StyledSheetClose,
+  StyledGridToggle,
   StyledFooter,
 } from "./QuizAnsweringPage.styles";
 
@@ -53,6 +59,23 @@ export function QuizAnsweringPage() {
     toggleShowTimer,
     isTimeUp,
   } = useQuizAttemptContext();
+  const gridId = useId();
+  const [isGridOpen, setIsGridOpen] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [currentIndex]);
+
+  useEffect(() => {
+    if (!isGridOpen) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsGridOpen(false);
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isGridOpen]);
 
   if (isTimeUp) {
     return <Navigate to={`/simulados/${quiz.id}/revisao`} replace />;
@@ -72,6 +95,11 @@ export function QuizAnsweringPage() {
 
   function goBack() {
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+  }
+
+  function selectQuestion(index: number) {
+    setCurrentIndex(index);
+    setIsGridOpen(false);
   }
 
   return (
@@ -109,18 +137,30 @@ export function QuizAnsweringPage() {
           />
         </StyledQuestionCard>
 
-        <StyledSidebar tone="surface">
+        {isGridOpen && <StyledSheetBackdrop onClick={() => setIsGridOpen(false)} />}
+
+        <StyledSidebar id={gridId} tone="surface" $open={isGridOpen}>
+          <StyledSheetHandle />
           <StyledSidebarHeader>
             <StyledSidebarLabel>Questões</StyledSidebarLabel>
-            <StyledMarkCurrentButton
-              type="button"
-              $marked={isMarked}
-              onClick={() => toggleMarkedForReview(question.id)}
-              aria-label={isMarked ? "Remover marcação para revisão" : "Marcar para revisão"}
-              title={isMarked ? "Remover marcação para revisão" : "Marcar para revisão"}
-            >
-              🚩
-            </StyledMarkCurrentButton>
+            <StyledSidebarActions>
+              <StyledMarkCurrentButton
+                type="button"
+                $marked={isMarked}
+                onClick={() => toggleMarkedForReview(question.id)}
+                aria-label={isMarked ? "Remover marcação para revisão" : "Marcar para revisão"}
+                title={isMarked ? "Remover marcação para revisão" : "Marcar para revisão"}
+              >
+                🚩
+              </StyledMarkCurrentButton>
+              <StyledSheetClose
+                type="button"
+                onClick={() => setIsGridOpen(false)}
+                aria-label="Fechar lista de questões"
+              >
+                ✕
+              </StyledSheetClose>
+            </StyledSidebarActions>
           </StyledSidebarHeader>
           <QuestionGrid
             tiles={quiz.questions.map((q, index) => ({
@@ -130,7 +170,7 @@ export function QuizAnsweringPage() {
               current: index === currentIndex,
             }))}
             legend={LEGEND}
-            onSelect={setCurrentIndex}
+            onSelect={selectQuestion}
           />
         </StyledSidebar>
       </StyledLayout>
@@ -139,6 +179,15 @@ export function QuizAnsweringPage() {
         <Button variant="secondary" onClick={goBack} disabled={currentIndex === 0}>
           Voltar
         </Button>
+        <StyledGridToggle
+          type="button"
+          onClick={() => setIsGridOpen(true)}
+          aria-expanded={isGridOpen}
+          aria-controls={gridId}
+          aria-label="Ver lista de questões"
+        >
+          ☰
+        </StyledGridToggle>
         <Button variant="primary" onClick={goNext}>
           {isLast ? "Ir para revisão" : "Avançar"}
         </Button>
