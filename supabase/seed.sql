@@ -2,7 +2,7 @@
 --
 -- Local development only: never run it against the hosted project. It creates two
 -- Supabase Auth accounts with the demo password 123456 and links each one to a
--- student: senaiigorpereira / igor@email.com and 20231234 / marina@email.com.
+-- student: igor@email.com (Igor Pereira) and marina@email.com (Marina Alves).
 --
 -- Covers one full round trip: a subject with two assuntos, their subassuntos and
 -- one material, one question of each of the six types, a quiz with all of them,
