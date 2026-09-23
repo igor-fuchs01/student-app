@@ -74,7 +74,7 @@ export const StyledGrid = styled.div<{ $variant: QuestionGridVariant }>`
           max-width: 620px;
           margin-bottom: 16px;
 
-          @media (max-width: 640px) {
+          @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
             grid-template-columns: repeat(5, 1fr);
           }
         `}

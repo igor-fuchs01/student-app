@@ -7,7 +7,7 @@ export const StyledLayout = styled.div`
   gap: 26px;
   align-items: start;
 
-  @media (max-width: 860px) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     grid-template-columns: 1fr;
   }
 `;

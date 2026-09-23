@@ -62,7 +62,7 @@ export const StyledHeaderActions = styled.div`
   align-items: center;
   gap: 12px;
 
-  @media (max-width: 860px) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     margin-left: 0;
     width: 100%;
     justify-content: space-between;

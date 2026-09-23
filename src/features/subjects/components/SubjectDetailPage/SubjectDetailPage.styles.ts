@@ -53,7 +53,7 @@ export const StyledPreparation = styled.div`
   margin-left: auto;
   min-width: 180px;
 
-  @media (max-width: 860px) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     margin-left: 0;
     width: 100%;
   }
@@ -78,7 +78,7 @@ export const StyledLayout = styled.div`
   gap: 22px;
   align-items: start;
 
-  @media (max-width: 860px) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     grid-template-columns: 1fr;
   }
 `;
@@ -88,7 +88,7 @@ export const StyledRail = styled(Card)`
   position: sticky;
   top: 74px;
 
-  @media (max-width: 860px) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     position: static;
   }
 `;

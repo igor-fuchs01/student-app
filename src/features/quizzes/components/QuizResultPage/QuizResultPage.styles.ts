@@ -55,7 +55,7 @@ export const StyledColumns = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 28px;
 
-  @media (max-width: 860px) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     grid-template-columns: 1fr;
   }
 `;

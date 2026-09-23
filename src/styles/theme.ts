@@ -26,6 +26,10 @@ export const theme = {
     md: "14px",
     pill: "999px",
   },
+  breakpoints: {
+    md: "860px",
+    sm: "640px",
+  },
   shadows: {
     sm: "0 2px 10px rgba(30, 30, 20, 0.06)",
     md: "0 10px 28px rgba(30, 30, 20, 0.1)",
