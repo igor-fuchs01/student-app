@@ -44,6 +44,11 @@ export const StyledFooter = styled.div`
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 `;
 
 export const StyledConfirmTitle = styled.div`
@@ -67,6 +72,11 @@ export const StyledConfirmActions = styled.div`
   justify-content: flex-end;
   gap: 10px;
   margin-top: 6px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 `;
 
 export const StyledErrorMessage = styled.p`

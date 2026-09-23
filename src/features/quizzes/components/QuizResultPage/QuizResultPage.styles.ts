@@ -91,6 +91,12 @@ export const StyledReviewList = styled.div`
   max-height: 440px;
   overflow-y: auto;
   padding: 4px 8px 4px 4px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    max-height: none;
+    overflow-y: visible;
+    padding: 0;
+  }
 `;
 
 export const StyledReviewCard = styled(Card)`
@@ -121,6 +127,10 @@ export const StyledReviewToggle = styled.button`
   font-size: 13px;
   cursor: pointer;
   padding: 0;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+  }
 `;
 
 export const StyledReviewExplanation = styled.p`
@@ -144,4 +154,9 @@ export const StyledPageActions = styled.div`
   margin-top: 32px;
   padding-top: 20px;
   border-top: 1px solid ${({ theme }) => theme.colors.divider};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 `;

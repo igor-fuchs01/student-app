@@ -36,9 +36,10 @@ export const StyledReviewOptionList = styled.div`
 
 export const StyledReviewOption = styled.div<{ $tone: ReviewTone }>`
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 4px 12px;
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radii.md};
   font-size: 13px;

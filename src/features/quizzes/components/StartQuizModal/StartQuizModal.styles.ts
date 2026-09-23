@@ -62,4 +62,9 @@ export const StyledActions = styled.div`
   justify-content: flex-end;
   gap: 10px;
   margin-top: 6px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 `;

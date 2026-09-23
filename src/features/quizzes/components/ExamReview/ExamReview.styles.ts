@@ -11,12 +11,22 @@ export const StyledExamLayout = styled.div`
 export const StyledExamMain = styled.div`
   flex: 1;
   min-width: 280px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-width: 0;
+  }
 `;
 
 export const StyledExamSidebar = styled(Card)`
   width: 320px;
   flex: none;
   padding: 20px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    order: -1;
+    width: 100%;
+    padding: 16px;
+  }
 `;
 
 export const StyledExamSidebarLabel = styled.div`
