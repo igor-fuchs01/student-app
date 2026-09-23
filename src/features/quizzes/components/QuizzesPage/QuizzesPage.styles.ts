@@ -18,6 +18,12 @@ export const StyledPageSubtitle = styled.p`
 export const StyledTableCard = styled(Card)`
   padding: 0;
   overflow-x: auto;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    overflow: visible;
+    background: transparent;
+    box-shadow: none;
+  }
 `;
 
 export const StyledTable = styled.table`
@@ -26,6 +32,21 @@ export const StyledTable = styled.table`
   table-layout: fixed;
   border-collapse: collapse;
   font-size: 13.5px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    display: block;
+    min-width: 0;
+
+    colgroup {
+      display: none;
+    }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
 `;
 
 export const StyledCol = styled.col<{ $width: string }>`
@@ -41,6 +62,15 @@ export const StyledTableHead = styled.thead`
 
   th {
     padding: 14px 18px;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 `;
 
@@ -64,6 +94,56 @@ export const StyledTableRow = styled.tr`
     color: #fff;
     border-color: transparent;
   }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 16px;
+    border-top: none;
+    border-radius: ${({ theme }) => theme.radii.lg};
+    background: ${({ theme }) => theme.colors.surface};
+    box-shadow: ${({ theme }) => theme.shadows.sm};
+
+    &:hover {
+      background: ${({ theme }) => theme.colors.surface};
+    }
+
+    td,
+    td:first-child {
+      padding: 0;
+    }
+
+    td:nth-child(n + 3):nth-child(-n + 6) {
+      color: ${({ theme }) => theme.colors.muted};
+      font-size: 12.5px;
+    }
+
+    td:nth-child(n + 4):nth-child(-n + 6)::before {
+      content: "· ";
+    }
+
+    td:first-child,
+    td:nth-child(2),
+    td:last-child {
+      flex-basis: 100%;
+    }
+
+    td:last-child {
+      margin-top: 8px;
+    }
+
+    td:last-child button {
+      width: 100%;
+    }
+
+    td:last-child button:not(:disabled) {
+      background: ${({ theme }) => theme.colors.accent};
+      color: #fff;
+      border-color: transparent;
+    }
+  }
 `;
 
 export const StyledQuizTitle = styled.td`
@@ -74,6 +154,13 @@ export const StyledQuizTitle = styled.td`
   ${StyledTableRow}:hover & {
     font-weight: 700;
   }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    font-family: ${({ theme }) => theme.fonts.heading};
+    font-size: 15px;
+    font-weight: 700;
+    white-space: normal;
+  }
 `;
 
 export const StyledSubjectBadge = styled.span<{ $integrated?: boolean }>`
@@ -83,4 +170,8 @@ export const StyledSubjectBadge = styled.span<{ $integrated?: boolean }>`
   font-weight: 700;
   padding: 3px 12px;
   border-radius: ${({ theme }) => theme.radii.pill};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding: ${({ $integrated }) => ($integrated ? "3px 12px" : "0")};
+  }
 `;

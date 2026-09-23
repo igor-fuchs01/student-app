@@ -90,7 +90,7 @@ export function QuizzesPage() {
                         {quiz.subjectScope === "all" ? "Todas" : quiz.subjectName}
                       </StyledSubjectBadge>
                     </td>
-                    <td>{quiz.questionCount}</td>
+                    <td>{formatCount(quiz.questionCount, "questão", "questões")}</td>
                     <td>{quiz.durationMinutes} min</td>
                     <td>{formatCount(quiz.attemptsCount, "tentativa", "tentativas")}</td>
                     <td>{DIFFICULTY_LABEL[quiz.difficulty]}</td>
