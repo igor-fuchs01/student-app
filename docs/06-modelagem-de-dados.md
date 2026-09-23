@@ -23,8 +23,8 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, aplicado em ordem: o schema, já com o vínculo de cada aluno ao Supabase Auth (`…_initial_schema.sql`), as regras de acesso (`…_auth_and_security.sql`) e as funções chamadas pelo app (`…_api_read_functions.sql` e `…_submit_quiz_attempt.sql`). |
-| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, aplicado em ordem: o schema, já com o vínculo de cada aluno ao Supabase Auth (`…_initial_schema.sql`), as regras de acesso (`…_auth_and_security.sql`), as funções chamadas pelo app (`…_api_read_functions.sql` e `…_submit_quiz_attempt.sql`), o conteúdo da tela de detalhe da disciplina (`…_subject_detail_content.sql`) e a função que a serve (`…_get_subject.sql`). |
+| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado. |
 
 ### Rodando o banco localmente
@@ -61,6 +61,7 @@ função no banco que devolve o mesmo JSON.
 | `POST /auth/logout` | `supabase.auth.signOut()` |
 | `GET /dashboard` | `get_dashboard()` |
 | `GET /subjects` | `list_subjects()` |
+| `GET /subjects/:id` | `get_subject(p_subject_id)` |
 | `GET /quizzes` | `list_quizzes()` |
 | `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
 | `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
@@ -107,8 +108,9 @@ da equipe, inclusive quem não programa.
 | **Aluno** | Conta de estudante, pré-provisionada pelo responsável (não há cadastro público). Tem uma meta semanal de questões. |
 | **Sessão** | Um login ativo do aluno, controlado pelo Supabase Auth. É encerrada no logout. |
 | **Disciplina** | Matéria do curso, ex.: Banco de Dados. |
-| **Assunto** | Tema dentro de uma disciplina, ex.: Normalização. É a unidade usada para identificar dificuldades. |
-| **Material** | Material didático (PDF) de um assunto. |
+| **Assunto** | Tema dentro de uma disciplina, ex.: Normalização. Corresponde a uma aula da ementa, com um número próprio, e é a unidade usada para identificar dificuldades. |
+| **Subassunto** | Recorte de um assunto, ex.: Formas Normais. Tem um resumo curto e pontos-chave, para o aluno revisar antes de estudar ou fazer um simulado. |
+| **Material** | Material didático (PDF) de um subassunto. |
 | **Questão** | Item de prática, de um dos seis tipos do contrato (múltipla escolha, múltiplas alternativas, seleção única, drag and drop, dissertativa e dissertativa com lacunas). |
 | **Alternativa** | Opção que o aluno pode escolher: de uma questão (múltipla escolha e múltiplas alternativas) ou de uma lacuna (seleção única). |
 | **Lacuna** | Espaço `{{id}}` no texto de uma questão, preenchido por seleção, por texto ou arrastando um termo. |
@@ -127,7 +129,8 @@ da equipe, inclusive quem não programa.
 | Aluno — Tentativa | 1 : N | Um aluno faz várias tentativas; cada tentativa é de um aluno. |
 | Aluno — Dia de estudo | 1 : N | Um aluno registra vários dias de estudo. |
 | Disciplina — Assunto | 1 : N | Uma disciplina organiza vários assuntos; cada assunto pertence a uma disciplina. |
-| Assunto — Material | 1 : N | Um assunto tem vários materiais. |
+| Assunto — Subassunto | 1 : N | Um assunto se divide em vários subassuntos; cada subassunto pertence a um assunto. |
+| Subassunto — Material | 1 : N | Um subassunto tem vários materiais. |
 | Assunto — Questão | 1 : N | Toda questão tem exatamente um assunto e, por meio dele, uma disciplina ([`02-regras-de-negocio.md`](02-regras-de-negocio.md) §1). |
 | Questão — Alternativa | 1 : N | Só nos tipos múltipla escolha e múltiplas alternativas. |
 | Questão — Lacuna | 1 : N | Só nos tipos seleção única, drag and drop e dissertativa com lacunas. |
@@ -149,7 +152,8 @@ erDiagram
     ALUNO ||--o{ DIA_DE_ESTUDO : "registra"
 
     DISCIPLINA ||--o{ ASSUNTO : "organiza"
-    ASSUNTO ||--o{ MATERIAL : "possui"
+    ASSUNTO ||--o{ SUBASSUNTO : "divide-se em"
+    SUBASSUNTO ||--o{ MATERIAL : "possui"
     ASSUNTO ||--o{ QUESTAO : "classifica"
 
     QUESTAO |o--o{ ALTERNATIVA : "oferece"
@@ -202,6 +206,7 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Sessão | Supabase Auth (`auth.users` e as sessões dele), ligado ao aluno por `students.auth_user_id` |
 | Disciplina | `subjects` |
 | Assunto | `topics` |
+| Subassunto | `subtopics`, com os pontos-chave em `subtopic_key_points` |
 | Material | `materials` |
 | Questão | `questions` |
 | Alternativa | `question_options` (de questão) e `question_blank_options` (de lacuna) |
@@ -270,7 +275,9 @@ erDiagram
     students ||--o{ student_activity_days : ""
 
     subjects ||--o{ topics : ""
-    topics ||--o{ materials : ""
+    topics ||--o{ subtopics : ""
+    subtopics ||--o{ subtopic_key_points : ""
+    subtopics ||--o{ materials : ""
     topics ||--o{ questions : ""
 
     questions ||--o{ question_options : ""
@@ -313,12 +320,29 @@ erDiagram
     topics {
         int id PK
         int subject_id FK
+        int number
         text name
+        text description
+    }
+
+    subtopics {
+        int id PK
+        int topic_id FK
+        text name
+        text summary
+        int order_index
+    }
+
+    subtopic_key_points {
+        int id PK
+        int subtopic_id FK
+        text text
+        int order_index
     }
 
     materials {
         int id PK
-        int topic_id FK
+        int subtopic_id FK
         text title
         text file_url
     }
@@ -453,7 +477,6 @@ funcionalidades complexas apenas porque foram mencionadas como possibilidades fu
 
 | Removido | Por quê | Quando volta |
 |---|---|---|
-| Subassunto (`subtopics`) | Os critérios de aceite pedem disciplinas, assuntos e materiais; o item 6 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) trata subassuntos como opcionais. Materiais passam a pertencer ao assunto. | Detalhe da disciplina servido pelo banco (item 7 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md)): `GET /subjects/:id` já expõe subassuntos, resumo e pontos-chave, hoje só no mock. Também é o que falta para o desempenho por subassunto ([`02-regras-de-negocio.md`](02-regras-de-negocio.md) §8) |
 | Vínculo questão — material | "Encontrar questões relacionadas aos assuntos" é resolvido pelo assunto. | Recomendação "revisar o material correspondente" (§9) |
 | Disciplina na questão (`questions.subject_id`) | Redundante com o assunto (ver normalização, seção 2.2). | — |
 | Dificuldade por questão | Só o simulado tem dificuldade no contrato; desempenho por dificuldade não está nos critérios de aceite. | Fase 4 — Desempenho |
