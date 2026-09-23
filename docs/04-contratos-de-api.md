@@ -42,7 +42,7 @@ as telas usam os mesmos métodos nos dois modos.
 | `POST /auth/logout` | `supabase.auth.signOut()` |
 | `GET /dashboard` | `get_dashboard()` |
 | `GET /subjects` | `list_subjects()` |
-| `GET /subjects/:id` | `get_subject(p_subject_id)` — ainda não implementada (ver [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 7) |
+| `GET /subjects/:id` | `get_subject(p_subject_id)` |
 | `GET /quizzes` | `list_quizzes()` |
 | `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
 | `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
@@ -741,11 +741,9 @@ Particularidades do mock:
   token como opaco, sem decodificá-lo.
 - **Rotas desconhecidas** sob `/api` retornam `404` com código `NOT_FOUND`. Pedidos fora de `/api`
   (arquivos da página, Vite) não são interceptados.
-- **Disciplinas:** `GET /subjects/:id` existe **só no mock**, porque `get_subject` ainda não foi
-  criada no Supabase (ver [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 7): a tela
-  `/disciplinas/:subjectId` só funciona com `VITE_USE_MOCKS=true`. Todas as disciplinas da lista
-  têm detalhe, os assuntos saem ordenados por `number`, `materialsCount` é a soma dos materiais
-  dos subassuntos, e os `fileUrl` apontam para arquivos que não existem no projeto.
+- **Disciplinas:** todas as disciplinas da lista têm detalhe, os assuntos saem ordenados por
+  `number`, `materialsCount` é a soma dos materiais dos subassuntos, e os `fileUrl` apontam para
+  arquivos que não existem no projeto.
 - **Simulados:** todos os simulados da lista têm detalhe. O simulado integrado usa todas as
   questões do banco do mock; os demais usam as questões da sua disciplina, e `questionCount`
   é calculado a partir delas. `attemptsCount` é contado em memória e volta a zero quando a página

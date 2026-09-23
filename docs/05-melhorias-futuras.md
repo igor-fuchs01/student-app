@@ -18,7 +18,7 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 4 | [Plano do dia do dashboard copiado para estado local](#4-plano-do-dia-do-dashboard-copiado-para-estado-local) | Limitação técnica | Backend |
 | 5 | [Correção de dissertativas no mock](#5-correção-de-dissertativas-no-mock) | Regra de negócio | Painel de correção |
 | 6 | [Questões classificadas por assunto](#6-questões-classificadas-por-assunto-para-diagnóstico-de-dificuldades) | Produto | Backend |
-| 7 | [Detalhe da disciplina servido pelo banco](#7-detalhe-da-disciplina-servido-pelo-banco) | Limitação técnica | Backend |
+| 7 | [Conteúdo curado do detalhe da disciplina](#7-conteúdo-curado-do-detalhe-da-disciplina) | Limitação técnica | Backend |
 | 8 | [Ranking com gráficos e filtros](#8-ranking-com-gráficos-e-filtros) | Produto | Backend |
 | 9 | [Dashboards na tela de Início](#9-dashboards-na-tela-de-início) | Produto | 4, 6 |
 | 10 | [Logo e identidade da aplicação](#10-logo-e-identidade-da-aplicação) | Identidade visual | Nome do produto |
@@ -218,42 +218,37 @@ precisa estudar?"*
 
 ---
 
-## 7. Detalhe da disciplina servido pelo banco
+## 7. Conteúdo curado do detalhe da disciplina
 
-**Situação atual.** A tela existe: os cards de `/disciplinas` são links para
-`/disciplinas/:subjectId`, que mostra os assuntos da disciplina, os subassuntos de cada assunto e,
-para o subassunto selecionado, resumo, pontos-chave e materiais
-([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). O modelo físico já
-comporta o contrato, desde a migration `…_subject_detail_content.sql`. Só que a tela ainda funciona
-**apenas no modo mock**: o conteúdo vem das fixtures de `src/services/api/mocks/subjects.ts` e a
-função `get_subject` ainda não existe no Supabase, embora o adaptador já a chame.
+**Situação atual.** A tela em `/disciplinas/:subjectId` já é servida pelo banco: as migrations
+`…_subject_detail_content.sql` e `…_get_subject.sql` trouxeram o modelo e a função
+`get_subject(p_subject_id)`, que devolve o JSON de `SubjectDetail`
+([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). O que falta é conteúdo,
+não encanamento: no banco os resumos e os pontos-chave são só os do seed, e os `fileUrl` apontam
+para arquivos que não existem.
 
-**Objetivo.** Servir a mesma tela pelo banco, com conteúdo curado pela equipe.
+**Objetivo.** Ter a tela com os resumos curados pela equipe e os PDFs de verdade.
 
-**Por que fica para depois do MVP.** Falta a função `get_subject`; os resumos e os pontos-chave são
-conteúdo curado que ainda não existe; os PDFs não têm onde ficar; e o preparo por assunto depende
-da classificação das questões (item 6).
+**Por que fica para depois do MVP.** Os resumos e os pontos-chave são conteúdo curado que ainda não
+existe, os PDFs não têm onde ficar, e o preparo por subassunto depende da classificação das
+questões (item 6).
 
 **Proposta.**
 
-1. **Modelo de dados — feito.** A migration `…_subject_detail_content.sql` trouxe `subtopics`
+1. **Modelo de dados e função — feitos.** `…_subject_detail_content.sql` trouxe `subtopics`
    (assunto, nome, resumo, ordem) e `subtopic_key_points`, adicionou `topics.number` (o número da
    aula, único na disciplina) e `topics.description`, e moveu os materiais do assunto para o
-   subassunto. [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md) e `supabase/seed.sql`
-   acompanham.
-2. **Função.** Criar `get_subject(p_subject_id)` devolvendo exatamente o JSON de `SubjectDetail`
-   (§3.16 de [`04-contratos-de-api.md`](04-contratos-de-api.md)), seguindo as regras de acesso de
-   [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md). O adaptador
-   `supabaseSubjectsApi.getSubject` já está pronto.
-3. **Arquivos dos materiais.** Hoje `fileUrl` aponta para caminhos que não existem. Definir onde os
-   PDFs ficam (Supabase Storage) antes de a tela sair do mock.
-4. **Preparo por subassunto.** Com as questões classificadas (item 6), incluir o preparo do aluno em
+   subassunto; `…_get_subject.sql` criou `get_subject(p_subject_id)`, que o adaptador
+   `supabaseSubjectsApi.getSubject` já chamava.
+2. **Arquivos dos materiais.** Hoje `fileUrl` aponta para caminhos que não existem. Definir onde os
+   PDFs ficam (Supabase Storage).
+3. **Preparo por subassunto.** Com as questões classificadas (item 6), incluir o preparo do aluno em
    cada subassunto e permitir ordenar a lista lateral pelos mais fracos primeiro. O rótulo continua
    vindo de `number`, então reordenar não renumera as aulas.
-5. **Conteúdo.** Os resumos são curados pela equipe a partir dos materiais da disciplina
+4. **Conteúdo.** Os resumos são curados pela equipe a partir dos materiais da disciplina
    ([`01-visao-do-produto.md`](01-visao-do-produto.md)) e servem para revisão rápida: não
    substituem o material completo. Deixar isso claro na UI.
-6. **Organização do código.** A tela fica em `features/subjects/`; se crescer para materiais e
+5. **Organização do código.** A tela fica em `features/subjects/`; se crescer para materiais e
    estudo guiado, extrair para as features planejadas `materials` e `study`
    ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)).
 
