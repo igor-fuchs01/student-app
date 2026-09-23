@@ -38,6 +38,11 @@ export const StyledFilterChip = styled.button<{ $active: boolean }>`
   &:hover {
     opacity: 0.85;
   }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
 `;
 
 export const StyledQuizList = styled.div`

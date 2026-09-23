@@ -7,11 +7,16 @@ export const StyledPage = styled.div`
   align-items: center;
   justify-content: center;
   padding: 24px;
+
   background: linear-gradient(
     160deg,
     ${({ theme }) => theme.colors.accent100},
     ${({ theme }) => theme.colors.bg} 55%
   );
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding: 16px;
+  }
 `;
 
 export const StyledFormCard = styled.form`
@@ -21,6 +26,10 @@ export const StyledFormCard = styled.form`
   border-radius: ${({ theme }) => theme.radii.lg};
   padding: 36px;
   box-shadow: ${({ theme }) => theme.shadows.md};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding: 28px 20px;
+  }
 `;
 
 export const StyledBrand = styled.div`

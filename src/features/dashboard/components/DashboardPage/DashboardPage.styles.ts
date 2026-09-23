@@ -70,6 +70,7 @@ export const StyledPriorityItem = styled.li`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 13px;
 `;
 
@@ -80,6 +81,10 @@ export const StyledPlanList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    gap: 0;
+  }
 `;
 
 export const StyledPlanItemLabel = styled.label<{ $done: boolean }>`
@@ -90,6 +95,10 @@ export const StyledPlanItemLabel = styled.label<{ $done: boolean }>`
   cursor: pointer;
   opacity: ${({ $done }) => ($done ? 0.5 : 1)};
   text-decoration: ${({ $done }) => ($done ? "line-through" : "none")};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+  }
 
   input {
     width: 18px;

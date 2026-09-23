@@ -13,6 +13,13 @@ export const StyledBackLink = styled(Link)`
   &:hover {
     color: ${({ theme }) => theme.colors.accent600};
   }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 8px;
+  }
 `;
 
 export const StyledSubjectHeader = styled.div`
@@ -131,6 +138,10 @@ export const StyledSubtopicButton = styled.button<{ $selected: boolean }>`
   color: ${({ theme, $selected }) => ($selected ? theme.colors.accent600 : theme.colors.muted)};
   transition: background-color 0.15s ease;
 
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+  }
+
   &:hover {
     background: ${({ theme, $selected }) => ($selected ? theme.colors.accent100 : theme.colors.bg)};
     color: ${({ theme, $selected }) => ($selected ? theme.colors.accent600 : theme.colors.text)};
@@ -234,6 +245,10 @@ export const StyledMaterialLink = styled.a`
   color: ${({ theme }) => theme.colors.text};
   text-decoration: none;
   transition: border-color 0.15s ease;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+  }
 
   &:hover {
     border-color: ${({ theme }) => theme.colors.accent};
