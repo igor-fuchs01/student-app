@@ -22,7 +22,6 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 8 | [Ranking com gráficos e filtros](#8-ranking-com-gráficos-e-filtros) | Produto | Backend |
 | 9 | [Dashboards na tela de Início](#9-dashboards-na-tela-de-início) | Produto | 4, 6 |
 | 10 | [Logo e identidade da aplicação](#10-logo-e-identidade-da-aplicação) | Identidade visual | Nome do produto |
-| 11 | [Design e implementação para mobile](#11-design-e-implementação-para-mobile) | UX | 10 |
 | 12 | [Correção de dissertativas por IA com chave do aluno](#12-correção-de-dissertativas-por-ia-com-chave-do-aluno) | Produto | — |
 | 13 | [Simulados criados pelo próprio aluno](#13-simulados-criados-pelo-próprio-aluno) | Produto | 6 |
 | 14 | [Gráficos escolhidos pelo aluno](#14-gráficos-escolhidos-pelo-aluno) | Produto | 8, 9 |
@@ -224,24 +223,24 @@ precisa estudar?"*
 **Situação atual.** A tela existe: os cards de `/disciplinas` são links para
 `/disciplinas/:subjectId`, que mostra os assuntos da disciplina, os subassuntos de cada assunto e,
 para o subassunto selecionado, resumo, pontos-chave e materiais
-([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). Só que ela funciona
+([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). O modelo físico já
+comporta o contrato, desde a migration `…_subject_detail_content.sql`. Só que a tela ainda funciona
 **apenas no modo mock**: o conteúdo vem das fixtures de `src/services/api/mocks/subjects.ts` e a
 função `get_subject` ainda não existe no Supabase, embora o adaptador já a chame.
 
 **Objetivo.** Servir a mesma tela pelo banco, com conteúdo curado pela equipe.
 
-**Por que fica para depois do MVP.** O modelo físico não comporta o contrato: `subtopics` foi
-deixado fora do MVP ([`06-modelagem-de-dados.md`](06-modelagem-de-dados.md), seção 3) e `topics`
-não guarda descrição, resumo nem pontos-chave. Além disso, os resumos são conteúdo curado que
-ainda não existe, e o preparo por assunto depende da classificação das questões (item 6).
+**Por que fica para depois do MVP.** Falta a função `get_subject`; os resumos e os pontos-chave são
+conteúdo curado que ainda não existe; os PDFs não têm onde ficar; e o preparo por assunto depende
+da classificação das questões (item 6).
 
 **Proposta.**
 
-1. **Modelo de dados.** Trazer `subtopics` de volta (assunto, nome, resumo, ordem), mover
-   `materials.topic_id` para o subassunto, e adicionar `topics.number` (o número da aula, único na
-   disciplina), `topics.description` e os pontos-chave do subassunto (texto simples, na ordem de
-   exibição). Atualizar
-   [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md) e `supabase/seed.sql`.
+1. **Modelo de dados — feito.** A migration `…_subject_detail_content.sql` trouxe `subtopics`
+   (assunto, nome, resumo, ordem) e `subtopic_key_points`, adicionou `topics.number` (o número da
+   aula, único na disciplina) e `topics.description`, e moveu os materiais do assunto para o
+   subassunto. [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md) e `supabase/seed.sql`
+   acompanham.
 2. **Função.** Criar `get_subject(p_subject_id)` devolvendo exatamente o JSON de `SubjectDetail`
    (§3.16 de [`04-contratos-de-api.md`](04-contratos-de-api.md)), seguindo as regras de acesso de
    [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md). O adaptador
@@ -368,56 +367,6 @@ favicon nem `theme-color`, e o título da aba é "Student App".
    - Um único componente de marca em `src/components/layout/`, substituindo os dois
      `StyledBrand` duplicados, com texto alternativo acessível.
    - Atualizar o `index.html`: favicon, `theme-color` e título.
-
----
-
-## 11. Design e implementação para mobile
-
-**Situação atual.** A aplicação foi pensada para desktop, com adaptações pontuais:
-
-- só há breakpoints fixos (`860px` e `640px`) repetidos em vários arquivos de estilo, sem token
-  no tema;
-- a lista de simulados é uma tabela com `min-width: 640px`, que exige rolagem horizontal, e o
-  botão "Iniciar" muda de estilo só no `:hover` da linha;
-- a barra lateral de questões (resposta e revisão da prova) tem largura fixa de `320px`;
-- alguns alvos de toque têm 26–32 px, abaixo dos 44 px recomendados;
-- o drag and drop usa a API HTML5, que não funciona em telas de toque (existe a alternativa de
-  tocar no termo e depois na lacuna, mas ela não é destacada como a forma principal no mobile).
-
-**Objetivo.** Ter um design pensado para celular e implementá-lo, principalmente no fluxo de
-simulado, que é onde o aluno passa mais tempo.
-
-**Por que fica para depois do MVP.** A prioridade atual é validar os fluxos. Uma boa experiência
-mobile exige primeiro um design dedicado.
-
-**Proposta.**
-
-1. **Design antes do código.** Prototipar as telas em largura de 360 px, na ordem:
-   1. responder questão;
-   2. revisão e resultado;
-   3. lista de simulados;
-   4. Início;
-   5. Disciplinas;
-   6. Ranking;
-   7. login.
-2. **Padrões a definir no design.**
-   - Navegação principal em barra inferior no mobile.
-   - No simulado: cronômetro e progresso fixos no topo, "Voltar/Avançar" fixos no rodapé e a
-     grade de questões em uma gaveta (bottom sheet).
-   - Lista de simulados em cards em vez de tabela.
-3. **Tokens.** Adicionar `breakpoints` ao tema (`src/styles/theme.ts`) e trocar os valores fixos
-   de `@media` por eles.
-4. **Acessibilidade e toque.**
-   - Alvos de toque com no mínimo 44 px.
-   - Nenhuma ação que dependa só de `:hover`.
-   - No drag and drop, "tocar no termo e depois na lacuna" como interação principal em telas de
-     toque.
-   - Respeitar as áreas seguras do iPhone (`env(safe-area-inset-*)`).
-5. **Critérios de aceite.** Todas as telas utilizáveis em 360 px sem rolagem horizontal, fluxo
-   completo de simulado feito só com toque, e verificação em Chrome (Android) e Safari (iOS).
-6. **Documentação.** O índice de [`docs/README.md`](README.md) diz que
-   [`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md) cobre responsividade, mas essa seção
-   não existe. Criá-la com os breakpoints e padrões definidos aqui.
 
 ---
 

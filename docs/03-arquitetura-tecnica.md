@@ -139,6 +139,61 @@ Estratégia:
 
 ---
 
+## Responsividade
+
+O layout é desenhado para desktop e adaptado para celular a partir de 360 px de largura, sem
+rolagem horizontal.
+
+### Breakpoints
+
+Ficam no tema (`theme.breakpoints` em `src/styles/theme.ts`) e são sempre usados como
+`max-width`; nenhum arquivo de estilo usa valor fixo em `@media`:
+
+| Token | Valor | Uso |
+|-------|-------|-----|
+| `md` | `860px` | Grades de várias colunas viram uma coluna; barras laterais descem para baixo do conteúdo. |
+| `sm` | `640px` | Layout de celular: os padrões abaixo passam a valer. |
+
+```ts
+@media (max-width: ${({ theme }) => theme.breakpoints.sm}) { ... }
+```
+
+Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (pointer: coarse)`.
+
+### Padrões no celular (`sm`)
+
+- **Navegação principal em barra inferior.** O `nav` do `AppHeader` vira uma barra fixa no
+  rodapé, com ícone e rótulo; o header deixa de ser fixo no topo. Durante um simulado em
+  andamento a barra fica oculta (`PageLayout` com `hideMobileNav`), para o aluno se concentrar
+  e para dar lugar aos botões do simulado.
+- **Simulado.** Título, "Questão X de Y" e cronômetro ficam fixos no topo; "Voltar" e
+  "Avançar" ficam fixos no rodapé, com um botão (☰) entre eles que abre a grade de questões em
+  uma gaveta inferior (bottom sheet). A gaveta fecha ao escolher uma questão, ao tocar fora dela,
+  no ✕ ou com Esc. Ao trocar de questão a página volta ao topo.
+- **Lista de simulados em cards.** A mesma tabela de `QuizzesPage` é reorganizada por CSS: cada
+  linha vira um card e o cabeçalho fica visível só para leitores de tela.
+- **Revisão da prova (resultado).** A grade de questões vem antes da questão, para trocar de
+  questão sem rolar a página.
+- **Ações em pilha.** Pares de botões de rodapé e de modais ficam empilhados, em largura total,
+  com a ação principal em cima.
+- Listas com rolagem interna (como "Questões para revisar") passam a rolar com a página.
+
+### Toque e acessibilidade
+
+- Alvos de toque com no mínimo 44 px (botões, grade de questões, chips, lacunas, filtros e links
+  de navegação).
+- Nenhuma ação depende só de `:hover`: no celular o botão "Iniciar" dos cards já aparece como ação
+  principal.
+- Arrastar e soltar usa a API HTML5, que não funciona em telas de toque. Por isso a interação
+  principal em toque é tocar no termo e depois na lacuna: o texto de ajuda muda em telas de
+  toque e as lacunas vazias ficam destacadas enquanto há um termo selecionado.
+- Campos de texto e `select` usam fonte de 16 px no celular, para o Safari (iOS) não dar zoom ao
+  focar.
+- Elementos fixos nas bordas respeitam as áreas seguras do iPhone (`env(safe-area-inset-*)`),
+  habilitadas por `viewport-fit=cover` no `index.html`.
+
+---
+
 ## Performance
 
 Considerar e aplicar quando fizer diferença real:
