@@ -9,6 +9,7 @@ import {
   StyledNav,
   StyledNavLink,
   StyledNavLinkActive,
+  StyledNavIcon,
   StyledHeaderActions,
 } from "./AppHeader.styles";
 
@@ -18,16 +19,22 @@ type AppHeaderProps = {
   active: ActiveNavKey;
   streakDays?: number;
   logoutConfirmation?: string;
+  hideMobileNav?: boolean;
 };
 
-const NAV_ITEMS: { key: ActiveNavKey; label: string; to: string }[] = [
-  { key: "inicio", label: "Início", to: "/" },
-  { key: "disciplinas", label: "Disciplinas", to: "/disciplinas" },
-  { key: "simulados", label: "Simulados", to: "/simulados" },
-  { key: "ranking", label: "Ranking", to: "/ranking" },
+const NAV_ITEMS: { key: ActiveNavKey; label: string; icon: string; to: string }[] = [
+  { key: "inicio", label: "Início", icon: "🏠", to: "/" },
+  { key: "disciplinas", label: "Disciplinas", icon: "📚", to: "/disciplinas" },
+  { key: "simulados", label: "Simulados", icon: "📝", to: "/simulados" },
+  { key: "ranking", label: "Ranking", icon: "🏆", to: "/ranking" },
 ];
 
-export function AppHeader({ active, streakDays, logoutConfirmation }: AppHeaderProps) {
+export function AppHeader({
+  active,
+  streakDays,
+  logoutConfirmation,
+  hideMobileNav = false,
+}: AppHeaderProps) {
   const logout = useLogout();
 
   function handleLogout() {
@@ -39,18 +46,22 @@ export function AppHeader({ active, streakDays, logoutConfirmation }: AppHeaderP
     <StyledHeader>
       <StyledHeaderInner>
         <StyledBrand>🎓 Student App</StyledBrand>
-        <StyledNav aria-label="Navegação principal">
-          {NAV_ITEMS.map((item) =>
-            item.key === active ? (
+        <StyledNav aria-label="Navegação principal" $hideOnMobile={hideMobileNav}>
+          {NAV_ITEMS.map((item) => {
+            const icon = <StyledNavIcon aria-hidden="true">{item.icon}</StyledNavIcon>;
+
+            return item.key === active ? (
               <StyledNavLinkActive key={item.key} aria-current="page">
+                {icon}
                 {item.label}
               </StyledNavLinkActive>
             ) : (
               <StyledNavLink key={item.key} to={item.to}>
+                {icon}
                 {item.label}
               </StyledNavLink>
-            ),
-          )}
+            );
+          })}
         </StyledNav>
         <StyledHeaderActions>
           {streakDays !== undefined && (

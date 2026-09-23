@@ -6,13 +6,25 @@ type PageLayoutProps = {
   active: ActiveNavKey;
   streakDays?: number;
   logoutConfirmation?: string;
+  hideMobileNav?: boolean;
   children: ReactNode;
 };
 
-export function PageLayout({ active, streakDays, logoutConfirmation, children }: PageLayoutProps) {
+export function PageLayout({
+  active,
+  streakDays,
+  logoutConfirmation,
+  hideMobileNav,
+  children,
+}: PageLayoutProps) {
   return (
     <StyledPage>
-      <AppHeader active={active} streakDays={streakDays} logoutConfirmation={logoutConfirmation} />
+      <AppHeader
+        active={active}
+        streakDays={streakDays}
+        logoutConfirmation={logoutConfirmation}
+        hideMobileNav={hideMobileNav}
+      />
       <StyledContent>{children}</StyledContent>
     </StyledPage>
   );

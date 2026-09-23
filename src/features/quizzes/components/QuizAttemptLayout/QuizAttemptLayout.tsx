@@ -173,6 +173,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     <PageLayout
       active="simulados"
       logoutConfirmation={inProgress ? LEAVE_ATTEMPT_MESSAGE : undefined}
+      hideMobileNav={inProgress}
     >
       {(quizQuery.isLoading || !contextValue) && !quizQuery.isError && (
         <StatusMessage message="Carregando simulado…" />
