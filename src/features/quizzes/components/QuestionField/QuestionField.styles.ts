@@ -1,6 +1,14 @@
 import styled, { css } from "styled-components";
 import { Badge } from "@components/ui/Badge";
 
+const TOUCH_SCREEN = "(hover: none) and (pointer: coarse)";
+
+const mobileInputFont = css`
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    font-size: 16px;
+  }
+`;
+
 export const StyledSubjectTag = styled(Badge)`
   margin-bottom: 16px;
 `;
@@ -53,6 +61,10 @@ export const StyledDropdownSentence = styled.div`
   line-height: 2.1;
   font-weight: 500;
   max-width: 560px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    line-height: 2.8;
+  }
 `;
 
 export const StyledTermBank = styled.div`
@@ -87,6 +99,12 @@ export const StyledTermChip = styled.button<{ $used?: boolean; $selected?: boole
   cursor: grab;
   opacity: ${({ $used }) => ($used ? 0.45 : 1)};
 
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
   ${({ theme, $selected }) =>
     $selected &&
     css`
@@ -95,7 +113,7 @@ export const StyledTermChip = styled.button<{ $used?: boolean; $selected?: boole
     `}
 `;
 
-export const StyledSlot = styled.button<{ $filled?: boolean }>`
+export const StyledSlot = styled.button<{ $filled?: boolean; $awaiting?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -107,6 +125,11 @@ export const StyledSlot = styled.button<{ $filled?: boolean }>`
   font-weight: 700;
   margin: 0 2px;
   cursor: pointer;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+    vertical-align: middle;
+  }
 
   ${({ theme, $filled }) =>
     $filled
@@ -120,6 +143,13 @@ export const StyledSlot = styled.button<{ $filled?: boolean }>`
           border: 1.5px dashed ${theme.colors.divider};
           color: ${theme.colors.muted};
         `}
+
+  ${({ theme, $awaiting }) =>
+    $awaiting &&
+    css`
+      border-color: ${theme.colors.accent};
+      color: ${theme.colors.accent600};
+    `}
 `;
 
 export const StyledCodeSentence = styled.div`
@@ -131,6 +161,7 @@ export const StyledCodeSentence = styled.div`
   border-radius: ${({ theme }) => theme.radii.md};
   border: 1px solid ${({ theme }) => theme.colors.divider};
   background: ${({ theme }) => theme.colors.bg};
+  overflow-wrap: anywhere;
 `;
 
 export const StyledBlankInput = styled.input<{ $answered?: boolean }>`
@@ -142,6 +173,8 @@ export const StyledBlankInput = styled.input<{ $answered?: boolean }>`
   font-weight: 700;
   font-size: 13px;
   text-align: center;
+
+  ${mobileInputFont}
 
   ${({ theme, $answered }) =>
     $answered
@@ -167,6 +200,20 @@ export const StyledDragDropHint = styled.p`
   margin: 10px 0 0;
 `;
 
+export const StyledPointerHint = styled.span`
+  @media ${TOUCH_SCREEN} {
+    display: none;
+  }
+`;
+
+export const StyledTouchHint = styled.span`
+  display: none;
+
+  @media ${TOUCH_SCREEN} {
+    display: inline;
+  }
+`;
+
 export const StyledDropdown = styled.select<{ $answered?: boolean }>`
   display: inline-block;
   min-width: 140px;
@@ -176,6 +223,12 @@ export const StyledDropdown = styled.select<{ $answered?: boolean }>`
   font-weight: 700;
   font-size: 13px;
   margin: 0 4px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    min-height: 44px;
+    max-width: 100%;
+    font-size: 16px;
+  }
 
   ${({ theme, $answered }) =>
     $answered
@@ -204,6 +257,8 @@ export const StyledTextarea = styled.textarea`
   box-sizing: border-box;
   resize: vertical;
   display: block;
+
+  ${mobileInputFont}
 `;
 
 export const StyledCharCount = styled.span`

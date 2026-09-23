@@ -26,6 +26,8 @@ import {
   StyledBlankInput,
   StyledDragHandle,
   StyledDragDropHint,
+  StyledPointerHint,
+  StyledTouchHint,
 } from "./QuestionField.styles";
 
 type QuestionFieldProps = {
@@ -198,6 +200,7 @@ function DragAndDropField({ question, answer, onChange }: FieldProps<DragAndDrop
               type="button"
               aria-label={`Lacuna ${slotNumber}: ${filledTerm ? filledTerm.text : "vazia"}`}
               $filled={Boolean(filledTerm)}
+              $awaiting={!filledTerm && selectedTermId !== null}
               onClick={() => handleSlotClick(part.id)}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => handleDrop(event, part.id)}
@@ -226,7 +229,13 @@ function DragAndDropField({ question, answer, onChange }: FieldProps<DragAndDrop
         ))}
       </StyledTermBank>
       <StyledDragDropHint>
-        Arraste um termo até a lacuna, ou clique em um termo e depois na lacuna desejada.
+        <StyledPointerHint>
+          Arraste um termo até a lacuna, ou clique em um termo e depois na lacuna desejada.
+        </StyledPointerHint>
+        <StyledTouchHint>
+          Toque em um termo e depois na lacuna desejada. Toque em uma lacuna preenchida para
+          esvaziá-la.
+        </StyledTouchHint>
       </StyledDragDropHint>
     </>
   );
