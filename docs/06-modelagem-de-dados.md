@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico. Hoje é um único baseline (`…_baseline.sql`) em 8 seções: extensões e schemas, enums, tabelas, índices, views, row level security, funções da API e grants. Ele substituiu as seis migrations anteriores, que nunca tinham saído do ambiente local. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico. Hoje é um único baseline (`…_baseline.sql`) em 8 seções: extensões e schemas, enums, tabelas, índices, views, row level security, funções da API e grants. Ele substituiu as seis migrations anteriores, que nunca tinham saído do ambiente local. Depois dele vem `…_api_rate_limit.sql`, que adiciona os limites de uso. |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado. |
 
@@ -72,9 +72,11 @@ A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualq
 chamar a API sem passar pelo app, então a segurança fica no banco, em camadas:
 
 - **As funções do contrato são a API inteira.** `anon` e `authenticated` não têm privilégio em
-  nenhuma tabela nem sequência, então `GET /rest/v1/students` responde 403. As views e as funções
-  auxiliares ficam no schema `private`, que não entra em `[api] schemas` do `config.toml`: a API
-  nem enxerga esses objetos (404). Views ignoram o RLS, e é por isso que nenhuma fica em `public`.
+  nenhuma tabela nem sequência, então `GET /rest/v1/students` responde 403. As views, as funções
+  auxiliares e o contador de rate limit ficam no schema `private`, que não entra em
+  `[api] schemas` do `config.toml` — nem em Exposed schemas, o equivalente no painel do projeto
+  hospedado. A API nem enxerga esses objetos (404). Views ignoram o RLS, e é por isso que
+  nenhuma fica em `public`.
 - **Fechado por padrão.** O Supabase concede automaticamente às roles da API tudo que `postgres`
   cria em `public`; `ALTER DEFAULT PRIVILEGES` cancela essa concessão, então uma tabela ou função
   criada depois nasce inalcançável e cada endpoint novo precisa liberar o próprio `EXECUTE`.

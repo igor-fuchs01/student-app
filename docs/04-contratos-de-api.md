@@ -86,6 +86,21 @@ O cliente valida todo corpo de resposta contra um schema zod antes de utilizá-l
   **é uma mudança incompatível (breaking change)** e deve ser coordenada com um release
   do frontend.
 
+### 1.5 Limites de uso
+
+No Supabase os limites são contados no banco, em `private.api_rate_limit`, porque é o banco que
+vai para a nuvem: o `supabase/config.toml` só configura o ambiente local, e o `[auth.rate_limit]`
+dele cobre apenas o login. No modo mock não há limite nenhum.
+
+- Cada aluno tem um teto de **120 requisições por minuto**, somando todos os endpoints
+  autenticados. Acima disso a resposta é `429` com código `RATE_LIMITED`.
+- `POST /quizzes/:id/attempts` tem um teto próprio de **6 por minuto**, por ser o único endpoint
+  que grava.
+- Uma lacuna dissertativa (`essay_blanks`) é recusada acima de **2000 caracteres**, com `400` e
+  código `VALIDATION_ERROR`. É um teto de segurança, não uma regra de produto: uma resposta real
+  fica três ordens de grandeza abaixo dele. O limite de uma questão `essay` continua sendo o
+  `maxLength` da própria questão.
+
 ---
 
 ## 2. Resumo dos endpoints
@@ -698,6 +713,7 @@ O cliente expõe toda falha como um `ApiError` com `status`, `code` e `message`.
 | `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: e-mail desconhecido ou senha errada. |
 | `UNAUTHORIZED` | `401` | Servidor | Endpoint autenticado chamado sem um token válido. |
 | `NOT_FOUND` | `404` | Servidor | A rota ou o recurso não existe. |
+| `RATE_LIMITED` | `429` | Servidor | O aluno passou do limite de requisições (veja [1.5](#15-limites-de-uso)). |
 | `NETWORK_ERROR` | `0` | Cliente | Nenhuma resposta foi recebida (offline, falha de DNS, CORS, servidor fora do ar). |
 | `INVALID_RESPONSE` | Status da resposta | Cliente | Um corpo `2xx` não correspondeu ao schema esperado. |
 | `UNKNOWN_ERROR` | Status da resposta | Cliente | Uma resposta não-`2xx` cujo corpo não é um corpo de erro válido, ou cujo `code` não está nesta tabela. |
