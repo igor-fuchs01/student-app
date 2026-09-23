@@ -220,9 +220,9 @@ precisa estudar?"*
 
 ## 7. Conteúdo curado do detalhe da disciplina
 
-**Situação atual.** A tela em `/disciplinas/:subjectId` já é servida pelo banco: as migrations
-`…_subject_detail_content.sql` e `…_get_subject.sql` trouxeram o modelo e a função
-`get_subject(p_subject_id)`, que devolve o JSON de `SubjectDetail`
+**Situação atual.** A tela em `/disciplinas/:subjectId` já é servida pelo banco: o baseline
+(`…_baseline.sql`) traz as tabelas do conteúdo e a função `get_subject(p_subject_id)`, que
+devolve o JSON de `SubjectDetail`
 ([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). O que falta é conteúdo,
 não encanamento: no banco os resumos e os pontos-chave são só os do seed, e os `fileUrl` apontam
 para arquivos que não existem.
@@ -235,11 +235,10 @@ questões (item 6).
 
 **Proposta.**
 
-1. **Modelo de dados e função — feitos.** `…_subject_detail_content.sql` trouxe `subtopics`
-   (assunto, nome, resumo, ordem) e `subtopic_key_points`, adicionou `topics.number` (o número da
-   aula, único na disciplina) e `topics.description`, e moveu os materiais do assunto para o
-   subassunto; `…_get_subject.sql` criou `get_subject(p_subject_id)`, que o adaptador
-   `supabaseSubjectsApi.getSubject` já chamava.
+1. **Modelo de dados e função — feitos.** O baseline traz `subtopics` (assunto, nome, resumo,
+   ordem) e `subtopic_key_points`, dá a `topics` o número da aula (único na disciplina) e uma
+   descrição, pendura os materiais no subassunto, e cria `get_subject(p_subject_id)`, que o
+   adaptador `supabaseSubjectsApi.getSubject` já chamava.
 2. **Arquivos dos materiais.** Hoje `fileUrl` aponta para caminhos que não existem. Definir onde os
    PDFs ficam (Supabase Storage).
 3. **Preparo por subassunto.** Com as questões classificadas (item 6), incluir o preparo do aluno em

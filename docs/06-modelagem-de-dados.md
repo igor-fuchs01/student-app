@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, aplicado em ordem: o schema, já com o vínculo de cada aluno ao Supabase Auth (`…_initial_schema.sql`), as regras de acesso (`…_auth_and_security.sql`), as funções chamadas pelo app (`…_api_read_functions.sql` e `…_submit_quiz_attempt.sql`), o conteúdo da tela de detalhe da disciplina (`…_subject_detail_content.sql`) e a função que a serve (`…_get_subject.sql`). |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico. Hoje é um único baseline (`…_baseline.sql`) em 8 seções: extensões e schemas, enums, tabelas, índices, views, row level security, funções da API e grants. Ele substituiu as seis migrations anteriores, que nunca tinham saído do ambiente local. |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado. |
 
@@ -46,8 +46,9 @@ Sobem 6 containers: banco, login, API REST, gateway e o painel. Os serviços que
 (Storage, Realtime, Edge Functions, e-mail de teste e logs) estão desligados no `config.toml`.
 
 Toda mudança no banco é uma **migration nova** (`npx supabase migration new <nome>`), nunca a
-edição de uma migration já aplicada. Para publicar no projeto hospedado, use `npx supabase link` e
-depois `npx supabase db push`.
+edição de uma migration já aplicada — inclusive do baseline. Ele só pôde ser reescrito porque
+nada tinha sido publicado ainda; a partir da primeira publicação, a regra vale sem exceção.
+Para publicar no projeto hospedado, use `npx supabase link` e depois `npx supabase db push`.
 
 ### Como o app acessa o banco
 
