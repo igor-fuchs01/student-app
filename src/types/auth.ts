@@ -13,6 +13,7 @@ export type StudentUser = z.infer<typeof studentUserSchema>;
 export const loginCredentialsSchema = z.object({
   identifier: z.string().trim().min(1, "Informe sua matrícula ou e-mail institucional."),
   password: z.string().min(1, "Informe sua senha."),
+  captchaToken: z.string().min(1, "Confirme que você não é um robô."),
 });
 
 export type LoginCredentials = z.infer<typeof loginCredentialsSchema>;

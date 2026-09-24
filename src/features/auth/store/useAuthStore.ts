@@ -23,7 +23,6 @@ const existingSession = tokenStorage.getSession();
 export const useAuthStore = create<AuthState>((set) => ({
   status: existingSession ? "authenticated" : "idle",
   user: existingSession?.user ?? null,
-
   async login(credentials) {
     set({ status: "authenticating" });
     try {

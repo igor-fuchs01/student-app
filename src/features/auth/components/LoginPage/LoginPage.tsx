@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { loginCredentialsSchema } from "@models/auth";
 import { TextField } from "@components/ui/TextField";
+import { TurnstileWidget, type TurnstileWidgetHandle } from "@components/ui/TurnstileWidget";
+import { TURNSTILE_SITE_KEY } from "@services/api/config";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
 import {
   StyledPage,
@@ -22,7 +24,13 @@ export function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ identifier?: string; password?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    identifier?: string;
+    password?: string;
+    captchaToken?: string;
+  }>({});
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   const isSubmitting = status === "authenticating";
 
@@ -30,12 +38,13 @@ export function LoginPage() {
     event.preventDefault();
     setFormError(null);
 
-    const result = loginCredentialsSchema.safeParse({ identifier, password });
+    const result = loginCredentialsSchema.safeParse({ identifier, password, captchaToken });
     if (!result.success) {
       const issues = z.flattenError(result.error).fieldErrors;
       setFieldErrors({
         identifier: issues.identifier?.[0],
         password: issues.password?.[0],
+        captchaToken: issues.captchaToken?.[0],
       });
       return;
     }
@@ -48,6 +57,8 @@ export function LoginPage() {
       setFormError(
         err instanceof Error ? err.message : "Não foi possível entrar. Tente novamente.",
       );
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
     }
   }
 
@@ -84,6 +95,20 @@ export function LoginPage() {
           disabled={isSubmitting}
           required
         />
+
+              <TurnstileWidget
+          ref={turnstileRef}
+          siteKey={TURNSTILE_SITE_KEY}
+          onVerify={(token) => {
+            setCaptchaToken(token);
+            setFieldErrors((current) => ({ ...current, captchaToken: undefined }));
+          }}
+          onExpire={() => setCaptchaToken(null)}
+        />
+
+        {fieldErrors.captchaToken && (
+          <StyledFormError role="alert">{fieldErrors.captchaToken}</StyledFormError>
+        )}
 
         {formError && <StyledFormError role="alert">{formError}</StyledFormError>}
 
