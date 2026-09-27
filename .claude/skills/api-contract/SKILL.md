@@ -1,6 +1,6 @@
 ---
 name: api-contract
-description: Add or change an API endpoint end to end in this project — endpoint path, zod schema, *Api module, MSW mock handler, Supabase function and adapter, UI query and docs/04-contratos-de-api.md — so no layer is left out of sync.
+description: Add or change an API endpoint end to end in this project — endpoint path, zod schema, *Api module, MSW mock handler, Supabase edge function and adapter, UI query and docs/04-contratos-de-api.md — so no layer is left out of sync.
 when_to_use: Whenever an endpoint, request body, response field or error of the backend contract is created, renamed, removed or changes shape (e.g. "add a field to QuizSummary", "create GET /materials", "the mock should return X").
 ---
 
@@ -52,20 +52,23 @@ GET methods accept `signal`. Components never call `httpClient` or `fetch` direc
 - Fixture data lives in the feature's mock file (`mocks/<feature>.ts`), with Portuguese content.
 - Keep the catch-all 404 handler as the last entry of `handlers`.
 
-## 5. Supabase — `supabase/migrations/` and `src/services/api/supabase/`
+## 5. Supabase — `supabase/functions/` and `src/services/api/supabase/`
 
-- Create a new migration (`npx supabase migration new <name>`); never edit one that was already
-  applied. The function returns exactly the JSON shape of the contract DTO (camelCase keys, ids as
-  text).
-- Follow the access rules in `docs/06-modelagem-de-dados.md` ("Como o app acessa o banco"):
-  `SECURITY DEFINER`, `set search_path = ''`, fully qualified names, the student only from
-  `public.require_student_id()` (never from an argument), `revoke execute ... from public, anon` and
-  `grant execute ... to authenticated`.
-- Validate every value that comes from the client before using it; never build SQL from strings.
-  Errors go through `public.raise_api_error(status, code, message)`.
-- New tables get RLS enabled and, at most, SELECT policies; writes go through functions.
-- In the adapter, call it with `callRpc("<function>", schema, { args, signal })` and select it in
-  the `*Api` facade next to the mock implementation.
+- Every endpoint is an edge function in `supabase/functions/<name>/index.ts` (kebab-case name),
+  served with `serveEndpoint("GET" | "POST", handler)` from `_shared/http.ts`: it already answers
+  the CORS preflight, 405 for another method, 401 without a valid JWT, and turns an `ApiError`
+  into the contract's error body. Register it in `supabase/config.toml` with `verify_jwt = false`.
+- Query the database with the `sql` tagged template from `_shared/db.ts` (parameters only, never
+  SQL built from strings). The connection bypasses RLS, so filter every query by the handler's
+  `studentId`, never by an id from the request. Cast counts to `::int` and percentages to
+  `::float8`, and build the DTO in TypeScript (camelCase keys, ids as text). No JSON in SQL.
+- Validate request bodies with zod (`npm:zod@4`) and answer 400 `VALIDATION_ERROR`; ids in query
+  strings that are not numeric answer 404, like an unknown resource.
+- A new table or view is a new migration (`npx supabase migration new <name>`), following
+  `docs/06-modelagem-de-dados.md`: views in `private`, RLS enabled with at most SELECT policies,
+  no API functions and no json columns in the database.
+- In the adapter, call it with `callFunction("<name>", schema, { query, signal })` (or
+  `{ method: "POST", body }`) and select it in the `*Api` facade next to the mock implementation.
 
 ## 6. UI — `src/features/<feature>/`
 
@@ -80,7 +83,7 @@ GET methods accept `signal`. Components never call `httpClient` or `fetch` direc
 - The endpoint section: auth, request body table, a responses table with every status and error
   code, a JSON example, and "Comportamento no cliente" when the UI does something non-obvious.
 - The §3.x model table for each new or changed DTO, with the same rules as the zod schema.
-- §1.1: the endpoint → Supabase function table.
+- §1.1: the endpoint → edge function table.
 - §5 when the mock behaves differently from a real backend.
 - When tables change, also update `docs/06-modelagem-de-dados.md` and `supabase/seed.sql`.
 
