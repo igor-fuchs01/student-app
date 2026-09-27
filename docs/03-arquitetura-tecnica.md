@@ -26,7 +26,7 @@ src/
 │   └── subjects/
 ├── services/
 │   ├── api/           # httpClient, módulos *Api, endpoints, erros e mocks/
-│   └── storage/       # tokenStorage e quizAttemptStorage (localStorage)
+│   └── storage/       # tokenStorage, displayNameStorage e quizAttemptStorage (localStorage)
 ├── styles/            # theme e GlobalStyle
 ├── types/             # schemas zod e tipos inferidos (alias @models)
 ├── utils/             # utilitários genéricos, sem regra de negócio
@@ -106,14 +106,18 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
 
 - `services/api/` — módulos `*Api` usados pelas telas. Cada um escolhe o transporte pelo
   `VITE_USE_MOCKS`: o `httpClient` no modo mock, ou o adaptador de `services/api/supabase/`, que
-  chama as funções do Supabase pelo SDK. Os dois devolvem os mesmos tipos do contrato;
-- `supabase/` (na raiz) — o backend: migrations do banco e seed local;
+  chama as funções do Supabase pelo SDK (RPCs do banco e, no envio de simulado, a edge function
+  `submit-quiz-attempt`). Os dois devolvem os mesmos tipos do contrato;
+- `supabase/` (na raiz) — o backend: migrations do banco (uma por assunto), seed local e edge
+  functions (`supabase/functions/`, Deno + TypeScript + zod, com o CORS compartilhado em
+  `_shared/cors.ts`);
 - `services/api/mocks/` — servidor mock feito com [MSW](https://mswjs.io/) (Mock Service Worker):
   `handlers.ts` responde às rotas da API e `mockServer.ts` registra o Service Worker
   (`public/mockServiceWorker.js`) quando `VITE_USE_MOCKS=true`. O `httpClient` não sabe que existe
   mock: ele faz `fetch` normalmente, e o MSW intercepta as chamadas sob o prefixo `/api`;
-- `services/storage/` — localStorage para sessão (`tokenStorage`) e resultados de tentativas
-  (`quizAttemptStorage`, com chave por aluno). IndexedDB pode ser adotado quando a persistência
+- `services/storage/` — localStorage para sessão (`tokenStorage`), nome do aluno
+  (`displayNameStorage`, que nunca vai para o backend, por causa da LGPD) e resultados de
+  tentativas (`quizAttemptStorage`, com chave por aluno). IndexedDB pode ser adotado quando a persistência
   durante a tentativa for implementada.
 
 No Supabase, a renovação do token é feita pelo SDK. No modo mock não há renovação.

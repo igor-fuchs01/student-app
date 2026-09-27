@@ -23,9 +23,10 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico. Hoje é um único baseline (`…_baseline.sql`) em 8 seções: extensões e schemas, enums, tabelas, índices, views, row level security, funções da API e grants. Ele substituiu as seis migrations anteriores, que nunca tinham saído do ambiente local. Depois dele vem `…_api_rate_limit.sql`, que adiciona os limites de uso. |
-| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
-| [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados e provas agendadas), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `api_helpers` (funções internas e rate limit), `read_endpoints`, `submit_quiz_attempt` e `grants`. Cada tabela leva os próprios índices. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
+| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
+| [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
 
 ### Rodando o banco localmente
 
@@ -42,30 +43,42 @@ npx supabase stop       # desliga os containers
 O painel (Supabase Studio) fica em `http://127.0.0.1:54323`, e o banco aceita conexão direta em
 `postgresql://postgres:postgres@127.0.0.1:54322/postgres`.
 
-Sobem 6 containers: banco, login, API REST, gateway e o painel. Os serviços que o projeto não usa
-(Storage, Realtime, Edge Functions, e-mail de teste e logs) estão desligados no `config.toml`.
+Sobem os containers do banco, login, API REST, gateway, runtime de edge functions e painel. Os
+serviços que o projeto não usa (Storage, Realtime, e-mail de teste e logs) estão desligados no
+`config.toml`. Para servir as edge functions localmente:
+
+```bash
+cp supabase/functions/.env.example supabase/functions/.env
+npx supabase functions serve --env-file supabase/functions/.env
+```
 
 Toda mudança no banco é uma **migration nova** (`npx supabase migration new <nome>`), nunca a
-edição de uma migration já aplicada — inclusive do baseline. Ele só pôde ser reescrito porque
-nada tinha sido publicado ainda; a partir da primeira publicação, a regra vale sem exceção.
-Para publicar no projeto hospedado, use `npx supabase link` e depois `npx supabase db push`.
+edição de uma migration já aplicada. A divisão atual só pôde reescrever o histórico porque nada
+tinha sido publicado ainda; a partir da primeira publicação, a regra vale sem exceção. Para
+publicar no projeto hospedado, use `npx supabase link`, `npx supabase db push`,
+`npx supabase functions deploy submit-quiz-attempt` e
+`npx supabase secrets set ALLOWED_ORIGINS=<origens do app>`. Se o projeto hospedado já registrou
+as migrations antigas, marque-as como revertidas antes do push:
+`npx supabase migration repair --status reverted 20260923000000 20260923000100` (e recrie o banco
+hospedado, já que o esquema dele é o antigo).
 
 ### Como o app acessa o banco
 
 Com `npm run dev`, os módulos `*Api` chamam o Supabase pelo SDK; com `npm run mock`, continuam
 usando o servidor mock. O app não consulta tabelas diretamente: cada endpoint do contrato é uma
-função no banco que devolve o mesmo JSON.
+função no banco (ou, no envio de simulado, uma edge function que chama uma) que devolve o mesmo
+JSON.
 
 | Contrato ([`04-contratos-de-api.md`](04-contratos-de-api.md)) | No Supabase |
 |---|---|
-| `POST /auth/login` | `supabase.auth.signInWithPassword()`, seguida de `get_current_student()` |
+| `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<código>@alunos.student-app.invalid`, seguida de `get_current_student()` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
 | `GET /dashboard` | `get_dashboard()` |
 | `GET /subjects` | `list_subjects()` |
 | `GET /subjects/:id` | `get_subject(p_subject_id)` |
 | `GET /quizzes` | `list_quizzes()` |
 | `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
-| `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
+| `POST /quizzes/:id/attempts` | Edge function `submit-quiz-attempt`, que chama `submit_quiz_attempt(p_auth_user_id, p_quiz_id, p_answers)` |
 | `GET /ranking` | `get_ranking()` |
 
 A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
@@ -85,12 +98,19 @@ chamar a API sem passar pelo app, então a segurança fica no banco, em camadas:
   conteúdo sem gabarito, e as tabelas de questões não têm política nenhuma. Nada do app depende
   disso hoje — a camada existe para que um `GRANT` dado por engano continue não vazando linha.
 - **Nenhuma escrita direta.** Não existe política de `INSERT`, `UPDATE` ou `DELETE`. O envio de uma
-  prova passa por `submit_quiz_attempt`, que valida cada id recebido e corrige no servidor.
+  prova passa pela edge function `submit-quiz-attempt`, que confere o JWT e valida o formato com
+  zod, e depois por `submit_quiz_attempt`, que confere cada id contra o banco e corrige no
+  servidor.
 - **Funções protegidas.** As do contrato são `SECURITY DEFINER` com `search_path` vazio e nomes
-  completos, identificam o aluno só por `auth.uid()` (nunca por um parâmetro) e não montam SQL com
-  texto. O ranking devolve nome e sequência dos outros alunos, nunca nota.
-- **Login.** As contas são criadas pela instituição, sem cadastro público. O aluno entra com o
-  e-mail institucional e a senha, validados pelo Supabase Auth.
+  completos e não montam SQL com texto. As de leitura identificam o aluno só por `auth.uid()`.
+  `submit_quiz_attempt` recebe o id do usuário do Auth como parâmetro, e por isso só o
+  `service_role` (a edge function) pode executá-la: chamada com o token do aluno, responde 403.
+  O ranking devolve só id e sequência dos outros alunos, nunca nota.
+- **Sem dados pessoais (LGPD).** As contas são criadas pela instituição, sem cadastro público. O
+  aluno entra com um código de acesso gerado pela instituição e a senha, validados pelo Supabase
+  Auth, que guarda o código como o e-mail `<código>@alunos.student-app.invalid` (domínio
+  reservado, nunca recebe mensagem). `students` não tem nome nem e-mail: o nome que o app mostra é
+  digitado pelo aluno e fica só no navegador.
 - **Ainda em aberto.** `get_quiz` devolve o gabarito junto com as questões, porque o contrato atual
   do `QuizDetail` inclui essas respostas ([`05-melhorias-futuras.md`](05-melhorias-futuras.md),
   item 2).
@@ -108,7 +128,7 @@ da equipe, inclusive quem não programa.
 
 | Entidade | O que representa |
 |---|---|
-| **Aluno** | Conta de estudante, pré-provisionada pelo responsável (não há cadastro público). Tem uma meta semanal de questões. |
+| **Aluno** | Conta de estudante, pré-provisionada pelo responsável (não há cadastro público), identificada só por um código de acesso — sem nome nem e-mail. Tem uma meta semanal de questões. |
 | **Sessão** | Um login ativo do aluno, controlado pelo Supabase Auth. É encerrada no logout. |
 | **Disciplina** | Matéria do curso, ex.: Banco de Dados. |
 | **Assunto** | Tema dentro de uma disciplina, ex.: Normalização. Corresponde a uma aula da ementa, com um número próprio, e é a unidade usada para identificar dificuldades. |
@@ -302,14 +322,12 @@ erDiagram
 
     auth_users {
         uuid id PK
-        text email
+        text email "código de acesso"
     }
 
     students {
         int id PK
         uuid auth_user_id UK, FK
-        text name
-        citext email UK
         text course
         int weekly_goal_target
     }
@@ -490,6 +508,7 @@ funcionalidades complexas apenas porque foram mencionadas como possibilidades fu
 | Início da tentativa (`started_at`) e horário de cada resposta | O contrato atual só cria a tentativa no envio, e o cronômetro fica no cliente no MVP. | Item 1 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) |
 | Colunas de auditoria (`created_at`) | Nenhum contrato ou critério usa. Sessões e expiração de login ficam com o Supabase Auth. | Painel administrativo (Fase 7) |
 | Tabela `auth_tokens` e coluna `students.password_hash` | O Supabase Auth guarda senhas e sessões. | — |
+| Nome e e-mail do aluno (`students.name`, `students.email`) | LGPD: o login é um código de acesso guardado no Supabase Auth e o nome fica só no navegador. | — |
 
 Continua fora do modelo, como já estava: o plano do dia (`todayPlan`), que hoje é só estado local
 da UI ([`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 4).

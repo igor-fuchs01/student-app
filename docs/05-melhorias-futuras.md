@@ -220,8 +220,8 @@ precisa estudar?"*
 
 ## 7. Conteúdo curado do detalhe da disciplina
 
-**Situação atual.** A tela em `/disciplinas/:subjectId` já é servida pelo banco: o baseline
-(`…_baseline.sql`) traz as tabelas do conteúdo e a função `get_subject(p_subject_id)`, que
+**Situação atual.** A tela em `/disciplinas/:subjectId` já é servida pelo banco: as migrations
+`…_content.sql` e `…_read_endpoints.sql` trazem as tabelas do conteúdo e a função `get_subject(p_subject_id)`, que
 devolve o JSON de `SubjectDetail`
 ([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). O que falta é conteúdo,
 não encanamento: no banco os resumos e os pontos-chave são só os do seed, e os `fileUrl` apontam
@@ -235,7 +235,7 @@ questões (item 6).
 
 **Proposta.**
 
-1. **Modelo de dados e função — feitos.** O baseline traz `subtopics` (assunto, nome, resumo,
+1. **Modelo de dados e função — feitos.** As migrations trazem `subtopics` (assunto, nome, resumo,
    ordem) e `subtopic_key_points`, dá a `topics` o número da aula (único na disciplina) e uma
    descrição, pendura os materiais no subassunto, e cria `get_subject(p_subject_id)`, que o
    adaptador `supabaseSubjectsApi.getSubject` já chamava.

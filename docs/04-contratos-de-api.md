@@ -32,25 +32,44 @@ própria. As mudanças de contrato já previstas estão em
 No modo mock, todo caminho descrito neste documento é relativo a `/api`. Exemplo:
 `POST /auth/login` → `POST /api/auth/login`.
 
-No Supabase, cada endpoint é uma função no banco ou uma chamada do Supabase Auth que recebe os
-mesmos dados e devolve o mesmo JSON (tabela abaixo). Os módulos `*Api` escolhem o transporte, então
+No Supabase, cada endpoint é uma função no banco, uma edge function ou uma chamada do Supabase
+Auth que recebe os mesmos dados e devolve o mesmo JSON (tabela abaixo). Os módulos `*Api` escolhem o transporte, então
 as telas usam os mesmos métodos nos dois modos.
 
 | Endpoint | No Supabase |
 |---|---|
-| `POST /auth/login` | `supabase.auth.signInWithPassword()`, depois `get_current_student()` |
+| `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<accessCode>@alunos.student-app.invalid`, depois `get_current_student()` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
 | `GET /dashboard` | `get_dashboard()` |
 | `GET /subjects` | `list_subjects()` |
 | `GET /subjects/:id` | `get_subject(p_subject_id)` |
 | `GET /quizzes` | `list_quizzes()` |
 | `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
-| `POST /quizzes/:id/attempts` | `submit_quiz_attempt(p_quiz_id, p_answers)` |
+| `POST /quizzes/:id/attempts` | Edge function `submit-quiz-attempt` (corpo `{ quizId, answers }`), que chama `submit_quiz_attempt(p_auth_user_id, p_quiz_id, p_answers)` |
 | `GET /ranking` | `get_ranking()` |
 
 Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https://`) e
 `VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
 regras de acesso do banco estão em [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
+
+#### Edge functions e CORS
+
+As edge functions ficam em `supabase/functions/` (Deno + TypeScript). Hoje só existe
+`submit-quiz-attempt`. O CORS de todas elas está em `supabase/functions/_shared/cors.ts`:
+
+- só as origens listadas no secret `ALLOWED_ORIGINS` (separadas por vírgula) recebem
+  `Access-Control-Allow-Origin`; qualquer outra origem fica sem o header e o navegador bloqueia a
+  resposta;
+- o preflight `OPTIONS` responde `204`; os headers aceitos são `authorization, x-client-info,
+  apikey, content-type` e os métodos, `POST, OPTIONS`; outro método responde `405` com código
+  `METHOD_NOT_ALLOWED`;
+- localmente o valor vem de `supabase/functions/.env` (copie de `.env.example`); no projeto
+  hospedado, de `npx supabase secrets set ALLOWED_ORIGINS=...`. O gateway local (Kong) acrescenta
+  `Access-Control-Allow-Origin: *` a toda resposta, então a restrição só aparece no projeto
+  hospedado ou chamando o runtime direto.
+
+`verify_jwt` fica desligado para essas funções no `config.toml`: o gateway recusaria o preflight,
+que não leva token. Cada função valida o JWT do aluno por conta própria (`auth.getClaims`).
 
 ### 1.2 Formato
 
@@ -96,10 +115,11 @@ dele cobre apenas o login. No modo mock não há limite nenhum.
   autenticados. Acima disso a resposta é `429` com código `RATE_LIMITED`.
 - `POST /quizzes/:id/attempts` tem um teto próprio de **6 por minuto**, por ser o único endpoint
   que grava.
-- Uma lacuna dissertativa (`essay_blanks`) é recusada acima de **2000 caracteres**, com `400` e
-  código `VALIDATION_ERROR`. É um teto de segurança, não uma regra de produto: uma resposta real
+- O schema zod da edge function `submit-quiz-attempt` recusa, com `400` e código
+  `VALIDATION_ERROR`, uma lacuna (`blankAnswers`) acima de **2000 caracteres**, um `text` acima
+  de **20000**, mais de **200** respostas ou mais de **50** `optionIds` numa resposta. É um teto de segurança, não uma regra de produto: uma resposta real
   fica três ordens de grandeza abaixo dele. O limite de uma questão `essay` continua sendo o
-  `maxLength` da própria questão.
+  `maxLength` da própria questão, conferido no banco.
 
 ---
 
@@ -123,7 +143,10 @@ dele cobre apenas o login. No modo mock não há limite nenhum.
 
 ### `POST /auth/login`
 
-Autentica uma conta de aluno pré-provisionada (não há cadastro público).
+Autentica uma conta de aluno pré-provisionada (não há cadastro público). Por causa da LGPD, o
+login não usa nenhum dado pessoal: o aluno entra com um **código de acesso** gerado pela
+instituição, e o nome que ele digita na tela de login fica só no navegador (veja
+[`StudentUser`](#31-studentuser)).
 
 **Autenticação:** não exigida. O cliente nunca envia um header `Authorization` aqui.
 
@@ -131,12 +154,12 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
 
 | Campo | Tipo | Regras | Descrição |
 |---|---|---|---|
-| `email` | string | Obrigatório. Sofre trim; precisa ser um e-mail válido. | E-mail institucional do aluno. A comparação não diferencia maiúsculas/minúsculas. |
+| `accessCode` | string | Obrigatório. Sofre trim e vira minúsculas; 6 a 32 letras ou dígitos. | Código de acesso gerado pela instituição. |
 | `password` | string | Obrigatório. Não pode ser vazio. | Senha da conta. |
 
 ```json
 {
-  "email": "igor@email.com",
+  "accessCode": "demo0001",
   "password": "123456"
 }
 ```
@@ -146,16 +169,14 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
 | Status | Corpo | Quando |
 |---|---|---|
 | `200` | [`AuthSession`](#32-authsession) | As credenciais são válidas. |
-| `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, e-mail em branco ou malformado, ou senha vazia. |
-| `401` | Erro, código `INVALID_CREDENTIALS` | Nenhuma conta corresponde ao e-mail, ou a senha está errada. |
+| `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, código em branco ou malformado, ou senha vazia. |
+| `401` | Erro, código `INVALID_CREDENTIALS` | Nenhuma conta corresponde ao código, ou a senha está errada. |
 
 ```json
 {
   "token": "eyJhbGciOi...",
   "user": {
-    "id": "u_marina",
-    "name": "Marina Alves",
-    "email": "marina@aluno.ifpr.edu.br",
+    "id": "u_demo0001",
     "course": "Análise e Desenvolvimento de Sistemas"
   }
 }
@@ -165,6 +186,8 @@ Autentica uma conta de aluno pré-provisionada (não há cadastro público).
 
 - Em caso de sucesso, o token e o usuário são salvos no `localStorage`, restaurando a
   sessão ao recarregar a página.
+- O nome digitado no formulário não faz parte do corpo: é salvo só no `localStorage`
+  (`displayNameStorage`) e apagado no logout.
 - Um `401` aqui significa credenciais erradas, não uma sessão expirada, então **não**
   dispara o logout global descrito em [4.3](#43-tratamento-no-cliente).
 
@@ -435,6 +458,12 @@ Envia as respostas de uma tentativa e retorna a correção.
 | `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido. |
 | `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
 | `404` | Erro, código `NOT_FOUND` | Nenhum simulado com esse `id`. |
+| `429` | Erro, código `RATE_LIMITED` | Mais de 6 envios por minuto (veja [1.5](#15-limites-de-uso)). |
+
+**No Supabase:** a edge function `submit-quiz-attempt` recebe `{ quizId, answers }`, confere o JWT,
+valida o formato com zod (ids numéricos, tamanhos de [1.5](#15-limites-de-uso)) e só então chama
+`submit_quiz_attempt`, que corrige tudo numa transação. Essa função do banco só pode ser executada
+pelo `service_role`, então chamá-la direto pela Data API com o token do aluno responde `403`.
 
 **Comportamento no cliente:** em caso de sucesso, `{ quiz, answers, result }` é salvo no
 `localStorage` na chave `student-app:quiz-attempt:<userId>:<quizId>` e o aluno é levado para
@@ -467,9 +496,11 @@ Retorna o perfil de consistência do aluno e o ranking de consistência da turma
 | Campo | Tipo | Regras |
 |---|---|---|
 | `id` | string | Não vazio. Identificador único e estável do aluno. |
-| `name` | string | Não vazio. Nome completo; a UI cumprimenta o aluno pela primeira palavra. |
-| `email` | string | Não vazio. E-mail institucional. |
 | `course` | string | Nome do curso. Pode ser vazio. |
+
+Não há nome nem e-mail (LGPD). O nome que a tela mostra ("Olá, …", perfil e linha "Você" do
+ranking) é o que o aluno digitou no login, guardado só no `localStorage` pelo
+`displayNameStorage`; ele nunca vai para a API nem para o banco.
 
 ### 3.2 `AuthSession`
 
@@ -641,9 +672,11 @@ como "Não respondida" caso contrário.
 |---|---|---|
 | `position` | integer | `> 0`. |
 | `studentId` | string | Não vazio. Único na lista. |
-| `studentName` | string | Não vazio. |
 | `streakDays` | integer | `>= 0`. |
 | `isCurrentUser` | boolean | `true` apenas na linha do aluno autenticado. |
+
+Não há nome de aluno na lista. A tela mostra o nome local na linha do aluno autenticado e
+"Estudante {position}" nas demais; empatados em sequência dividem a mesma posição.
 
 ### 3.16 `SubjectDetail`
 
@@ -694,7 +727,7 @@ Toda resposta não-`2xx` do servidor deve usar este corpo:
 ```json
 {
   "code": "INVALID_CREDENTIALS",
-  "message": "E-mail ou senha inválidos."
+  "message": "Código de acesso ou senha inválidos."
 }
 ```
 
@@ -710,7 +743,7 @@ O cliente expõe toda falha como um `ApiError` com `status`, `code` e `message`.
 | Código | Status HTTP | Produzido por | Significado |
 |---|---|---|---|
 | `VALIDATION_ERROR` | `400` | Servidor | O corpo da requisição está ausente ou inválido. |
-| `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: e-mail desconhecido ou senha errada. |
+| `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: código de acesso desconhecido ou senha errada. |
 | `UNAUTHORIZED` | `401` | Servidor | Endpoint autenticado chamado sem um token válido. |
 | `NOT_FOUND` | `404` | Servidor | A rota ou o recurso não existe. |
 | `RATE_LIMITED` | `429` | Servidor | O aluno passou do limite de requisições (veja [1.5](#15-limites-de-uso)). |
@@ -748,7 +781,7 @@ Particularidades do mock:
   `POST /api/auth/login`. O prefixo evita confusão com rotas de tela de mesmo nome, como
   `/ranking`.
 - **Latência:** toda resposta é atrasada por `VITE_MOCK_DELAY_MS` (padrão `500` ms).
-- **Conta de demonstração:** e-mail `igor@email.com` (sem diferenciar maiúsculas/minúsculas),
+- **Conta de demonstração:** código de acesso `demo0001` (sem diferenciar maiúsculas/minúsculas),
   senha `123456`.
 - **Formato do token:** um JWT (`header.payload.signature`, assinado com HMAC-SHA256), com o
   `id` do aluno no claim `sub` e expiração (`exp`) 3 dias após o login. Um token expirado, ou com

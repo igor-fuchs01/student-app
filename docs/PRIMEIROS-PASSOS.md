@@ -19,7 +19,7 @@ ligar o app, veja o [`README`](../README.md).
 
 | Tela | O que você encontra |
 |---|---|
-| 🔐 **Login** | Entrada com o e-mail institucional. Não existe cadastro: as contas são criadas pelo responsável. |
+| 🔐 **Login** | Entrada com o código de acesso e a senha recebidos do responsável, mais o nome pelo qual você quer ser chamado (fica só no navegador). Não existe cadastro. |
 | 🏠 **Início** | A próxima prova, os assuntos que merecem mais atenção e um plano de estudo do dia. |
 | 📘 **Disciplinas** | As matérias do curso, com quantidade de materiais, questões e o seu nível de preparo. |
 | 📝 **Simulados** | Provas de treino com cronômetro (ou sem limite), 6 tipos de questão, marcação para revisar depois e revisão antes de enviar. |
@@ -37,7 +37,7 @@ Os 6 tipos de questão:
 | Dissertativa | Você escreve a resposta. |
 | Dissertativa com lacunas | Você completa um texto digitando nas lacunas. |
 
-A conta de teste é o e-mail `igor@email.com`, com a senha `123456`.
+A conta de teste é o código de acesso `demo0001`, com a senha `123456`; o nome pode ser qualquer um.
 
 ## O que é o "mock"?
 
@@ -158,7 +158,27 @@ Abra o `.env.development`, cole a URL em `VITE_SUPABASE_URL` e a chave em
 npm run dev
 ```
 
-A conta de teste é a mesma do mock: `senaiigorpereira` ou `igor@email.com`, senha `123456`.
+O envio de simulados passa por uma edge function, que precisa estar rodando em outro terminal:
+
+```bash
+cp supabase/functions/.env.example supabase/functions/.env   # só na primeira vez
+npx supabase functions serve --env-file supabase/functions/.env
+```
+
+A conta de teste é a mesma do mock: código de acesso `demo0001` (ou `demo0002`), senha `123456`.
+
+Para criar um aluno de verdade, gere um código de acesso (6 a 32 letras minúsculas ou dígitos),
+crie o usuário no painel em **Authentication → Users → Add user** com o e-mail
+`<código>@alunos.student-app.invalid` e uma senha, e ligue-o a um aluno:
+
+```sql
+insert into students (course, auth_user_id)
+select 'Análise e Desenvolvimento de Sistemas', id
+from auth.users
+where email = '<código>@alunos.student-app.invalid';
+```
+
+Entregue ao aluno só o código e a senha; nenhum nome ou e-mail real é cadastrado.
 
 - **Painel do Supabase** (tabelas, usuários): http://127.0.0.1:54323
 - **Recomeçar os dados do zero:** `npx supabase db reset`

@@ -267,6 +267,10 @@ Ranking de consistência
 - quantidade de erros;
 - qualquer desempenho acadêmico privado.
 
+O ranking também não mostra o nome dos outros alunos (LGPD): o banco não guarda nome, então cada
+colega aparece como "Estudante {posição}" e só a linha do próprio aluno usa o nome que ele digitou
+no login, guardado no navegador.
+
 ### Elementos de gamificação usados
 
 Gamificação **moderada**: streaks, badges, metas semanais, número de questões, simulados concluídos, dias estudados, pequenas conquistas.

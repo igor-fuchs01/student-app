@@ -42,7 +42,7 @@ npm install
 npm run mock
 ```
 
-Abra **http://localhost:5173** e entre com `igor@email.com` / `123456`.
+Abra **http://localhost:5173** e entre com o código de acesso `demo0001` / senha `123456` (e o nome que quiser).
 
 > O `npm run mock` usa dados de exemplo, então não precisa de backend nem banco de dados.
 
