@@ -393,6 +393,12 @@ deno_version = 2
 [functions.get-current-student]
 verify_jwt = false
 
+[functions.list-subjects]
+verify_jwt = false
+
+[functions.get-subject]
+verify_jwt = false
+
 [functions.submit-quiz-attempt]
 verify_jwt = false
 

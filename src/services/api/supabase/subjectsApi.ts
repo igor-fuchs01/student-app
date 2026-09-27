@@ -4,17 +4,14 @@ import {
   type Subject,
   type SubjectDetail,
 } from "@models/subjects";
-import { callRpc } from "./callRpc";
+import { callFunction } from "./callFunction";
 
 export const supabaseSubjectsApi = {
   getSubjects(signal?: AbortSignal): Promise<Subject[]> {
-    return callRpc("list_subjects", subjectsResponseSchema, { signal });
+    return callFunction("list-subjects", subjectsResponseSchema, { signal });
   },
 
   getSubject(id: string, signal?: AbortSignal): Promise<SubjectDetail> {
-    return callRpc("get_subject", subjectDetailSchema, {
-      args: { p_subject_id: Number(id) },
-      signal,
-    });
+    return callFunction("get-subject", subjectDetailSchema, { query: { id }, signal });
   },
 };

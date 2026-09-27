@@ -21,8 +21,6 @@ grant execute on function private.current_student_id() to authenticated;
 -- created in public by mistake is not reachable, and adding an endpoint means
 -- adding its grant on purpose.
 grant execute on function public.get_dashboard() to authenticated;
-grant execute on function public.list_subjects() to authenticated;
-grant execute on function public.get_subject(integer) to authenticated;
 grant execute on function public.list_quizzes() to authenticated;
 grant execute on function public.get_quiz(integer) to authenticated;
 grant execute on function public.get_ranking() to authenticated;
