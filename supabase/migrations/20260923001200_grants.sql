@@ -20,8 +20,6 @@ grant execute on function private.current_student_id() to authenticated;
 -- The API surface, one function at a time: an explicit allowlist, so a helper
 -- created in public by mistake is not reachable, and adding an endpoint means
 -- adding its grant on purpose.
-grant execute on function public.list_quizzes() to authenticated;
-grant execute on function public.get_quiz(integer) to authenticated;
 
 -- submit_quiz_attempt trusts its p_auth_user_id argument, so only the
 -- submit-quiz-attempt edge function may call it: it runs as service_role after

@@ -405,6 +405,12 @@ verify_jwt = false
 [functions.get-ranking]
 verify_jwt = false
 
+[functions.list-quizzes]
+verify_jwt = false
+
+[functions.get-quiz]
+verify_jwt = false
+
 [functions.submit-quiz-attempt]
 verify_jwt = false
 

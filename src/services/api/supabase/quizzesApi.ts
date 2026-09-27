@@ -10,18 +10,16 @@ import {
 } from "@models/quizzes";
 import { ApiError, INVALID_RESPONSE_MESSAGE } from "../errors";
 import { getSupabase } from "../supabaseClient";
-import { callRpc } from "./callRpc";
+import { callFunction } from "./callFunction";
 import { toApiError } from "./toApiError";
 
-// Contract ids are strings; the database ids are integers. A non-numeric id becomes null and the
-// function answers 404, like an unknown quiz.
 export const supabaseQuizzesApi = {
   getQuizzes(signal?: AbortSignal): Promise<QuizSummary[]> {
-    return callRpc("list_quizzes", quizzesResponseSchema, { signal });
+    return callFunction("list-quizzes", quizzesResponseSchema, { signal });
   },
 
   getQuiz(id: string, signal?: AbortSignal): Promise<QuizDetail> {
-    return callRpc("get_quiz", quizDetailSchema, { args: { p_quiz_id: Number(id) }, signal });
+    return callFunction("get-quiz", quizDetailSchema, { query: { id }, signal });
   },
 
   // Goes through the submit-quiz-attempt edge function, which validates the body with zod
