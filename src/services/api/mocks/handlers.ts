@@ -21,7 +21,7 @@ import {
 } from "./quizzes";
 import { buildMockRanking } from "./ranking";
 import { buildMockSubjects, getMockSubjectDetail } from "./subjects";
-import { findAccountByEmail, findAccountById, type MockAccount } from "./users";
+import { findAccountByAccessCode, findAccountById, type MockAccount } from "./users";
 
 type AuthenticatedInfo = {
   request: Request;
@@ -74,11 +74,11 @@ export const handlers = [
   http.post(api(API_ENDPOINTS.auth.login), async ({ request }) => {
     const credentials = loginCredentialsSchema.safeParse(await readJson(request));
     if (!credentials.success) {
-      return errorResponse(400, "VALIDATION_ERROR", "Informe e-mail e senha.");
+      return errorResponse(400, "VALIDATION_ERROR", "Informe código de acesso e senha.");
     }
 
-    const { email, password } = credentials.data;
-    const account = findAccountByEmail(email);
+    const { accessCode, password } = credentials.data;
+    const account = findAccountByAccessCode(accessCode);
     if (!account || account.password !== password) {
       return errorResponse(401, "INVALID_CREDENTIALS", INVALID_CREDENTIALS_MESSAGE);
     }

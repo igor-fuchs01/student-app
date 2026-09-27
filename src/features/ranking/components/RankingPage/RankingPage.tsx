@@ -38,6 +38,7 @@ function getInitials(name: string): string {
 
 export function RankingPage() {
   const user = useAuthStore((state) => state.user);
+  const displayName = useAuthStore((state) => state.displayName) ?? "Estudante";
 
   const rankingQuery = useQuery({
     queryKey: ["ranking", user?.id],
@@ -60,8 +61,8 @@ export function RankingPage() {
       {rankingQuery.data && user && (
         <StyledLayout>
           <StyledProfileCard tone="surface">
-            <StyledAvatar aria-hidden="true">{getInitials(user.name)}</StyledAvatar>
-            <StyledProfileName>{user.name}</StyledProfileName>
+            <StyledAvatar aria-hidden="true">{getInitials(displayName)}</StyledAvatar>
+            <StyledProfileName>{displayName}</StyledProfileName>
             <StyledProfileCourse>{user.course}</StyledProfileCourse>
             <StyledDivider />
 
@@ -109,7 +110,7 @@ export function RankingPage() {
                       {MEDALS[entry.position] ? `${MEDALS[entry.position]} ` : ""}
                       {entry.position}.
                     </StyledPosition>
-                    {entry.studentName}
+                    {entry.isCurrentUser ? displayName : `Estudante ${entry.position}`}
                     {entry.isCurrentUser && <StyledYouBadge>Você</StyledYouBadge>}
                   </span>
                   <StyledStreakDays $current={entry.isCurrentUser}>

@@ -43,7 +43,8 @@ const PRIORITY_TONE: Record<PriorityLevel, BadgeTone> = {
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
 
-  const firstName = user?.name.split(" ")[0] ?? "Estudante";
+  const displayName = useAuthStore((state) => state.displayName);
+  const firstName = displayName?.split(" ")[0] ?? "Estudante";
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", user?.id],
