@@ -1,8 +1,8 @@
 import { rankingDataSchema, type RankingData } from "@models/ranking";
-import { callRpc } from "./callRpc";
+import { callFunction } from "./callFunction";
 
 export const supabaseRankingApi = {
   getRanking(signal?: AbortSignal): Promise<RankingData> {
-    return callRpc("get_ranking", rankingDataSchema, { signal });
+    return callFunction("get-ranking", rankingDataSchema, { signal });
   },
 };

@@ -399,6 +399,12 @@ verify_jwt = false
 [functions.get-subject]
 verify_jwt = false
 
+[functions.get-dashboard]
+verify_jwt = false
+
+[functions.get-ranking]
+verify_jwt = false
+
 [functions.submit-quiz-attempt]
 verify_jwt = false
 

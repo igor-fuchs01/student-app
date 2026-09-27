@@ -1,8 +1,8 @@
 import { dashboardDataSchema, type DashboardData } from "@models/dashboard";
-import { callRpc } from "./callRpc";
+import { callFunction } from "./callFunction";
 
 export const supabaseDashboardApi = {
   getDashboard(signal?: AbortSignal): Promise<DashboardData> {
-    return callRpc("get_dashboard", dashboardDataSchema, { signal });
+    return callFunction("get-dashboard", dashboardDataSchema, { signal });
   },
 };
