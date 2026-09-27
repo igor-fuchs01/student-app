@@ -32,21 +32,22 @@ própria. As mudanças de contrato já previstas estão em
 No modo mock, todo caminho descrito neste documento é relativo a `/api`. Exemplo:
 `POST /auth/login` → `POST /api/auth/login`.
 
-No Supabase, cada endpoint é uma função no banco, uma edge function ou uma chamada do Supabase
-Auth que recebe os mesmos dados e devolve o mesmo JSON (tabela abaixo). Os módulos `*Api` escolhem o transporte, então
-as telas usam os mesmos métodos nos dois modos.
+No Supabase, cada endpoint é uma edge function (ou, no login e no logout, uma chamada do Supabase
+Auth) que recebe os mesmos dados e devolve o mesmo JSON (tabela abaixo). Os módulos `*Api`
+escolhem o transporte, então as telas usam os mesmos métodos nos dois modos. O banco não tem
+função nenhuma exposta: as edge functions leem as tabelas e views e montam o JSON em TypeScript.
 
-| Endpoint | No Supabase |
+| Endpoint | No Supabase (edge function) |
 |---|---|
-| `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<accessCode>@alunos.student-app.invalid`, depois `get_current_student()` |
+| `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<accessCode>@alunos.student-app.invalid`, depois `GET get-current-student` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
-| `GET /dashboard` | `get_dashboard()` |
-| `GET /subjects` | `list_subjects()` |
-| `GET /subjects/:id` | `get_subject(p_subject_id)` |
-| `GET /quizzes` | `list_quizzes()` |
-| `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
-| `POST /quizzes/:id/attempts` | Edge function `submit-quiz-attempt` (corpo `{ quizId, answers }`), que chama `submit_quiz_attempt(p_auth_user_id, p_quiz_id, p_answers)` |
-| `GET /ranking` | `get_ranking()` |
+| `GET /dashboard` | `GET get-dashboard` |
+| `GET /subjects` | `GET list-subjects` |
+| `GET /subjects/:id` | `GET get-subject?id=:id` |
+| `GET /quizzes` | `GET list-quizzes` |
+| `GET /quizzes/:id` | `GET get-quiz?id=:id` |
+| `POST /quizzes/:id/attempts` | `POST submit-quiz-attempt`, com o corpo `{ quizId, answers }` |
+| `GET /ranking` | `GET get-ranking` |
 
 Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https://`) e
 `VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
@@ -54,14 +55,23 @@ regras de acesso do banco estão em [`06-modelagem-de-dados.md`](06-modelagem-de
 
 #### Edge functions e CORS
 
-As edge functions ficam em `supabase/functions/` (Deno + TypeScript). Hoje só existe
-`submit-quiz-attempt`. O CORS de todas elas está em `supabase/functions/_shared/cors.ts`:
+As edge functions ficam em `supabase/functions/` (Deno + TypeScript), uma pasta por endpoint.
+O que elas compartilham está em `supabase/functions/_shared/`:
+
+- `http.ts` — `serveEndpoint(method, handler)`: responde o preflight, recusa outro método, valida
+  o JWT (`auth.getClaims`), acha o aluno em `students` e transforma um `ApiError` no corpo de erro
+  do contrato; qualquer outra falha vira `500` com código `UNKNOWN_ERROR`;
+- `db.ts` — conexão direta com o Postgres (`SUPABASE_DB_URL`, driver `npm:postgres`), que alcança
+  as views do schema `private` e permite transação. Ela ignora o RLS, então toda consulta filtra
+  pelo aluno do token;
+- `subjects.ts` e `questions.ts` — consultas usadas por mais de um endpoint;
+- `cors.ts` — o CORS de todas elas:
 
 - só as origens listadas no secret `ALLOWED_ORIGINS` (separadas por vírgula) recebem
   `Access-Control-Allow-Origin`; qualquer outra origem fica sem o header e o navegador bloqueia a
   resposta;
 - o preflight `OPTIONS` responde `204`; os headers aceitos são `authorization, x-client-info,
-  apikey, content-type` e os métodos, `POST, OPTIONS`; outro método responde `405` com código
+  apikey, content-type` e os métodos, `GET, POST, OPTIONS`; outro método responde `405` com código
   `METHOD_NOT_ALLOWED`;
 - localmente o valor vem de `supabase/functions/.env` (copie de `.env.example`); no projeto
   hospedado, de `npx supabase secrets set ALLOWED_ORIGINS=...`. O gateway local (Kong) acrescenta
@@ -455,10 +465,12 @@ Envia as respostas de uma tentativa e retorna a correção.
 | `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
 | `404` | Erro, código `NOT_FOUND` | Nenhum simulado com esse `id`. |
 
-**No Supabase:** a edge function `submit-quiz-attempt` recebe `{ quizId, answers }`, confere o JWT,
-valida o formato com zod (ids numéricos, tamanhos de [1.5](#15-limites-de-tamanho)) e só então chama
-`submit_quiz_attempt`, que corrige tudo numa transação. Essa função do banco só pode ser executada
-pelo `service_role`, então chamá-la direto pela Data API com o token do aluno responde `403`.
+**No Supabase:** a edge function `submit-quiz-attempt` recebe `{ quizId, answers }`, confere o JWT
+e valida o formato com zod (ids numéricos, tamanhos de [1.5](#15-limites-de-tamanho)). Depois
+confere cada resposta contra o gabarito do simulado (questão do simulado e sem repetição, opção,
+lacuna ou termo da própria questão, `maxLength` da dissertativa) e corrige em TypeScript
+(`grade.ts`). A tentativa, as respostas e o dia de estudo são gravados numa única transação, e o
+`QuizResult` é calculado a partir das respostas corrigidas.
 
 **Comportamento no cliente:** em caso de sucesso, `{ quiz, answers, result }` é salvo no
 `localStorage` na chave `student-app:quiz-attempt:<userId>:<quizId>` e o aluno é levado para
@@ -811,9 +823,12 @@ Particularidades do mock:
    seu tipo `z.infer`.
 3. Adicione ou atualize o método no módulo `*Api` da feature, passando o schema.
 4. Implemente a rota em `src/services/api/mocks/handlers.ts`.
-5. No Supabase, crie uma migration nova (`npx supabase migration new <nome>`) com a função que
-   devolve o mesmo JSON, e chame-a no adaptador em `src/services/api/supabase/` com `callRpc`.
-   Siga as regras de acesso de [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
+5. No Supabase, crie a edge function em `supabase/functions/<nome>/index.ts` com
+   `serveEndpoint` (de `_shared/http.ts`), consultando o banco por `sql` (de `_shared/db.ts`) e
+   montando o JSON em TypeScript; registre-a em `supabase/config.toml` com `verify_jwt = false` e
+   chame-a no adaptador em `src/services/api/supabase/` com `callFunction`. Se precisar de tabela
+   ou view nova, crie uma migration (`npx supabase migration new <nome>`), sem JSON no SQL. Siga as
+   regras de acesso de [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
 6. Atualize este documento.
 
 Prefira mudanças aditivas (novos campos opcionais, novos endpoints). Trate qualquer coisa

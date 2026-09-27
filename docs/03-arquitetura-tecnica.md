@@ -106,11 +106,13 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
 
 - `services/api/` — módulos `*Api` usados pelas telas. Cada um escolhe o transporte pelo
   `VITE_USE_MOCKS`: o `httpClient` no modo mock, ou o adaptador de `services/api/supabase/`, que
-  chama as funções do Supabase pelo SDK (RPCs do banco e, no envio de simulado, a edge function
-  `submit-quiz-attempt`). Os dois devolvem os mesmos tipos do contrato;
-- `supabase/` (na raiz) — o backend: migrations do banco (uma por assunto), seed local e edge
-  functions (`supabase/functions/`, Deno + TypeScript + zod, com o CORS compartilhado em
-  `_shared/cors.ts`);
+  chama as edge functions do Supabase pelo SDK (`callFunction`). Os dois devolvem os mesmos tipos
+  do contrato;
+- `supabase/` (na raiz) — o backend: migrations do banco (uma por assunto, só tabelas, views e
+  regras de acesso, sem JSON nem funções de API), seed local e edge functions
+  (`supabase/functions/`, Deno + TypeScript + zod), uma por endpoint. Elas leem o banco por uma
+  conexão direta e montam o JSON do contrato; o que é comum a todas (CORS, autenticação, conexão e
+  consultas reaproveitadas) fica em `_shared/`;
 - `services/api/mocks/` — servidor mock feito com [MSW](https://mswjs.io/) (Mock Service Worker):
   `handlers.ts` responde às rotas da API e `mockServer.ts` registra o Service Worker
   (`public/mockServiceWorker.js`) quando `VITE_USE_MOCKS=true`. O `httpClient` não sabe que existe

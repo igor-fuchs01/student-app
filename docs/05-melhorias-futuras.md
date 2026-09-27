@@ -65,7 +65,7 @@ durante o simulado.
 
 **Por que é aceitável no MVP.** Os simulados são ferramentas de estudo, sem valor de nota
 oficial. No Supabase, o app não consegue listar tabela nenhuma pela API, mas
-`get_quiz` ainda devolve o gabarito de cada simulado, para seguir o contrato atual.
+a edge function `get-quiz` ainda devolve o gabarito de cada simulado, para seguir o contrato atual.
 
 **Proposta.**
 
@@ -220,9 +220,9 @@ precisa estudar?"*
 
 ## 7. Conteúdo curado do detalhe da disciplina
 
-**Situação atual.** A tela em `/disciplinas/:subjectId` já é servida pelo banco: as migrations
-`…_content.sql` e `…_read_endpoints.sql` trazem as tabelas do conteúdo e a função `get_subject(p_subject_id)`, que
-devolve o JSON de `SubjectDetail`
+**Situação atual.** A tela em `/disciplinas/:subjectId` já é servida pelo banco: a migration
+`…_content.sql` traz as tabelas do conteúdo e a edge function `get-subject` devolve o JSON de
+`SubjectDetail`
 ([`04-contratos-de-api.md`](04-contratos-de-api.md), `GET /subjects/:id`). O que falta é conteúdo,
 não encanamento: no banco os resumos e os pontos-chave são só os do seed, e os `fileUrl` apontam
 para arquivos que não existem.
@@ -237,8 +237,8 @@ questões (item 6).
 
 1. **Modelo de dados e função — feitos.** As migrations trazem `subtopics` (assunto, nome, resumo,
    ordem) e `subtopic_key_points`, dá a `topics` o número da aula (único na disciplina) e uma
-   descrição, pendura os materiais no subassunto, e cria `get_subject(p_subject_id)`, que o
-   adaptador `supabaseSubjectsApi.getSubject` já chamava.
+   descrição e pendura os materiais no subassunto; a edge function `get-subject` monta a tela,
+   chamada pelo adaptador `supabaseSubjectsApi.getSubject`.
 2. **Arquivos dos materiais.** Hoje `fileUrl` aponta para caminhos que não existem. Definir onde os
    PDFs ficam (Supabase Storage).
 3. **Preparo por subassunto.** Com as questões classificadas (item 6), incluir o preparo do aluno em

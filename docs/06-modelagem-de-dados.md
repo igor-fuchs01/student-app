@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados e provas agendadas), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `api_helpers` (funções internas), `read_endpoints`, `submit_quiz_attempt` e `grants`. Cada tabela leva os próprios índices. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados e provas agendadas), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security` e `grants`. Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
@@ -65,53 +65,51 @@ hospedado, já que o esquema dele é o antigo).
 ### Como o app acessa o banco
 
 Com `npm run dev`, os módulos `*Api` chamam o Supabase pelo SDK; com `npm run mock`, continuam
-usando o servidor mock. O app não consulta tabelas diretamente: cada endpoint do contrato é uma
-função no banco (ou, no envio de simulado, uma edge function que chama uma) que devolve o mesmo
-JSON.
+usando o servidor mock. O app não consulta tabelas nem chama funções do banco: cada endpoint do
+contrato é uma edge function (`supabase/functions/`) que lê as tabelas e views por uma conexão
+direta com o Postgres e monta o JSON em TypeScript. O banco não gera nem guarda JSON.
 
 | Contrato ([`04-contratos-de-api.md`](04-contratos-de-api.md)) | No Supabase |
 |---|---|
-| `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<código>@alunos.student-app.invalid`, seguida de `get_current_student()` |
+| `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<código>@alunos.student-app.invalid`, seguida de `get-current-student` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
-| `GET /dashboard` | `get_dashboard()` |
-| `GET /subjects` | `list_subjects()` |
-| `GET /subjects/:id` | `get_subject(p_subject_id)` |
-| `GET /quizzes` | `list_quizzes()` |
-| `GET /quizzes/:id` | `get_quiz(p_quiz_id)` |
-| `POST /quizzes/:id/attempts` | Edge function `submit-quiz-attempt`, que chama `submit_quiz_attempt(p_auth_user_id, p_quiz_id, p_answers)` |
-| `GET /ranking` | `get_ranking()` |
+| `GET /dashboard` | `get-dashboard` |
+| `GET /subjects` | `list-subjects` |
+| `GET /subjects/:id` | `get-subject?id=` |
+| `GET /quizzes` | `list-quizzes` |
+| `GET /quizzes/:id` | `get-quiz?id=` |
+| `POST /quizzes/:id/attempts` | `submit-quiz-attempt` |
+| `GET /ranking` | `get-ranking` |
 
 A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
-chamar a API sem passar pelo app, então a segurança fica no banco, em camadas:
+chamar a API sem passar pelo app, então a segurança fica em camadas:
 
-- **As funções do contrato são a API inteira.** `anon` e `authenticated` não têm privilégio em
-  nenhuma tabela nem sequência, então `GET /rest/v1/students` responde 403. As views, as funções
-  auxiliares ficam no schema `private`, que não entra em
-  `[api] schemas` do `config.toml` — nem em Exposed schemas, o equivalente no painel do projeto
-  hospedado. A API nem enxerga esses objetos (404). Views ignoram o RLS, e é por isso que
-  nenhuma fica em `public`.
+- **As edge functions são a API inteira.** Cada uma valida o JWT do aluno, acha o aluno em
+  `students` e filtra toda consulta por ele. `anon` e `authenticated` não têm privilégio em
+  nenhuma tabela, sequência ou função, então `GET /rest/v1/students` responde 403 e não existe
+  RPC nenhuma para chamar. As views e as funções auxiliares ficam no schema `private`, que não
+  entra em `[api] schemas` do `config.toml` — nem em Exposed schemas, o equivalente no painel do
+  projeto hospedado. Views ignoram o RLS, e é por isso que nenhuma fica em `public`.
+- **Conexão das edge functions.** Elas usam `SUPABASE_DB_URL` com a role `postgres`, que ignora o
+  RLS; por isso o aluno sai sempre do token, nunca de um parâmetro do corpo. As consultas usam
+  parâmetros (`sql` do driver `postgres`), nunca SQL montado com texto.
 - **Fechado por padrão.** O Supabase concede automaticamente às roles da API tudo que `postgres`
   cria em `public`; `ALTER DEFAULT PRIVILEGES` cancela essa concessão, então uma tabela ou função
-  criada depois nasce inalcançável e cada endpoint novo precisa liberar o próprio `EXECUTE`.
+  criada depois nasce inalcançável.
 - **RLS como segunda camada.** Todas as tabelas têm RLS, e tabela sem política não devolve nenhuma
   linha: o aluno só leria as próprias linhas (perfil, tentativas, respostas e dias de estudo) e o
   conteúdo sem gabarito, e as tabelas de questões não têm política nenhuma. Nada do app depende
   disso hoje — a camada existe para que um `GRANT` dado por engano continue não vazando linha.
 - **Nenhuma escrita direta.** Não existe política de `INSERT`, `UPDATE` ou `DELETE`. O envio de uma
-  prova passa pela edge function `submit-quiz-attempt`, que confere o JWT e valida o formato com
-  zod, e depois por `submit_quiz_attempt`, que confere cada id contra o banco e corrige no
-  servidor.
-- **Funções protegidas.** As do contrato são `SECURITY DEFINER` com `search_path` vazio e nomes
-  completos e não montam SQL com texto. As de leitura identificam o aluno só por `auth.uid()`.
-  `submit_quiz_attempt` recebe o id do usuário do Auth como parâmetro, e por isso só o
-  `service_role` (a edge function) pode executá-la: chamada com o token do aluno, responde 403.
-  O ranking devolve só id e sequência dos outros alunos, nunca nota.
+  prova passa pela edge function `submit-quiz-attempt`, que valida o formato com zod, confere cada
+  id contra o gabarito, corrige e grava tudo numa transação. O ranking devolve só id e sequência
+  dos outros alunos, nunca nota.
 - **Sem dados pessoais (LGPD).** As contas são criadas pela instituição, sem cadastro público. O
   aluno entra com um código de acesso gerado pela instituição e a senha, validados pelo Supabase
   Auth, que guarda o código como o e-mail `<código>@alunos.student-app.invalid` (domínio
   reservado, nunca recebe mensagem). `students` não tem nome nem e-mail: o nome que o app mostra é
   digitado pelo aluno e fica só no navegador.
-- **Ainda em aberto.** `get_quiz` devolve o gabarito junto com as questões, porque o contrato atual
+- **Ainda em aberto.** `get-quiz` devolve o gabarito junto com as questões, porque o contrato atual
   do `QuizDetail` inclui essas respostas ([`05-melhorias-futuras.md`](05-melhorias-futuras.md),
   item 2).
 
@@ -238,7 +236,7 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Simulado | `quizzes` |
 | Simulado — Questão (N : M) | `quiz_questions` |
 | Tentativa | `quiz_attempts` |
-| Resposta | `quiz_attempt_answers` |
+| Resposta | `quiz_attempt_answers`, com os valores múltiplos em `quiz_attempt_answer_options`, `quiz_attempt_answer_blanks` e `quiz_attempt_answer_slots` |
 | Prova | `scheduled_exams` |
 | Dia de estudo | `student_activity_days` |
 
@@ -266,10 +264,14 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
   lacuna têm pais diferentes; separar mantém toda FK obrigatória (`NOT NULL`), em vez de uma
   coluna "questão **ou** lacuna" que o banco não consegue validar direito. Pelo mesmo motivo, a
   lacuna de drag and drop (`question_slots`) fica separada, porque exige um termo correto.
-- **Resposta** segue a união `QuizAnswer` do contrato: uma coluna para cada forma de resposta, e só
-  a do tipo da questão é preenchida. Respostas com vários valores (`selected_option_ids`,
-  `blank_answers`, `slot_answers`) usam `jsonb`, porque são sempre lidas e gravadas inteiras. A
-  restrição `UNIQUE (attempt_id, question_id)` garante no máximo uma resposta por questão.
+- **Resposta** segue a união `QuizAnswer` do contrato sem JSON no banco. As de um valor só ficam em
+  `quiz_attempt_answers` (`selected_option_id` para `multiple_choice`, `essay_text` para `essay`);
+  as de vários valores viram uma linha por valor em tabelas filhas: `quiz_attempt_answer_options`
+  (alternativas de `multiple_answer`), `quiz_attempt_answer_blanks` (lacunas de `single_choice`,
+  com a opção escolhida, e de `essay_blanks`, com o texto) e `quiz_attempt_answer_slots` (termo
+  de cada lacuna de `drag_and_drop`). Cada valor tem FK para o que respondeu, então o banco garante
+  que ele existe. A restrição `UNIQUE (attempt_id, question_id)` garante no máximo uma resposta por
+  questão.
 - **Normalização (3FN).** `questions` guarda apenas `topic_id`; a disciplina é obtida pelo assunto.
   Guardar também `subject_id` seria uma dependência transitiva e permitiria uma questão com assunto
   de Banco de Dados e disciplina de Algoritmos.
@@ -317,6 +319,14 @@ erDiagram
     quiz_attempts ||--o{ quiz_attempt_answers : ""
     questions ||--o{ quiz_attempt_answers : ""
     question_options |o--o{ quiz_attempt_answers : ""
+    quiz_attempt_answers ||--o{ quiz_attempt_answer_options : ""
+    question_options ||--o{ quiz_attempt_answer_options : ""
+    quiz_attempt_answers ||--o{ quiz_attempt_answer_blanks : ""
+    question_blanks ||--o{ quiz_attempt_answer_blanks : ""
+    question_blank_options |o--o{ quiz_attempt_answer_blanks : ""
+    quiz_attempt_answers ||--o{ quiz_attempt_answer_slots : ""
+    question_slots ||--o{ quiz_attempt_answer_slots : ""
+    question_terms ||--o{ quiz_attempt_answer_slots : ""
 
     subjects ||--o{ scheduled_exams : ""
 
@@ -452,11 +462,26 @@ erDiagram
         int attempt_id FK
         int question_id FK
         int selected_option_id FK
-        jsonb selected_option_ids
         text essay_text
-        jsonb blank_answers
-        jsonb slot_answers
         review_status review_status
+    }
+
+    quiz_attempt_answer_options {
+        int answer_id PK, FK
+        int option_id PK, FK
+    }
+
+    quiz_attempt_answer_blanks {
+        int answer_id PK, FK
+        int blank_id PK, FK
+        int selected_option_id FK
+        text text
+    }
+
+    quiz_attempt_answer_slots {
+        int answer_id PK, FK
+        int slot_id PK, FK
+        int term_id FK
     }
 
     student_activity_days {
@@ -470,7 +495,7 @@ Enums: `question_type`, `quiz_subject_scope` (`single`, `all`), `difficulty_leve
 
 ### 2.4 Views (informações derivadas)
 
-Todas ficam no schema `private` e são lidas só pelas funções. `private.percent(parte, total)`
+Todas ficam no schema `private` e são lidas só pelas edge functions. `private.percent(parte, total)`
 concentra o arredondamento das porcentagens; cada view decide o que conta como resposta corrigida.
 
 | View | Campo(s) do contrato |
@@ -479,13 +504,13 @@ concentra o arredondamento das porcentagens; cada view decide o que conta como r
 | `v_student_subject_performance` | `Subject.preparationPercent`, `NextExam.overallPreparation` |
 | `v_student_topic_performance` | `NextExam.priorities` (o nível alta/média/baixa é um corte aplicado pela aplicação) |
 | `v_quiz_summary` | `QuizSummary.questionCount` |
-| `v_quiz_attempt_result` | `QuizResult` — contadores e `scorePercent` |
-| `v_quiz_attempt_subject_performance` | `QuizResult.subjectPerformance` |
 | `v_student_streak`, `v_student_ranking` | `streakDays`, `RankingData.entries` |
 | `v_student_ranking_profile` | `RankingData.profile` |
 
-`QuizSummary.attemptsCount` e `QuizResult.reviewItems` são montados dentro de `list_quizzes` e
-`submit_quiz_attempt`, já filtrados pelo aluno e pela tentativa.
+`QuizSummary.attemptsCount` é contado pela edge function `list-quizzes`, filtrado pelo aluno. O
+`QuizResult` inteiro (contadores, `scorePercent`, `subjectPerformance` e `reviewItems`) é
+calculado pela `submit-quiz-attempt` a partir das respostas que ela acabou de corrigir, com as
+mesmas regras: `self_review` fica fora da nota e questão não respondida entra no denominador.
 
 ---
 

@@ -158,7 +158,7 @@ Abra o `.env.development`, cole a URL em `VITE_SUPABASE_URL` e a chave em
 npm run dev
 ```
 
-O envio de simulados passa por uma edge function, que precisa estar rodando em outro terminal:
+Todos os endpoints são edge functions, que precisam estar rodando em outro terminal:
 
 ```bash
 cp supabase/functions/.env.example supabase/functions/.env   # só na primeira vez
