@@ -22,76 +22,15 @@ begin
 end;
 $$;
 
--- Requests per student, endpoint and time bucket. The hosted project ignores
--- the [auth.rate_limit] block of supabase/config.toml, and Auth rate limiting
--- only covers the login, so the limit on the endpoints lives in the database.
--- No client role has a privilege on this table, so a student can neither read
--- their own counter nor anyone else's.
-create table private.api_rate_limit (
-  student_id   integer not null references public.students (id) on delete cascade,
-  endpoint     text not null,
-  window_start timestamptz not null,
-  call_count   integer not null default 1,
-  constraint api_rate_limit_pkey primary key (student_id, endpoint, window_start)
-);
-
-comment on table private.api_rate_limit is 'Requests per student, endpoint and time bucket. Rows outside the current window are deleted on that student''s next call, so the table stays proportional to the students online, not to the traffic they made.';
-
--- Counts one call and refuses it when the bucket is already full.
---
--- Raising aborts the transaction, so the increment that crossed the limit rolls
--- back with it: the stored count settles at the limit and every further call in
--- the window is refused, which is the behaviour wanted. Only calls that go
--- through commit their increment.
-create function private.enforce_rate_limit(
-  p_student_id integer,
-  p_endpoint text,
-  p_limit integer,
-  p_window_seconds integer
-)
-returns void
-language plpgsql
-volatile
-set search_path = ''
-as $$
-declare
-  v_window_start timestamptz := to_timestamp(
-    floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds
-  );
-  v_count integer;
-begin
-  delete from private.api_rate_limit
-  where student_id = p_student_id and window_start < v_window_start;
-
-  insert into private.api_rate_limit (student_id, endpoint, window_start)
-  values (p_student_id, p_endpoint, v_window_start)
-  on conflict on constraint api_rate_limit_pkey
-    do update set call_count = private.api_rate_limit.call_count + 1
-  returning call_count into v_count;
-
-  if v_count > p_limit then
-    perform private.raise_api_error(
-      429,
-      'RATE_LIMITED',
-      'Muitas requisições em pouco tempo. Espere um instante e tente de novo.'
-    );
-  end if;
-end;
-$$;
-
--- The student of an Auth user, plus the 401 the endpoints owe the client and
--- the budget every endpoint shares: one counter per student for the whole API.
--- 120 calls a minute is far above what the screens ask for — opening the
--- dashboard costs a handful — and far below what a loop left running would.
+-- The student of an Auth user, plus the 401 the endpoints owe the client.
 --
 -- The read endpoints call it without an argument, so the student is the one of
 -- the request's JWT; the submit endpoint passes the Auth user id the edge
--- function verified. It writes the counter, so it is volatile, and so is every
--- function that calls it: a stable function may not modify the database.
+-- function verified.
 create function private.require_student_id(p_auth_user_id uuid default auth.uid())
 returns integer
 language plpgsql
-volatile
+stable
 set search_path = ''
 as $$
 declare
@@ -102,8 +41,6 @@ begin
   if v_student_id is null then
     perform private.raise_api_error(401, 'UNAUTHORIZED', 'Sessão expirada. Faça login novamente.');
   end if;
-
-  perform private.enforce_rate_limit(v_student_id, 'api', 120, 60);
 
   return v_student_id;
 end;

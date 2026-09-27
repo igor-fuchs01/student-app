@@ -7,7 +7,7 @@
 create function public.get_current_student()
 returns jsonb
 language plpgsql
-volatile
+stable
 security definer
 set search_path = ''
 as $$
@@ -29,7 +29,7 @@ $$;
 create function public.list_subjects()
 returns jsonb
 language plpgsql
-volatile
+stable
 security definer
 set search_path = ''
 as $$
@@ -65,7 +65,7 @@ $$;
 create function public.get_subject(p_subject_id integer)
 returns jsonb
 language plpgsql
-volatile
+stable
 security definer
 set search_path = ''
 as $$
@@ -155,7 +155,7 @@ $$;
 create function public.get_dashboard()
 returns jsonb
 language plpgsql
-volatile
+stable
 security definer
 set search_path = ''
 as $$
@@ -272,7 +272,7 @@ $$;
 create function public.list_quizzes()
 returns jsonb
 language plpgsql
-volatile
+stable
 security definer
 set search_path = ''
 as $$
@@ -314,7 +314,7 @@ $$;
 create function public.get_quiz(p_quiz_id integer)
 returns jsonb
 language plpgsql
-volatile
+stable
 security definer
 set search_path = ''
 as $$
@@ -351,7 +351,7 @@ $$;
 create function public.get_ranking()
 returns jsonb
 language plpgsql
-volatile
+stable
 security definer
 set search_path = ''
 as $$

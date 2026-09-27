@@ -42,12 +42,6 @@ declare
   v_values jsonb;
   v_status public.review_status;
 begin
-  -- A budget of its own, charged after the shared one that require_student_id
-  -- already counted: this is the only endpoint that writes, so it is the one
-  -- whose abuse costs storage. Six submissions a minute is more than a student
-  -- answering a simulado ever needs.
-  perform private.enforce_rate_limit(v_student_id, 'submit_quiz_attempt', 6, 60);
-
   if not exists (select 1 from public.quiz_questions qq where qq.quiz_id = p_quiz_id) then
     perform private.raise_api_error(404, 'NOT_FOUND', 'Simulado não encontrado.');
   end if;
