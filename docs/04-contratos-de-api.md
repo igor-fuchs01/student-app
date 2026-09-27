@@ -105,20 +105,16 @@ O cliente valida todo corpo de resposta contra um schema zod antes de utilizá-l
   **é uma mudança incompatível (breaking change)** e deve ser coordenada com um release
   do frontend.
 
-### 1.5 Limites de uso
+### 1.5 Limites de tamanho
 
-No Supabase os limites são contados no banco, em `private.api_rate_limit`, porque é o banco que
-vai para a nuvem: o `supabase/config.toml` só configura o ambiente local, e o `[auth.rate_limit]`
-dele cobre apenas o login. No modo mock não há limite nenhum.
+Não há limite de requisições por aluno: o único rate limit é o do Supabase Auth, que cobre o login.
+O que existe são tetos de tamanho no envio de simulado. No modo mock não há limite nenhum.
 
-- Cada aluno tem um teto de **120 requisições por minuto**, somando todos os endpoints
-  autenticados. Acima disso a resposta é `429` com código `RATE_LIMITED`.
-- `POST /quizzes/:id/attempts` tem um teto próprio de **6 por minuto**, por ser o único endpoint
-  que grava.
 - O schema zod da edge function `submit-quiz-attempt` recusa, com `400` e código
   `VALIDATION_ERROR`, uma lacuna (`blankAnswers`) acima de **2000 caracteres**, um `text` acima
-  de **20000**, mais de **200** respostas ou mais de **50** `optionIds` numa resposta. É um teto de segurança, não uma regra de produto: uma resposta real
-  fica três ordens de grandeza abaixo dele. O limite de uma questão `essay` continua sendo o
+  de **20000**, mais de **200** respostas ou mais de **50** `optionIds` numa resposta. É um teto
+  de segurança, não uma regra de produto: uma resposta real fica três ordens de grandeza abaixo
+  dele. O limite de uma questão `essay` continua sendo o
   `maxLength` da própria questão, conferido no banco.
 
 ---
@@ -458,10 +454,9 @@ Envia as respostas de uma tentativa e retorna a correção.
 | `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido. |
 | `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
 | `404` | Erro, código `NOT_FOUND` | Nenhum simulado com esse `id`. |
-| `429` | Erro, código `RATE_LIMITED` | Mais de 6 envios por minuto (veja [1.5](#15-limites-de-uso)). |
 
 **No Supabase:** a edge function `submit-quiz-attempt` recebe `{ quizId, answers }`, confere o JWT,
-valida o formato com zod (ids numéricos, tamanhos de [1.5](#15-limites-de-uso)) e só então chama
+valida o formato com zod (ids numéricos, tamanhos de [1.5](#15-limites-de-tamanho)) e só então chama
 `submit_quiz_attempt`, que corrige tudo numa transação. Essa função do banco só pode ser executada
 pelo `service_role`, então chamá-la direto pela Data API com o token do aluno responde `403`.
 
@@ -746,7 +741,6 @@ O cliente expõe toda falha como um `ApiError` com `status`, `code` e `message`.
 | `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: código de acesso desconhecido ou senha errada. |
 | `UNAUTHORIZED` | `401` | Servidor | Endpoint autenticado chamado sem um token válido. |
 | `NOT_FOUND` | `404` | Servidor | A rota ou o recurso não existe. |
-| `RATE_LIMITED` | `429` | Servidor | O aluno passou do limite de requisições (veja [1.5](#15-limites-de-uso)). |
 | `NETWORK_ERROR` | `0` | Cliente | Nenhuma resposta foi recebida (offline, falha de DNS, CORS, servidor fora do ar). |
 | `INVALID_RESPONSE` | Status da resposta | Cliente | Um corpo `2xx` não correspondeu ao schema esperado. |
 | `UNKNOWN_ERROR` | Status da resposta | Cliente | Uma resposta não-`2xx` cujo corpo não é um corpo de erro válido, ou cujo `code` não está nesta tabela. |

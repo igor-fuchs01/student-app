@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados e provas agendadas), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `api_helpers` (funções internas e rate limit), `read_endpoints`, `submit_quiz_attempt` e `grants`. Cada tabela leva os próprios índices. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados e provas agendadas), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `api_helpers` (funções internas), `read_endpoints`, `submit_quiz_attempt` e `grants`. Cada tabela leva os próprios índices. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
@@ -86,7 +86,7 @@ chamar a API sem passar pelo app, então a segurança fica no banco, em camadas:
 
 - **As funções do contrato são a API inteira.** `anon` e `authenticated` não têm privilégio em
   nenhuma tabela nem sequência, então `GET /rest/v1/students` responde 403. As views, as funções
-  auxiliares e o contador de rate limit ficam no schema `private`, que não entra em
+  auxiliares ficam no schema `private`, que não entra em
   `[api] schemas` do `config.toml` — nem em Exposed schemas, o equivalente no painel do projeto
   hospedado. A API nem enxerga esses objetos (404). Views ignoram o RLS, e é por isso que
   nenhuma fica em `public`.
