@@ -3,28 +3,6 @@
 -- Each function returns exactly the JSON shape of its contract DTO, so the
 -- frontend validates it with the same zod schemas used by the mock.
 
--- StudentUser (§3.1): the signed-in student, returned after login.
-create function public.get_current_student()
-returns jsonb
-language plpgsql
-stable
-security definer
-set search_path = ''
-as $$
-declare
-  v_student_id integer := private.require_student_id();
-begin
-  return (
-    select jsonb_build_object(
-      'id', s.id::text,
-      'course', s.course
-    )
-    from public.students s
-    where s.id = v_student_id
-  );
-end;
-$$;
-
 -- Subject[] (§3.9, GET /subjects).
 create function public.list_subjects()
 returns jsonb

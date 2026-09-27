@@ -20,7 +20,6 @@ grant execute on function private.current_student_id() to authenticated;
 -- The API surface, one function at a time: an explicit allowlist, so a helper
 -- created in public by mistake is not reachable, and adding an endpoint means
 -- adding its grant on purpose.
-grant execute on function public.get_current_student() to authenticated;
 grant execute on function public.get_dashboard() to authenticated;
 grant execute on function public.list_subjects() to authenticated;
 grant execute on function public.get_subject(integer) to authenticated;

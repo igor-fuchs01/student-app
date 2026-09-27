@@ -387,8 +387,12 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
-# The function verifies the student's JWT itself (auth.getClaims): the gateway
-# check would refuse the browser's CORS preflight, which carries no token.
+# Every edge function verifies the student's JWT itself (auth.getClaims, in
+# supabase/functions/_shared/http.ts): the gateway check would refuse the
+# browser's CORS preflight, which carries no token.
+[functions.get-current-student]
+verify_jwt = false
+
 [functions.submit-quiz-attempt]
 verify_jwt = false
 

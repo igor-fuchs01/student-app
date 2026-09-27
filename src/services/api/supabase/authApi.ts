@@ -2,7 +2,7 @@ import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { studentUserSchema, type AuthSession, type LoginCredentials } from "@models/auth";
 import { ApiError, INVALID_CREDENTIALS_MESSAGE, NETWORK_ERROR_MESSAGE } from "../errors";
 import { getSupabase } from "../supabaseClient";
-import { callRpc } from "./callRpc";
+import { callFunction } from "./callFunction";
 
 // Supabase Auth needs an e-mail, so the access code the institution hands out is stored as
 // <code>@alunos.student-app.invalid: a reserved domain that never receives mail.
@@ -23,7 +23,7 @@ export const supabaseAuthApi = {
       throw new ApiError(401, "INVALID_CREDENTIALS", INVALID_CREDENTIALS_MESSAGE);
     }
 
-    const user = await callRpc("get_current_student", studentUserSchema);
+    const user = await callFunction("get-current-student", studentUserSchema);
     return { token: data.session.access_token, user };
   },
 
