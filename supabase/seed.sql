@@ -224,16 +224,18 @@ JOIN questions q ON q.type = 'multiple_choice'
 JOIN question_options o ON o.question_id = q.id AND o.is_correct;
 
 -- Only one of the two correct options was selected.
-INSERT INTO quiz_attempt_answers (attempt_id, question_id, selected_option_ids, review_status)
-SELECT
-  a.id,
-  q.id,
-  (SELECT jsonb_agg(o.id) FROM question_options o WHERE o.question_id = q.id AND o.order_index = 1),
-  'incorrect'
+INSERT INTO quiz_attempt_answers (attempt_id, question_id, review_status)
+SELECT a.id, q.id, 'incorrect'
 FROM quiz_attempts a
 JOIN students s ON s.id = a.student_id
 JOIN auth.users u ON u.id = s.auth_user_id AND u.email = 'demo0001@alunos.student-app.invalid'
 JOIN questions q ON q.type = 'multiple_answer';
+
+INSERT INTO quiz_attempt_answer_options (answer_id, option_id)
+SELECT answer.id, o.id
+FROM quiz_attempt_answers answer
+JOIN questions q ON q.id = answer.question_id AND q.type = 'multiple_answer'
+JOIN question_options o ON o.question_id = q.id AND o.order_index = 1;
 
 INSERT INTO quiz_attempt_answers (attempt_id, question_id, essay_text, review_status)
 SELECT a.id, q.id, 'Serve para identificar cada linha da tabela.', 'pending_review'

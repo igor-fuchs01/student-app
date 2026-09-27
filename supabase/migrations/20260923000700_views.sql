@@ -1,4 +1,4 @@
--- Student App — views: derived fields (private: reachable only through the functions).
+-- Student App — views: derived fields (private: read only by the edge functions).
 
 -- Every percentage below is graded hits over graded answers, rounded to two
 -- decimals, and null when nothing was graded; each caller decides what an absent
@@ -67,43 +67,6 @@ select
 from quizzes quiz
 left join quiz_questions qq on qq.quiz_id = quiz.id
 group by quiz.id;
-
--- QuizResult counters and scorePercent (§3.14). pending_review answers are left
--- out of the score; unanswered questions count in the denominator, which is why
--- the filter here is is distinct from and not <>.
-create view private.v_quiz_attempt_result as
-select
-  qa.id as attempt_id,
-  qa.quiz_id,
-  qa.submitted_at,
-  count(*) filter (where qaa.review_status = 'correct') as correct_count,
-  count(*) filter (where qaa.review_status = 'incorrect') as incorrect_count,
-  count(*) filter (where qaa.id is null) as unanswered_count,
-  count(*) filter (where qaa.review_status = 'pending_review') as self_review_count,
-  private.percent(
-    count(*) filter (where qaa.review_status = 'correct'),
-    count(*) filter (where qaa.review_status is distinct from 'pending_review')
-  ) as score_percent
-from quiz_attempts qa
-join quiz_questions qq on qq.quiz_id = qa.quiz_id
-left join quiz_attempt_answers qaa on qaa.attempt_id = qa.id and qaa.question_id = qq.question_id
-group by qa.id;
-
--- QuizResult.subjectPerformance (§3.14), same rules as score_percent.
-create view private.v_quiz_attempt_subject_performance as
-select
-  qa.id as attempt_id,
-  t.subject_id,
-  private.percent(
-    count(*) filter (where qaa.review_status = 'correct'),
-    count(*) filter (where qaa.review_status is distinct from 'pending_review')
-  ) as percent
-from quiz_attempts qa
-join quiz_questions qq on qq.quiz_id = qa.quiz_id
-join questions q on q.id = qq.question_id
-join topics t on t.id = q.topic_id
-left join quiz_attempt_answers qaa on qaa.attempt_id = qa.id and qaa.question_id = qq.question_id
-group by qa.id, t.subject_id;
 
 -- streakDays: consecutive activity days ending today or yesterday.
 create view private.v_student_streak as
