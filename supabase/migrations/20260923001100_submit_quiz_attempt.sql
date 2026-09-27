@@ -1,137 +1,29 @@
--- Student App — rate limiting and answer size validation for the API functions.
+-- Student App — submit_quiz_attempt, the write endpoint (§3.13, §3.14).
 --
--- The hosted project is what runs in production, and supabase/config.toml does
--- not reach it: the [auth.rate_limit] block there only shapes the local stack,
--- and on the cloud those numbers live in the dashboard. Whatever protects the
--- endpoints has to be in the database, which is what ships through migrations.
--- That is what this migration adds.
---
--- Two holes are closed:
---
---   * no endpoint had any request limit. Auth rate limiting covers the login,
---     but once a student holds a token, every RPC answered as fast as it was
---     called — including submit_quiz_attempt, which writes rows;
---   * essay_blanks was the one answer type with no size check. essay is bounded
---     by questions.max_length, and every other type only accepts ids matched
---     against '^[0-9]{1,9}$', but a dissertative blank took text of any length
---     and stored it in quiz_attempt_answers.blank_answers.
+-- Called only by the submit-quiz-attempt edge function (supabase/functions/),
+-- which verifies the student's JWT, validates the shape of the body with zod
+-- and passes the Auth user id it read from the token. What zod already
+-- guarantees — answers is an array of objects, every id is a numeric string,
+-- a dissertative blank or an essay has a bounded length — is not checked again
+-- here. What only the database can answer stays: the quiz exists, each question
+-- belongs to it and appears once, each option, blank option or term belongs to
+-- its question, and an essay fits questions.max_length.
 
--- =============================================================================
--- 1. The counter
--- =============================================================================
-
--- In private, like every other internal object: the Data API does not serve this
--- schema, and no client role has a privilege on this table, so a student can
--- neither read their own counter nor anyone else's.
-create table private.api_rate_limit (
-  student_id   integer not null references public.students (id) on delete cascade,
-  endpoint     text not null,
-  window_start timestamptz not null,
-  call_count   integer not null default 1,
-  constraint api_rate_limit_pkey primary key (student_id, endpoint, window_start)
-);
-
-comment on table private.api_rate_limit is 'Requests per student, endpoint and time bucket. Rows outside the current window are deleted on that student''s next call, so the table stays proportional to the students online, not to the traffic they made.';
-
--- Counts one call and refuses it when the bucket is already full.
---
--- Raising aborts the transaction, so the increment that crossed the limit rolls
--- back with it: the stored count settles at the limit and every further call in
--- the window is refused, which is the behaviour wanted. Only calls that go
--- through commit their increment.
-create function private.enforce_rate_limit(
-  p_student_id integer,
-  p_endpoint text,
-  p_limit integer,
-  p_window_seconds integer
-)
+-- The only rejection the grading below ever gives back: a 400 that never says
+-- which answer was refused, whatever the reason (an id from another question or
+-- quiz, an essay past its limit, a repeated question). The edge function answers
+-- the same 400 when the body fails its zod schema.
+create function private.reject_answers()
 returns void
 language plpgsql
-volatile
 set search_path = ''
 as $$
-declare
-  v_window_start timestamptz := to_timestamp(
-    floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds
-  );
-  v_count integer;
 begin
-  delete from private.api_rate_limit
-  where student_id = p_student_id and window_start < v_window_start;
-
-  insert into private.api_rate_limit (student_id, endpoint, window_start)
-  values (p_student_id, p_endpoint, v_window_start)
-  on conflict on constraint api_rate_limit_pkey
-    do update set call_count = private.api_rate_limit.call_count + 1
-  returning call_count into v_count;
-
-  if v_count > p_limit then
-    perform private.raise_api_error(
-      429,
-      'RATE_LIMITED',
-      'Muitas requisições em pouco tempo. Espere um instante e tente de novo.'
-    );
-  end if;
+  perform private.raise_api_error(400, 'VALIDATION_ERROR', 'Respostas inválidas.');
 end;
 $$;
 
--- =============================================================================
--- 2. The limit every endpoint gets
--- =============================================================================
-
--- require_student_id is the first statement of all eight endpoints, so the
--- budget goes here instead of being repeated in each one: one counter per
--- student for the whole API. 120 calls a minute is far above what the screens
--- ask for — opening the dashboard costs a handful — and far below what a loop
--- left running would.
---
--- It writes now, so it is volatile, and so is every function that calls it: a
--- stable function may not modify the database. The volatility of the endpoints
--- is changed below without redefining them.
-create or replace function private.require_student_id()
-returns integer
-language plpgsql
-volatile
-set search_path = ''
-as $$
-declare
-  v_student_id integer := private.current_student_id();
-begin
-  if v_student_id is null then
-    perform private.raise_api_error(401, 'UNAUTHORIZED', 'Sessão expirada. Faça login novamente.');
-  end if;
-
-  perform private.enforce_rate_limit(v_student_id, 'api', 120, 60);
-
-  return v_student_id;
-end;
-$$;
-
-alter function public.get_current_student() volatile;
-alter function public.get_dashboard() volatile;
-alter function public.list_subjects() volatile;
-alter function public.get_subject(integer) volatile;
-alter function public.list_quizzes() volatile;
-alter function public.get_quiz(integer) volatile;
-alter function public.get_ranking() volatile;
-
--- =============================================================================
--- 3. submit_quiz_attempt: its own limit, and the size of a dissertative blank
--- =============================================================================
---
--- Replaced whole, because a migration cannot patch a function body. Two changes
--- against the baseline, both marked below with a comment:
---
---   * a second, stricter budget of its own. It is the only endpoint that writes,
---     so it is the one whose abuse costs storage. Six submissions a minute is
---     more than a student answering a simulado ever needs;
---   * a dissertative blank is refused past 2000 characters. The contract has no
---     per-blank limit to check against (Question of type essay_blanks carries
---     only id and referenceAnswer, §3.12), so this is a safety ceiling, not a
---     rule the student is meant to feel: a real answer to a blank is a word or a
---     sentence, three orders of magnitude below it.
-
-create or replace function public.submit_quiz_attempt(p_quiz_id integer, p_answers jsonb)
+create function public.submit_quiz_attempt(p_auth_user_id uuid, p_quiz_id integer, p_answers jsonb)
 returns jsonb
 language plpgsql
 volatile
@@ -139,7 +31,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_student_id integer := private.require_student_id();
+  v_student_id integer := private.require_student_id(p_auth_user_id);
   v_attempt_id integer;
   v_answer jsonb;
   v_question public.questions%rowtype;
@@ -150,16 +42,14 @@ declare
   v_values jsonb;
   v_status public.review_status;
 begin
-  -- Added here: a budget of its own, charged after the shared one that
-  -- require_student_id already counted. This is the only endpoint that writes.
+  -- A budget of its own, charged after the shared one that require_student_id
+  -- already counted: this is the only endpoint that writes, so it is the one
+  -- whose abuse costs storage. Six submissions a minute is more than a student
+  -- answering a simulado ever needs.
   perform private.enforce_rate_limit(v_student_id, 'submit_quiz_attempt', 6, 60);
 
   if not exists (select 1 from public.quiz_questions qq where qq.quiz_id = p_quiz_id) then
     perform private.raise_api_error(404, 'NOT_FOUND', 'Simulado não encontrado.');
-  end if;
-
-  if p_answers is null or jsonb_typeof(p_answers) <> 'array' then
-    perform private.reject_answers();
   end if;
 
   insert into public.quiz_attempts (quiz_id, student_id)
@@ -167,9 +57,6 @@ begin
   returning id into v_attempt_id;
 
   for v_answer in select value from jsonb_array_elements(p_answers) loop
-    if jsonb_typeof(v_answer) <> 'object' or coalesce(v_answer ->> 'questionId', '') !~ '^[0-9]{1,9}$' then
-      perform private.reject_answers();
-    end if;
     v_question_id := (v_answer ->> 'questionId')::integer;
 
     select q.* into v_question
@@ -190,9 +77,6 @@ begin
     case v_question.type
       when 'multiple_choice' then
         if coalesce(v_answer ->> 'optionId', '') <> '' then
-          if (v_answer ->> 'optionId') !~ '^[0-9]{1,9}$' then
-            perform private.reject_answers();
-          end if;
           v_option_id := (v_answer ->> 'optionId')::integer;
 
           if not exists (
@@ -214,13 +98,6 @@ begin
 
       when 'multiple_answer' then
         if jsonb_typeof(v_answer -> 'optionIds') = 'array' and jsonb_array_length(v_answer -> 'optionIds') > 0 then
-          if exists (
-            select 1 from jsonb_array_elements(v_answer -> 'optionIds') e
-            where jsonb_typeof(e) <> 'string' or (e #>> '{}') !~ '^[0-9]{1,9}$'
-          ) then
-            perform private.reject_answers();
-          end if;
-
           select array_agg(distinct (e #>> '{}')::integer order by (e #>> '{}')::integer)
           into v_selected
           from jsonb_array_elements(v_answer -> 'optionIds') e;
@@ -252,6 +129,8 @@ begin
           where b.question_id = v_question_id
             and coalesce(v_answer -> 'blankAnswers' ->> b.blank_key, '') = ''
         ) then
+          -- Kept here: blankAnswers also carries the free text of essay_blanks, so
+          -- zod cannot know that a single_choice blank must hold an option id.
           if exists (
             select 1 from public.question_blanks b
             where b.question_id = v_question_id
@@ -305,14 +184,6 @@ begin
           if exists (
             select 1 from public.question_slots slot
             where slot.question_id = v_question_id
-              and (v_answer -> 'slotAnswers' ->> slot.slot_key) !~ '^[0-9]{1,9}$'
-          ) then
-            perform private.reject_answers();
-          end if;
-
-          if exists (
-            select 1 from public.question_slots slot
-            where slot.question_id = v_question_id
               and not exists (
                 select 1 from public.question_terms term
                 where term.question_id = v_question_id
@@ -363,16 +234,6 @@ begin
           where b.question_id = v_question_id
             and btrim(coalesce(v_answer -> 'blankAnswers' ->> b.blank_key, '')) = ''
         ) then
-          -- Added here: a blank longer than this is refused, like an essay past
-          -- questions.max_length. Nothing in the contract bounded it before.
-          if exists (
-            select 1 from public.question_blanks b
-            where b.question_id = v_question_id
-              and length(v_answer -> 'blankAnswers' ->> b.blank_key) > 2000
-          ) then
-            perform private.reject_answers();
-          end if;
-
           v_status := case
             when not exists (
               select 1 from public.question_blanks b

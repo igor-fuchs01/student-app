@@ -504,7 +504,7 @@ BEGIN
     WHERE s.name = subject_name AND t.name = question ->> 'topic';
 
     -- Only the columns the type uses are filled; the CHECK constraints in
-    -- the baseline migration reject anything else.
+    -- the questions migration reject anything else.
     INSERT INTO questions (topic_id, type, prompt, template, explanation, max_length, reference_answer)
     VALUES (
       v_topic_id,
