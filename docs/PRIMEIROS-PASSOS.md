@@ -165,6 +165,12 @@ cp supabase/functions/.env.example supabase/functions/.env   # só na primeira v
 npx supabase functions serve --env-file supabase/functions/.env
 ```
 
+As edge functions são código Deno (importam pacotes como `npm:zod@4`). No VS Code, instale a
+extensão **Deno** (`denoland.vscode-deno`), que o projeto já recomenda: o `.vscode/settings.json`
+a liga só em `supabase/functions/`. Sem ela, o editor acusa "Cannot find module 'npm:…'" nesses
+arquivos, embora o app compile normalmente. Para checar os tipos pelo terminal:
+`cd supabase/functions && npx deno check */index.ts`.
+
 A conta de teste é a mesma do mock: código de acesso `demo0001` (ou `demo0002`), senha `123456`.
 
 Para criar um aluno de verdade, gere um código de acesso (6 a 32 letras minúsculas ou dígitos),
