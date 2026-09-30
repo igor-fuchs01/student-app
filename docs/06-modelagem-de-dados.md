@@ -57,7 +57,8 @@ edição de uma migration já aplicada. A divisão atual só pôde reescrever o 
 tinha sido publicado ainda; a partir da primeira publicação, a regra vale sem exceção. Para
 publicar no projeto hospedado, use `npx supabase link`, `npx supabase db push`,
 `npx supabase functions deploy submit-quiz-attempt` e
-`npx supabase secrets set ALLOWED_ORIGINS=<origens do app>`. Se o projeto hospedado já registrou
+`npx supabase secrets set ALLOWED_ORIGINS=<origens do app>` (passo a passo em
+[`07-publicacao-no-supabase.md`](07-publicacao-no-supabase.md)). Se o projeto hospedado já registrou
 as migrations antigas, marque-as como revertidas antes do push:
 `npx supabase migration repair --status reverted 20260923000000 20260923000100` (e recrie o banco
 hospedado, já que o esquema dele é o antigo).
