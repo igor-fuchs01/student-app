@@ -28,7 +28,11 @@ const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPAB
 // supabase/config.toml, so the CORS preflight gets through), so every endpoint does it here.
 async function requireStudentId(request: Request): Promise<number> {
   const token = request.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
-  const { data } = token ? await supabase.auth.getClaims(token) : { data: null };
+  // getClaims throws instead of returning an error for some malformed tokens (payload that isn't
+  // JSON, unsupported alg), which would otherwise reach the 500 below and keep the student logged in.
+  const { data } = token
+    ? await supabase.auth.getClaims(token).catch(() => ({ data: null }))
+    : { data: null };
   const authUserId = data?.claims.sub;
 
   if (authUserId) {
