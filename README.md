@@ -57,6 +57,7 @@ Abra **http://localhost:5173** e entre com o código de acesso `demo0001` / senh
 ## 🏆 Contribuidores
 - Igor Fuchs Pereira
 - Enzo Fuchs Bento
+- Fabricio Lima
 
 <div align="center">
 
