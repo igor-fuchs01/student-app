@@ -41,7 +41,7 @@ função nenhuma exposta: as edge functions leem as tabelas e views e montam o J
 |---|---|
 | `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<accessCode>@alunos.student-app.invalid`, depois `GET get-current-student` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
-| `GET /dashboard` | `GET get-dashboard` |
+| `GET /dashboard` | `GET get-dashboard?period=&subjectId=` |
 | `GET /subjects` | `GET list-subjects` |
 | `GET /subjects/:id` | `GET get-subject?id=:id` |
 | `GET /quizzes` | `GET list-quizzes` |
@@ -219,45 +219,78 @@ independentemente de esta requisição ter sucesso ou falhar.
 
 ### `GET /dashboard`
 
-Retorna os dados agregados da tela de Início do aluno autenticado. É um endpoint
-orientado à tela, que combina dados que, na API planejada, viriam de endpoints
-separados de desempenho, recomendações e streak.
+Retorna o painel da tela de Início do aluno autenticado: o preparo e a evolução dele nos
+últimos `period` dias, comparados com os `period` dias anteriores, e os assuntos que mais
+precisam de atenção. Só traz dados numéricos; textos e formatação ficam na UI.
 
 **Autenticação:** exigida. **Corpo da requisição:** nenhum.
+
+**Query string**
+
+| Parâmetro | Tipo | Regras |
+|---|---|---|
+| `period` | integer | Opcional. `30`, `90` ou `180` (dias, contando hoje). Padrão `90`. |
+| `subjectId` | string | Opcional. Limita tudo, exceto `streakDays` e `weeklyGoal`, a uma disciplina. |
+
+Um percentual é sempre acertos sobre questões corrigidas: respostas `pending_review` (dissertativas
+ainda sem autocorreção) contam como respondidas, mas não entram no percentual.
 
 **Respostas**
 
 | Status | Corpo | Quando |
 |---|---|---|
 | `200` | [`DashboardData`](#34-dashboarddata) | Sempre, para um aluno autenticado. |
+| `400` | Erro, código `VALIDATION_ERROR` | `period` diferente de `30`, `90` ou `180`. |
 | `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
+| `404` | Erro, código `NOT_FOUND` | `subjectId` não numérico ou de disciplina inexistente. |
 
 ```json
 {
-  "streakDays": 7,
-  "nextExam": {
-    "subjectName": "Banco de Dados",
-    "dateLabel": "Sexta-feira, 18/09",
-    "note": "Simulado integrado disponível",
-    "overallPreparation": 72,
-    "priorities": [
-      { "id": "er-modeling", "topicName": "Modelagem ER", "level": "high" },
-      { "id": "normalization", "topicName": "Normalização", "level": "medium" },
-      { "id": "basic-sql", "topicName": "SQL básico", "level": "low" }
+  "streakDays": 9,
+  "preparation": { "percent": 71.3, "previousPercent": 68.02 },
+  "questionsAnswered": { "count": 600, "previousCount": 535 },
+  "weeklyGoal": { "completed": 35, "target": 50 },
+  "weeklyAccuracy": [
+    {
+      "weekStart": "2026-09-17",
+      "weekEnd": "2026-09-23",
+      "answeredCount": 40,
+      "gradedCount": 38,
+      "correctCount": 28,
+      "percent": 73.68
+    },
+    {
+      "weekStart": "2026-09-24",
+      "weekEnd": "2026-09-30",
+      "answeredCount": 75,
+      "gradedCount": 74,
+      "correctCount": 57,
+      "percent": 77.03
+    }
+  ],
+  "preparationBreakdown": {
+    "scope": "subject",
+    "items": [
+      { "id": "2", "name": "Algoritmos", "gradedCount": 123, "correctCount": 97, "percent": 78.86 },
+      { "id": "1", "name": "Banco de Dados", "gradedCount": 98, "correctCount": 63, "percent": 64.29 }
     ]
   },
-  "todayPlan": [
-    { "id": "review-er-modeling", "label": "Revisar Modelagem ER — 20 min", "done": false },
-    { "id": "mini-quiz", "label": "Fazer mini-simulado do assunto", "done": true }
-  ],
-  "summaryCards": [
-    {
-      "id": "subjects",
-      "title": "Disciplinas",
-      "value": "5 matérias",
-      "description": "Algoritmos, Arquitetura, SO, TI e Banco de Dados."
-    }
-  ]
+  "studyFocus": {
+    "items": [
+      {
+        "topicId": "7",
+        "topicName": "Modelagem ER",
+        "topicNumber": 1,
+        "subjectId": "1",
+        "subjectShortLabel": "BD",
+        "percent": 42.11,
+        "gradedCount": 38,
+        "recentWrongCount": 4,
+        "level": "high"
+      }
+    ],
+    "totalCount": 6
+  }
 }
 ```
 
@@ -265,8 +298,14 @@ separados de desempenho, recomendações e streak.
 
 - A requisição é cancelada se a tela deixar de precisar dela; uma requisição cancelada
   não é tratada como erro.
-- Marcar ou desmarcar um item do `todayPlan` altera apenas o estado local da UI. Nenhum
-  endpoint ainda persiste isso.
+- Os filtros ficam na URL da tela (`/?periodo=30&disciplina=1`); trocar um filtro refaz a
+  requisição mantendo o painel anterior na tela, esmaecido, até a resposta chegar.
+- `level` vira um badge com ícone e texto (`high` → "▲ Alta", `medium` → "● Média",
+  `few_practice` → "○ Pouco praticado"), e a ação sugerida sai de `level` e
+  `recentWrongCount`. O card mostra só os itens que cabem na altura da tela e informa quantos
+  ficaram de fora a partir de `totalCount`.
+- Sem nenhuma questão respondida no período, a tela convida a fazer um simulado em vez de
+  mostrar gráficos vazios.
 
 ---
 
@@ -518,56 +557,66 @@ ranking) é o que o aluno digitou no login, guardado só no `localStorage` pelo
 
 ### 3.3 Texto de exibição
 
-Campos como `dateLabel`, `note`, `label`, `title`, `value` e `description` são
-**textos prontos para exibição, em português (pt-BR)**, já formatados pelo servidor.
-O cliente os renderiza como estão, sem interpretar ou reformatar.
+Campos como `title`, `name` e `description` são **textos prontos para exibição, em
+português (pt-BR)**. O cliente os renderiza como estão, sem interpretar ou reformatar.
+Números, datas e percentuais vêm crus (ex.: `GET /dashboard`); a UI formata.
 
 ### 3.4 `DashboardData`
 
 | Campo | Tipo | Regras |
 |---|---|---|
-| `streakDays` | integer | `>= 0`. Dias consecutivos com atividade de estudo. |
-| `nextExam` | [`NextExam`](#35-nextexam) | Obrigatório. |
-| `todayPlan` | [`StudyPlanItem`](#37-studyplanitem)`[]` | Obrigatório. Pode ser vazio. |
-| `summaryCards` | [`DashboardSummaryCard`](#38-dashboardsummarycard)`[]` | Obrigatório. Pode ser vazio. |
+| `streakDays` | integer | `>= 0`. Dias consecutivos com atividade de estudo (todas as disciplinas). |
+| `preparation` | object | `{ percent, previousPercent }`: acerto no período e no período anterior; cada um entre `0` e `100`, ou `null` sem questões corrigidas. |
+| `questionsAnswered` | object | `{ count, previousCount }`: questões respondidas no período e no anterior; inteiros `>= 0`. |
+| `weeklyGoal` | object | `{ completed, target }`: questões respondidas desde segunda-feira (todas as disciplinas) e a meta semanal (`> 0`). |
+| `weeklyAccuracy` | [`WeeklyAccuracy`](#35-weeklyaccuracy)`[]` | Uma por janela de 7 dias do período, da mais antiga para a mais recente. |
+| `preparationBreakdown` | object | `{ scope, items }`: `scope` é `"subject"` (sem `subjectId`) ou `"topic"` (com `subjectId`); `items` é [`PreparationItem`](#36-preparationitem)`[]`, do maior para o menor `percent`. |
+| `studyFocus` | object | `{ items, totalCount }`: até 5 [`StudyFocusTopic`](#37-studyfocustopic), na ordem de prioridade, e quantos assuntos precisam de atenção no total. |
 
-### 3.5 `NextExam`
-
-| Campo | Tipo | Regras |
-|---|---|---|
-| `subjectName` | string | Disciplina da próxima prova. |
-| `dateLabel` | string | Texto de exibição, ex.: `"Sexta-feira, 18/09"`. |
-| `note` | string | Texto de exibição. Pode ser vazio. |
-| `overallPreparation` | number | Entre `0` e `100`, inclusive. Percentual de preparação. |
-| `priorities` | [`TopicPriority`](#36-topicpriority)`[]` | Obrigatório. Pode ser vazio. Renderizado na ordem do array. |
-
-### 3.6 `TopicPriority`
+### 3.5 `WeeklyAccuracy`
 
 | Campo | Tipo | Regras |
 |---|---|---|
-| `id` | string | Não vazio. Único dentro da lista. |
-| `topicName` | string | Nome de exibição do assunto. |
-| `level` | enum | `"high"`, `"medium"`, ou `"low"`. |
+| `weekStart` | string | Data `YYYY-MM-DD`. A primeira janela pode começar depois, no início do período. |
+| `weekEnd` | string | Data `YYYY-MM-DD`. A última janela termina hoje. |
+| `answeredCount` | integer | `>= 0`. Questões respondidas na janela. |
+| `gradedCount` | integer | `>= 0`. Questões corrigidas na janela. |
+| `correctCount` | integer | `>= 0`. Acertos na janela. |
+| `percent` | number \| null | Entre `0` e `100`; `null` quando nada foi corrigido na janela. |
 
-A UI mapeia `level` para um badge: `high` → "Prioridade alta", `medium` → "Prioridade média",
-`low` → "Em dia".
-
-### 3.7 `StudyPlanItem`
-
-| Campo | Tipo | Regras |
-|---|---|---|
-| `id` | string | Não vazio. Único dentro da lista. |
-| `label` | string | Texto de exibição da tarefa. |
-| `done` | boolean | Se a tarefa já foi concluída. |
-
-### 3.8 `DashboardSummaryCard`
+### 3.6 `PreparationItem`
 
 | Campo | Tipo | Regras |
 |---|---|---|
-| `id` | enum | `"subjects"`, `"quizzes"`, ou `"ranking"`. |
-| `title` | string | Texto de exibição. |
-| `value` | string | Texto de exibição, ex.: `"6 disponíveis"`. |
-| `description` | string | Texto de exibição. |
+| `id` | string | Não vazio. Id da disciplina ou do assunto, conforme o `scope`. |
+| `name` | string | Nome da disciplina ou do assunto. |
+| `topicNumber` | integer | Só quando `scope` é `"topic"`: o número da aula do assunto. |
+| `gradedCount` | integer | `> 0`. Itens sem questões corrigidas no período não vêm. |
+| `correctCount` | integer | `>= 0`. |
+| `percent` | number | Entre `0` e `100`. |
+
+### 3.7 `StudyFocusTopic`
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `topicId` | string | Não vazio. |
+| `topicName` | string | Nome do assunto. |
+| `topicNumber` | integer | Número da aula do assunto. |
+| `subjectId` | string | Não vazio. A UI leva o aluno para `/disciplinas/:subjectId`. |
+| `subjectShortLabel` | string | Sigla da disciplina. |
+| `percent` | number \| null | Acerto no período; `null` sem questões corrigidas. |
+| `gradedCount` | integer | `>= 0`. Questões corrigidas no período. |
+| `recentWrongCount` | integer | `>= 0`. Erros nos últimos 14 dias. |
+| `level` | enum | `"high"` (acerto abaixo de 50%), `"medium"` (abaixo de 80%) ou `"few_practice"` (menos de 10 questões corrigidas no período). Assuntos com 80% ou mais não vêm. |
+
+A ordem segue [`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 9: `high`, depois
+`medium`, depois `few_practice`; dentro de cada nível, mais erros recentes primeiro e depois o
+menor acerto.
+
+### 3.8 Filtros do dashboard
+
+`DashboardFilters` (`src/types/dashboard.ts`) é o par `{ period, subjectId? }` que a tela passa
+para `dashboardApi.getDashboard` e que vira a query string de `GET /dashboard`.
 
 ### 3.9 `Subject`
 
@@ -808,6 +857,9 @@ Particularidades do mock:
   lacuna dissertativa) idêntica à referência, ignorando maiúsculas e espaços extras, é
   correta; caso contrário vira `self_review` (ver
   [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 5).
+- **Dashboard:** o histórico vem de um gerador com semente fixa (`mocks/dashboard.ts`), com
+  um ano de respostas sobre as disciplinas e assuntos do mock, e é agregado com as mesmas
+  regras da edge function. Ele não muda quando o aluno envia um simulado no mock.
 - **Nota e desempenho por assunto:** questões `self_review` ficam fora de `scorePercent` e de
   `subjectPerformance`; questões não respondidas entram no denominador dos dois.
 - **Bundle:** o MSW e os dados do mock são carregados por import dinâmico somente quando
