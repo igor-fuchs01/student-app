@@ -59,6 +59,10 @@ O risco natural deste produto é que **toda a lógica acabe concentrada na featu
   autenticação, se renderizam as rotas filhas (`<Outlet />`) ou redirecionam.
 - Cada página é carregada sob demanda (`lazy`), gerando um chunk por rota.
 - Erros de renderização ou de carregamento de uma rota exibem `RouteErrorPage`.
+- Na Vercel, o `vercel.json` reescreve todo caminho para `/index.html`, para que abrir ou
+  recarregar uma rota (ex.: `/simulados`) carregue o app em vez de dar 404. Arquivos que existem no
+  build (`/assets/*`, `mockServiceWorker.js`) continuam sendo servidos diretamente, porque a Vercel
+  confere o sistema de arquivos antes de aplicar o rewrite.
 
 ---
 
