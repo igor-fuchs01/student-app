@@ -187,7 +187,7 @@ INSERT INTO question_blanks (question_id, blank_key, reference_answer, order_ind
 SELECT id, 'b1', 'chave primária', 1 FROM questions WHERE type = 'essay_blanks';
 
 -- -----------------------------------------------------------------------------
--- Quiz and upcoming exam
+-- Quiz
 -- -----------------------------------------------------------------------------
 
 INSERT INTO quizzes (title, subject_scope, subject_id, duration_minutes, difficulty)
@@ -199,10 +199,6 @@ SELECT z.id, q.id, ROW_NUMBER() OVER (ORDER BY q.id)
 FROM quizzes z
 CROSS JOIN questions q
 WHERE z.title = 'Banco de Dados — Simulado 1';
-
-INSERT INTO scheduled_exams (subject_id, exam_date, note)
-SELECT id, CURRENT_DATE + 7, 'Simulado integrado disponível'
-FROM subjects WHERE name = 'Banco de Dados';
 
 -- -----------------------------------------------------------------------------
 -- One submitted attempt: 1 correct, 1 incorrect, 1 pending review, 3 unanswered
