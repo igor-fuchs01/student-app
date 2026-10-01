@@ -1,135 +1,108 @@
-import styled from "styled-components";
+import styled, { type DefaultTheme } from "styled-components";
 import { Card } from "@components/ui/Card";
 
-export const StyledGreeting = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  margin: 0 0 2px;
-`;
+const fitViewport = ({ theme }: { theme: DefaultTheme }) =>
+  `(min-width: ${theme.breakpoints.md}) and (min-height: 560px)`;
 
-export const StyledPageTitle = styled.h1`
-  font-weight: 700;
-  font-size: 20px;
-  margin: 0 0 20px;
-`;
+export const StyledDashboard = styled.div<{ $updating: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: opacity 0.2s ease;
+  opacity: ${({ $updating }) => ($updating ? 0.6 : 1)};
 
-export const StyledMainGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 18px;
-  margin-bottom: 18px;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
+  @media ${fitViewport} {
+    flex: 1;
+    min-height: 0;
   }
 `;
 
-export const StyledEyebrow = styled.span`
-  color: ${({ theme }) => theme.colors.accent600};
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-`;
-
-export const StyledExamSubject = styled.div`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 700;
-  font-size: 19px;
-  margin: 4px 0;
-`;
-
-export const StyledExamMeta = styled.div`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  margin-bottom: 14px;
-`;
-
-export const StyledProgressLabel = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 12px;
-  margin: 0 0 4px;
-`;
-
-export const StyledProgressValue = styled.p`
-  font-size: 13px;
-  font-weight: 700;
-  margin: 4px 0 16px;
-`;
-
-export const StyledPriorityList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
+export const StyledHead = styled.div`
+  flex: none;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-export const StyledPriorityItem = styled.li`
-  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  gap: 10px 24px;
+  flex-wrap: wrap;
+`;
+
+export const StyledGreeting = styled.h1`
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+`;
+
+export const StyledSubtitle = styled.p`
+  color: ${({ theme }) => theme.colors.muted};
   font-size: 13px;
+  margin: 2px 0 0;
 `;
 
-export const StyledPlanList = styled.ul`
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    gap: 0;
-  }
-`;
-
-export const StyledPlanItemLabel = styled.label<{ $done: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  cursor: pointer;
-  opacity: ${({ $done }) => ($done ? 0.5 : 1)};
-  text-decoration: ${({ $done }) => ($done ? "line-through" : "none")};
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    min-height: 44px;
-  }
-
-  input {
-    width: 18px;
-    height: 18px;
-    accent-color: ${({ theme }) => theme.colors.accent};
-  }
-`;
-
-export const StyledSummaryGrid = styled.div`
+export const StyledGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
+  @media ${fitViewport} {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 `;
 
-export const StyledSummaryCard = styled(Card)`
-  padding: 18px;
+export const StyledKpis = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
-export const StyledSummaryValue = styled.div`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 700;
-  font-size: 16px;
-  margin: 4px 0;
+export const StyledCharts = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+
+  @media ${fitViewport} {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
 `;
 
-export const StyledSummaryDescription = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 12.5px;
-  margin: 0;
+export const StyledFocusArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  > * {
+    flex: 1;
+  }
+
+  @media ${fitViewport} {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+`;
+
+export const StyledEmptyState = styled(Card)`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid ${({ theme }) => theme.colors.divider};
+
+  h2 {
+    font-size: 17px;
+    margin: 0;
+  }
+
+  p {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 13.5px;
+    margin: 0;
+  }
 `;

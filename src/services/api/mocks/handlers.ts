@@ -7,6 +7,7 @@ import {
   type PathParams,
 } from "msw";
 import { loginCredentialsSchema, type AuthSession } from "@models/auth";
+import { dashboardPeriodSchema } from "@models/dashboard";
 import { submitQuizAttemptSchema } from "@models/quizzes";
 import { MOCK_API_BASE_URL, MOCK_DELAY_MS } from "../config";
 import { API_ENDPOINTS } from "../endpoints";
@@ -97,7 +98,18 @@ export const handlers = [
 
   http.get(
     api(API_ENDPOINTS.dashboard),
-    authenticated(() => HttpResponse.json(buildMockDashboard())),
+    authenticated(({ request }) => {
+      const query = new URL(request.url).searchParams;
+      const period = dashboardPeriodSchema.safeParse(Number(query.get("period") ?? "90"));
+      if (!period.success) return errorResponse(400, "VALIDATION_ERROR", "Período inválido.");
+
+      const dashboard = buildMockDashboard({
+        period: period.data,
+        subjectId: query.get("subjectId") ?? undefined,
+      });
+      if (!dashboard) return errorResponse(404, "NOT_FOUND", "Disciplina não encontrada.");
+      return HttpResponse.json(dashboard);
+    }),
   ),
 
   http.get(

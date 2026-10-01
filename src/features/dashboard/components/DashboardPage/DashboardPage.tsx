@@ -1,76 +1,83 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Badge, type BadgeTone } from "@components/ui/Badge";
-import { Card } from "@components/ui/Card";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@components/ui/Button";
 import { ProgressBar } from "@components/ui/ProgressBar";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { dashboardApi } from "@services/api/dashboardApi";
+import { subjectsApi } from "@services/api/subjectsApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
-import type { PriorityLevel, StudyPlanItem } from "@models/dashboard";
-import { NewQuizzesSection } from "./NewQuizzesSection";
+import { formatPercent } from "@features/dashboard/percent";
+import { DASHBOARD_PERIODS, type DashboardFilters as Filters } from "@models/dashboard";
+import { AccuracyTrendChart } from "./AccuracyTrendChart";
+import { ChartCard } from "./ChartCard";
+import { DashboardFilters } from "./DashboardFilters";
+import { KpiCard } from "./KpiCard";
+import { PreparationChart } from "./PreparationChart";
+import { Sparkline } from "./Sparkline";
+import { StudyFocusCard } from "./StudyFocusCard";
 import {
+  StyledDashboard,
+  StyledHead,
   StyledGreeting,
-  StyledPageTitle,
-  StyledMainGrid,
-  StyledEyebrow,
-  StyledExamSubject,
-  StyledExamMeta,
-  StyledProgressLabel,
-  StyledProgressValue,
-  StyledPriorityList,
-  StyledPriorityItem,
-  StyledPlanList,
-  StyledPlanItemLabel,
-  StyledSummaryGrid,
-  StyledSummaryCard,
-  StyledSummaryValue,
-  StyledSummaryDescription,
+  StyledSubtitle,
+  StyledGrid,
+  StyledKpis,
+  StyledCharts,
+  StyledFocusArea,
+  StyledEmptyState,
 } from "./DashboardPage.styles";
 
-const PRIORITY_LABEL: Record<PriorityLevel, string> = {
-  high: "Prioridade alta",
-  medium: "Prioridade média",
-  low: "Em dia",
-};
+const DEFAULT_PERIOD = 90;
 
-const PRIORITY_TONE: Record<PriorityLevel, BadgeTone> = {
-  high: "accent2",
-  medium: "neutral",
-  low: "accent",
-};
+function readFilters(searchParams: URLSearchParams): Filters {
+  const period = DASHBOARD_PERIODS.find((value) => String(value) === searchParams.get("periodo"));
+  return {
+    period: period ?? DEFAULT_PERIOD,
+    subjectId: searchParams.get("disciplina") || undefined,
+  };
+}
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-
   const displayName = useAuthStore((state) => state.displayName);
   const firstName = displayName?.split(" ")[0] ?? "Estudante";
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = readFilters(searchParams);
+
   const dashboardQuery = useQuery({
-    queryKey: ["dashboard", user?.id],
-    queryFn: ({ signal }) => dashboardApi.getDashboard(signal),
+    queryKey: ["dashboard", user?.id, filters.period, filters.subjectId],
+    queryFn: ({ signal }) => dashboardApi.getDashboard(filters, signal),
     enabled: Boolean(user),
+    placeholderData: keepPreviousData,
   });
 
-  const [plan, setPlan] = useState<StudyPlanItem[]>([]);
+  const subjectsQuery = useQuery({
+    queryKey: ["subjects"],
+    queryFn: ({ signal }) => subjectsApi.getSubjects(signal),
+  });
 
-  useEffect(() => {
-    if (dashboardQuery.data) {
-      setPlan(dashboardQuery.data.todayPlan);
-    }
-  }, [dashboardQuery.data]);
-
-  function toggleTask(id: string) {
-    setPlan((current) =>
-      current.map((item) => (item.id === id ? { ...item, done: !item.done } : item)),
-    );
+  function changeFilters({ period, subjectId }: Filters) {
+    const next = new URLSearchParams();
+    if (period !== DEFAULT_PERIOD) next.set("periodo", String(period));
+    if (subjectId) next.set("disciplina", subjectId);
+    setSearchParams(next, { replace: true });
   }
 
+  const data = dashboardQuery.data;
+  const comparisonLabel =
+    filters.period === 180 ? "vs semestre anterior" : `vs ${filters.period} dias anteriores`;
+  const weeklyGoalPercent = data
+    ? Math.min(100, (100 * data.weeklyGoal.completed) / data.weeklyGoal.target)
+    : 0;
+
   return (
-    <PageLayout active="inicio" streakDays={dashboardQuery.data?.streakDays}>
+    <PageLayout active="inicio" streakDays={data?.streakDays} fitViewport>
       {dashboardQuery.isLoading && <StatusMessage message="Carregando seu painel…" />}
 
-      {dashboardQuery.isError && (
+      {dashboardQuery.isError && !data && (
         <StatusMessage
           message="Não foi possível carregar seus dados agora."
           error={dashboardQuery.error}
@@ -78,73 +85,93 @@ export function DashboardPage() {
         />
       )}
 
-      {dashboardQuery.data && (
-        <>
-          <StyledGreeting>Olá, {firstName} 👋</StyledGreeting>
-          <StyledPageTitle>O que você vai estudar hoje?</StyledPageTitle>
+      {data && (
+        <StyledDashboard $updating={dashboardQuery.isPlaceholderData}>
+          <StyledHead>
+            <div>
+              <StyledGreeting>Olá, {firstName} 👋</StyledGreeting>
+              <StyledSubtitle>Veja como está o seu preparo</StyledSubtitle>
+            </div>
+            <DashboardFilters
+              filters={filters}
+              subjects={subjectsQuery.data ?? []}
+              onChange={changeFilters}
+            />
+          </StyledHead>
 
-          <StyledMainGrid>
-            <Card tone="surface2">
-              <StyledEyebrow>Próxima prova</StyledEyebrow>
-              <StyledExamSubject>{dashboardQuery.data.nextExam.subjectName}</StyledExamSubject>
-              <StyledExamMeta>
-                {dashboardQuery.data.nextExam.dateLabel} · {dashboardQuery.data.nextExam.note}
-              </StyledExamMeta>
+          {data.questionsAnswered.count === 0 ? (
+            <StyledEmptyState as="section">
+              <h2>Nenhuma questão respondida neste período</h2>
+              <p>Faça um simulado para acompanhar aqui o seu preparo e a sua evolução.</p>
+              <Button onClick={() => navigate("/simulados")}>Ver simulados</Button>
+            </StyledEmptyState>
+          ) : (
+            <StyledGrid>
+              <StyledKpis>
+                <KpiCard
+                  label="Preparo geral"
+                  value={formatPercent(data.preparation.percent)}
+                  aside={<Sparkline values={data.weeklyAccuracy.map((week) => week.percent)} />}
+                  delta={{
+                    current: data.preparation.percent,
+                    previous: data.preparation.previousPercent,
+                    unit: "points",
+                    comparisonLabel,
+                  }}
+                />
+                <KpiCard
+                  label="Questões respondidas"
+                  value={data.questionsAnswered.count.toLocaleString("pt-BR")}
+                  delta={{
+                    current: data.questionsAnswered.count,
+                    previous: data.questionsAnswered.previousCount,
+                    unit: "percent",
+                    comparisonLabel,
+                  }}
+                />
+                <KpiCard
+                  label="Meta da semana"
+                  value={String(data.weeklyGoal.completed)}
+                  unit={`/ ${data.weeklyGoal.target} questões`}
+                >
+                  <ProgressBar value={weeklyGoalPercent} label="Progresso da meta da semana" />
+                </KpiCard>
+              </StyledKpis>
 
-              <StyledProgressLabel>Preparação geral</StyledProgressLabel>
-              <ProgressBar
-                value={dashboardQuery.data.nextExam.overallPreparation}
-                label="Preparação geral para a próxima prova"
-              />
-              <StyledProgressValue>
-                {dashboardQuery.data.nextExam.overallPreparation}%
-              </StyledProgressValue>
+              <StyledCharts>
+                <ChartCard
+                  title="Evolução do acerto"
+                  subtitle="Acerto por semana"
+                  legend={[
+                    { mark: "line", label: "Seu acerto" },
+                    { mark: "target", label: "Meta (80%)" },
+                  ]}
+                >
+                  {(showTable) => (
+                    <AccuracyTrendChart weeks={data.weeklyAccuracy} showTable={showTable} />
+                  )}
+                </ChartCard>
+                <ChartCard
+                  title={
+                    data.preparationBreakdown.scope === "topic"
+                      ? "Preparo por assunto"
+                      : "Preparo por disciplina"
+                  }
+                  subtitle="Do maior para o menor acerto"
+                  legend={[{ mark: "target", label: "Meta (80%)" }]}
+                >
+                  {(showTable) => (
+                    <PreparationChart breakdown={data.preparationBreakdown} showTable={showTable} />
+                  )}
+                </ChartCard>
+              </StyledCharts>
 
-              <StyledPriorityList>
-                {dashboardQuery.data.nextExam.priorities.map((priority, index) => (
-                  <StyledPriorityItem key={priority.id}>
-                    <span>
-                      {index + 1}. {priority.topicName}
-                    </span>
-                    <Badge tone={PRIORITY_TONE[priority.level]}>
-                      {PRIORITY_LABEL[priority.level]}
-                    </Badge>
-                  </StyledPriorityItem>
-                ))}
-              </StyledPriorityList>
-            </Card>
-
-            <Card tone="surface">
-              <StyledEyebrow>Plano recomendado para hoje</StyledEyebrow>
-              <StyledPlanList>
-                {plan.map((item) => (
-                  <li key={item.id}>
-                    <StyledPlanItemLabel $done={item.done}>
-                      <input
-                        type="checkbox"
-                        checked={item.done}
-                        onChange={() => toggleTask(item.id)}
-                      />
-                      {item.label}
-                    </StyledPlanItemLabel>
-                  </li>
-                ))}
-              </StyledPlanList>
-            </Card>
-          </StyledMainGrid>
-
-          <StyledSummaryGrid>
-            {dashboardQuery.data.summaryCards.map((card) => (
-              <StyledSummaryCard key={card.id}>
-                <StyledEyebrow>{card.title}</StyledEyebrow>
-                <StyledSummaryValue>{card.value}</StyledSummaryValue>
-                <StyledSummaryDescription>{card.description}</StyledSummaryDescription>
-              </StyledSummaryCard>
-            ))}
-          </StyledSummaryGrid>
-
-          <NewQuizzesSection />
-        </>
+              <StyledFocusArea>
+                <StudyFocusCard studyFocus={data.studyFocus} />
+              </StyledFocusArea>
+            </StyledGrid>
+          )}
+        </StyledDashboard>
       )}
     </PageLayout>
   );

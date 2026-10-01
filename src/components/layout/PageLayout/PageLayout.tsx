@@ -7,6 +7,7 @@ type PageLayoutProps = {
   streakDays?: number;
   logoutConfirmation?: string;
   hideMobileNav?: boolean;
+  fitViewport?: boolean;
   children: ReactNode;
 };
 
@@ -15,17 +16,18 @@ export function PageLayout({
   streakDays,
   logoutConfirmation,
   hideMobileNav,
+  fitViewport = false,
   children,
 }: PageLayoutProps) {
   return (
-    <StyledPage>
+    <StyledPage $fitViewport={fitViewport}>
       <AppHeader
         active={active}
         streakDays={streakDays}
         logoutConfirmation={logoutConfirmation}
         hideMobileNav={hideMobileNav}
       />
-      <StyledContent>{children}</StyledContent>
+      <StyledContent $fitViewport={fitViewport}>{children}</StyledContent>
     </StyledPage>
   );
 }
