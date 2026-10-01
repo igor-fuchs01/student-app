@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados e provas agendadas), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security` e `grants`. Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants` e `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
@@ -140,7 +140,6 @@ da equipe, inclusive quem não programa.
 | **Simulado** | Conjunto ordenado de questões, com duração e dificuldade. Pode ser de uma disciplina ou integrado. |
 | **Tentativa** | Envio de um simulado por um aluno. |
 | **Resposta** | O que o aluno respondeu em uma questão de uma tentativa, com o resultado da correção. |
-| **Prova** | Próxima avaliação de uma disciplina, exibida na tela de Início. |
 | **Dia de estudo** | Dia em que o aluno teve atividade. É a base do streak. |
 
 ### 1.2 Relacionamentos
@@ -163,7 +162,6 @@ da equipe, inclusive quem não programa.
 | Simulado — Questão | N : M | Um simulado tem pelo menos uma questão; uma questão pode estar em vários simulados. O relacionamento tem um atributo: a **ordem** da questão no simulado. |
 | Simulado — Tentativa | 1 : N | Sem limite: o aluno refaz o simulado quantas vezes quiser, e cada envio vira uma tentativa. |
 | Tentativa — Questão | N : M, via **Resposta** | Resposta é uma entidade associativa: no máximo uma por questão em cada tentativa. Questões sem resposta contam como não respondidas. |
-| Disciplina — Prova | 1 : N | Uma disciplina pode ter várias provas agendadas. |
 
 ### 1.3 Diagrama conceitual
 
@@ -189,8 +187,6 @@ erDiagram
     SIMULADO ||--o{ TENTATIVA : "gera"
     TENTATIVA ||--o{ RESPOSTA : "contém"
     QUESTAO ||--o{ RESPOSTA : "é respondida em"
-
-    DISCIPLINA ||--o{ PROVA : "tem"
 ```
 
 Como ler a notação (pé de galinha): `||` = exatamente um, `|o` = zero ou um, `o{` = zero ou
@@ -238,7 +234,6 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Simulado — Questão (N : M) | `quiz_questions` |
 | Tentativa | `quiz_attempts` |
 | Resposta | `quiz_attempt_answers`, com os valores múltiplos em `quiz_attempt_answer_options`, `quiz_attempt_answer_blanks` e `quiz_attempt_answer_slots` |
-| Prova | `scheduled_exams` |
 | Dia de estudo | `student_activity_days` |
 
 Nomes de tabelas e colunas em inglês, seguindo a convenção de código do projeto.
@@ -328,8 +323,6 @@ erDiagram
     quiz_attempt_answers ||--o{ quiz_attempt_answer_slots : ""
     question_slots ||--o{ quiz_attempt_answer_slots : ""
     question_terms ||--o{ quiz_attempt_answer_slots : ""
-
-    subjects ||--o{ scheduled_exams : ""
 
     auth_users {
         uuid id PK
@@ -444,13 +437,6 @@ erDiagram
         int order_index
     }
 
-    scheduled_exams {
-        int id PK
-        int subject_id FK
-        date exam_date
-        text note
-    }
-
     quiz_attempts {
         int id PK
         int quiz_id FK
@@ -502,16 +488,18 @@ concentra o arredondamento das porcentagens; cada view decide o que conta como r
 | View | Campo(s) do contrato |
 |---|---|
 | `v_subject_summary` | `Subject.materialsCount`, `Subject.questionsCount` |
-| `v_student_subject_performance` | `Subject.preparationPercent`, `NextExam.overallPreparation` |
-| `v_student_topic_performance` | `NextExam.priorities` (o nível alta/média/baixa é um corte aplicado pela aplicação) |
+| `v_student_subject_performance` | `Subject.preparationPercent` |
 | `v_quiz_summary` | `QuizSummary.questionCount` |
 | `v_student_streak`, `v_student_ranking` | `streakDays`, `RankingData.entries` |
-| `v_student_ranking_profile` | `RankingData.profile` |
+| `v_student_ranking_profile` | `RankingData.profile`, `DashboardData.streakDays` e `DashboardData.weeklyGoal` |
 
 `QuizSummary.attemptsCount` é contado pela edge function `list-quizzes`, filtrado pelo aluno. O
 `QuizResult` inteiro (contadores, `scorePercent`, `subjectPerformance` e `reviewItems`) é
 calculado pela `submit-quiz-attempt` a partir das respostas que ela acabou de corrigir, com as
 mesmas regras: `self_review` fica fora da nota e questão não respondida entra no denominador.
+O resto do `DashboardData` depende do período e da disciplina pedidos, então a `get-dashboard`
+agrega as respostas do aluno direto nas tabelas, com `private.percent` e o mesmo critério de
+resposta corrigida das views.
 
 ---
 
@@ -527,7 +515,7 @@ funcionalidades complexas apenas porque foram mencionadas como possibilidades fu
 | Vínculo questão — material | "Encontrar questões relacionadas aos assuntos" é resolvido pelo assunto. | Recomendação "revisar o material correspondente" (§9) |
 | Disciplina na questão (`questions.subject_id`) | Redundante com o assunto (ver normalização, seção 2.2). | — |
 | Dificuldade por questão | Só o simulado tem dificuldade no contrato; desempenho por dificuldade não está nos critérios de aceite. | Fase 4 — Desempenho |
-| Vínculo prova — simulado | `NextExam` não referencia simulado. | Modo Semana de Provas (Fase 5) |
+| Provas agendadas (`scheduled_exams`) e a view `v_student_topic_performance` | A tela de Início deixou de mostrar a próxima prova e as prioridades por assunto calculadas sobre todo o histórico (migration `drop_old_home_data`). | Modo Semana de Provas (Fase 5) |
 | Limite de tentativas (`quizzes.attempts_allowed`) | Não existe limite: o aluno refaz o simulado quantas vezes quiser, e o contrato passa a informar quantas tentativas ele já enviou (`QuizSummary.attemptsCount`). | — |
 | Contadores e nota gravados na tentativa | Derivados das respostas (seção 1.4). | — |
 | Tabela `student_stats` | Contadores derivados; a meta semanal virou coluna de `students`. | Se o ranking ficar lento, depois de medir ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)) |
@@ -535,6 +523,3 @@ funcionalidades complexas apenas porque foram mencionadas como possibilidades fu
 | Colunas de auditoria (`created_at`) | Nenhum contrato ou critério usa. Sessões e expiração de login ficam com o Supabase Auth. | Painel administrativo (Fase 7) |
 | Tabela `auth_tokens` e coluna `students.password_hash` | O Supabase Auth guarda senhas e sessões. | — |
 | Nome e e-mail do aluno (`students.name`, `students.email`) | LGPD: o login é um código de acesso guardado no Supabase Auth e o nome fica só no navegador. | — |
-
-Continua fora do modelo, como já estava: o plano do dia (`todayPlan`), que hoje é só estado local
-da UI ([`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 4).

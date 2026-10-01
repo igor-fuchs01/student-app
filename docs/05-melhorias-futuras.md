@@ -15,16 +15,14 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 1 | [Persistência da tentativa e cronômetro no servidor](#1-persistência-da-tentativa-e-cronômetro-no-servidor) | Limitação técnica | Backend |
 | 2 | [Gabarito enviado ao navegador antes do envio](#2-gabarito-enviado-ao-navegador-antes-do-envio) | Segurança | Backend |
 | 3 | [Testes automatizados](#3-testes-automatizados) | Qualidade | — |
-| 4 | [Plano do dia do dashboard copiado para estado local](#4-plano-do-dia-do-dashboard-copiado-para-estado-local) | Limitação técnica | Backend |
 | 5 | [Correção de dissertativas no mock](#5-correção-de-dissertativas-no-mock) | Regra de negócio | Painel de correção |
 | 6 | [Questões classificadas por assunto](#6-questões-classificadas-por-assunto-para-diagnóstico-de-dificuldades) | Produto | Backend |
 | 7 | [Conteúdo curado do detalhe da disciplina](#7-conteúdo-curado-do-detalhe-da-disciplina) | Limitação técnica | Backend |
 | 8 | [Ranking com gráficos e filtros](#8-ranking-com-gráficos-e-filtros) | Produto | Backend |
-| 9 | [Dashboards na tela de Início](#9-dashboards-na-tela-de-início) | Produto | 4, 6 |
 | 10 | [Logo e identidade da aplicação](#10-logo-e-identidade-da-aplicação) | Identidade visual | Nome do produto |
 | 12 | [Correção de dissertativas por IA com chave do aluno](#12-correção-de-dissertativas-por-ia-com-chave-do-aluno) | Produto | — |
 | 13 | [Simulados criados pelo próprio aluno](#13-simulados-criados-pelo-próprio-aluno) | Produto | 6 |
-| 14 | [Gráficos escolhidos pelo aluno](#14-gráficos-escolhidos-pelo-aluno) | Produto | 8, 9 |
+| 14 | [Gráficos escolhidos pelo aluno](#14-gráficos-escolhidos-pelo-aluno) | Produto | 8 |
 | 15 | [Histórico de provas realizadas](#15-histórico-de-provas-realizadas) | Produto | — |
 
 ---
@@ -97,25 +95,6 @@ dos erros; a prioridade atual é fechar os fluxos do MVP.
    - `correctMockQuizAttempt` em `src/services/api/mocks/quizzes.ts`;
    - `src/services/api/httpClient.ts` (erros, `401`, validação de schema);
    - fluxo do simulado: responder → revisar → enviar → resultado.
-
----
-
-## 4. Plano do dia do dashboard copiado para estado local
-
-**Problema.** `DashboardPage` copia `todayPlan` da resposta da API para um `useState` via
-`useEffect`. Isso duplica dado do servidor (contra a regra de
-[`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)) e as marcações se perdem quando a
-query é refeita ou a página é recarregada.
-
-**Por que é aceitável no MVP.** Ainda não existe endpoint para persistir as marcações, e o
-contrato atual já documenta que elas são apenas locais.
-
-**Proposta.**
-
-1. Criar um endpoint, por exemplo `PATCH /dashboard/plan/:itemId` com `{ "done": boolean }`.
-2. Usar `useMutation` com atualização otimista via `queryClient.setQueryData` na query
-   `["dashboard", userId]`.
-3. Remover o `useState`/`useEffect` e renderizar direto de `dashboardQuery.data.todayPlan`.
 
 ---
 
@@ -207,9 +186,9 @@ precisa estudar?"*
    - Destacar os assuntos com menor desempenho em um bloco "O que revisar primeiro", com link
      para os materiais do assunto quando a feature de materiais existir.
    - Mostrar o assunto nos cards de "Questões para revisar" e na revisão da prova.
-6. **Dashboard e recomendações.** O histórico de desempenho por assunto alimenta
-   `nextExam.priorities` (que já usa `topicName`) e as recomendações da seção 9 de
-   [`02-regras-de-negocio.md`](02-regras-de-negocio.md), substituindo os valores fixos do mock.
+6. **Dashboard e recomendações.** Com várias questões por assunto, o card "O que estudar agora"
+   (`studyFocus` em `GET /dashboard`) passa a refletir o desempenho real de cada assunto, seguindo
+   as recomendações da seção 9 de [`02-regras-de-negocio.md`](02-regras-de-negocio.md).
 7. **Mock e documentação.** Classificar as questões de `src/services/api/mocks/quizzes.ts` por
    assunto, calcular `topicPerformance` em `correctMockQuizAttempt` e documentar os novos
    campos em [`04-contratos-de-api.md`](04-contratos-de-api.md).
@@ -289,48 +268,14 @@ estudados. "Questões realizadas" conta questões **respondidas**, nunca acertos
      semana).
    - Começar com barras em CSS/SVG, reaproveitando o padrão do `ProgressBar`. Uma biblioteca de
      gráficos só deve entrar se esses gráficos não bastarem, com justificativa (ver regras de
-     dependências no `CLAUDE.md`). O mesmo componente de gráfico serve ao item 9.
+     dependências no `CLAUDE.md`). Os gráficos em SVG da tela de Início
+     (`src/features/dashboard/components/DashboardPage/`) são o ponto de partida.
 4. **Cuidados.**
    - Contar apenas questões de tentativas enviadas, para não incentivar "responder por
      responder".
    - Mostrar os primeiros colocados e a posição do próprio aluno, em vez de expor a lista inteira
      com alunos sem atividade.
    - Os gráficos precisam de alternativa textual (tabela ou `aria-label` com os valores).
-
----
-
-## 9. Dashboards na tela de Início
-
-**Situação atual.** A tela de Início mostra a próxima prova (com prioridades), o plano do dia e
-três cards de resumo com textos prontos enviados pelo servidor (ex.: "5 matérias"). Não há
-gráficos nem evolução ao longo do tempo.
-
-**Objetivo.** Transformar a Início em um painel que responda *"o que eu devo estudar hoje e como
-estou evoluindo?"*, seguindo o histórico definido em
-[`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 10, com gráficos simples e legíveis.
-
-**Por que fica para depois do MVP.** Os dados de evolução dependem do histórico de tentativas no
-backend, do plano do dia persistido (item 4) e do desempenho por assunto (item 6).
-
-**Proposta.**
-
-1. **Widgets, em ordem de prioridade.**
-   1. **O que revisar agora:** os 3 assuntos com menor desempenho recente (item 6), com acesso
-      direto ao detalhe da disciplina (`/disciplinas/:subjectId`).
-   2. **Evolução de desempenho:** percentual de acerto por semana nas últimas semanas, geral e
-      por disciplina.
-   3. **Questões erradas recentemente:** lista curta com link para rever cada questão.
-   4. **Constância:** sequência atual e meta semanal (hoje só na tela de Ranking).
-2. **Contrato.** Estender `GET /dashboard` de forma aditiva com dados **numéricos**
-   (ex.: `weeklyPerformance: [{ weekStart, percent }]`), porque os `summaryCards` atuais trazem
-   textos prontos que não servem para gráficos. Os campos atuais continuam existindo durante a
-   transição.
-3. **Estados vazios.** Um aluno novo, sem tentativas, vê um convite para fazer o primeiro
-   simulado em vez de gráficos zerados.
-4. **Gráficos.** Usar o mesmo componente de gráfico do item 8, sempre com valores também em
-   texto.
-5. **Validação.** Antes de implementar, prototipar com a equipe quais widgets realmente mudam o
-   que o aluno faz e manter no máximo 4 ou 5 na tela, para não virar um painel poluído.
 
 ---
 
@@ -476,14 +421,14 @@ que a lista fixa já faz.
 
 ## 14. Gráficos escolhidos pelo aluno
 
-**Situação atual.** Não há gráficos no app. Os itens 8 e 9 propõem gráficos fixos no Ranking e na
-tela de Início, iguais para todo mundo.
+**Situação atual.** A tela de Início tem gráficos fixos (evolução do acerto e preparo por
+disciplina), iguais para todo mundo, e o item 8 propõe outros no Ranking.
 
 **Objetivo.** O aluno escolhe quais gráficos quer ver, dentre as opções disponíveis, e em que ordem.
 Cada um acompanha o que interessa: evolução por disciplina, questões por dia, assuntos mais errados,
 dias de estudo.
 
-**Por que fica para depois do MVP.** Só faz sentido depois que os gráficos existirem (itens 8 e 9) e
+**Por que fica para depois do MVP.** Só faz sentido depois que houver gráficos suficientes (item 8) e
 que o desempenho por assunto estiver pronto (item 6). Sem isso, não há opções para escolher.
 
 **Proposta.**
@@ -497,8 +442,8 @@ que o desempenho por assunto estiver pronto (item 6). Sem isso, não há opçõe
 3. **Contrato** (aditivo): `GET /me/charts` devolve o catálogo com a escolha atual, e
    `PUT /me/charts` salva a nova seleção.
 4. **UI.** Um modo "Personalizar" na tela de Início e no Ranking, com as opções em caixas de
-   seleção e ordenação simples. Manter no máximo 4 ou 5 gráficos visíveis, como já decidido no
-   item 9, para a tela não virar um painel poluído.
+   seleção e ordenação simples. Manter no máximo 4 ou 5 gráficos visíveis, como na tela de
+   Início, para a tela não virar um painel poluído.
 5. **Regras que não mudam.** Nenhum gráfico pode mostrar nota ou desempenho de outro aluno
    ([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11), e todo gráfico precisa de
    alternativa textual, com os valores acessíveis por leitor de tela.

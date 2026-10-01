@@ -20,7 +20,7 @@ ligar o app, veja o [`README`](../README.md).
 | Tela | O que você encontra |
 |---|---|
 | 🔐 **Login** | Entrada com o código de acesso e a senha recebidos do responsável, mais o nome pelo qual você quer ser chamado (fica só no navegador). Não existe cadastro. |
-| 🏠 **Início** | A próxima prova, os assuntos que merecem mais atenção e um plano de estudo do dia. |
+| 🏠 **Início** | Um painel do seu preparo: acerto geral, questões respondidas, meta da semana, evolução semana a semana, preparo por disciplina e os assuntos que merecem mais atenção agora. |
 | 📘 **Disciplinas** | As matérias do curso, com quantidade de materiais, questões e o seu nível de preparo. |
 | 📝 **Simulados** | Provas de treino com cronômetro (ou sem limite), 6 tipos de questão, marcação para revisar depois e revisão antes de enviar. |
 | 📊 **Resultado** | Acertos, erros, desempenho por disciplina e a explicação de cada questão errada. |
