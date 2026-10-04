@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/subjects/${id}`,
   },
   ranking: "/ranking",
+  activityCalendar: "/ranking/activity",
   quizzes: {
     list: "/quizzes",
     detail: (id: string) => `/quizzes/${id}`,

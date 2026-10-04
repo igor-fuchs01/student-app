@@ -25,3 +25,21 @@ export const rankingDataSchema = z.object({
 });
 
 export type RankingData = z.infer<typeof rankingDataSchema>;
+
+// "YYYY-MM", the month the activity calendar shows.
+export const activityMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+
+const activityDaySchema = z.object({
+  date: z.iso.date(),
+  examsCount: z.number().int().nonnegative(),
+  exercisesCount: z.number().int().nonnegative(),
+});
+
+export type ActivityDay = z.infer<typeof activityDaySchema>;
+
+export const activityCalendarSchema = z.object({
+  month: activityMonthSchema,
+  days: z.array(activityDaySchema),
+});
+
+export type ActivityCalendar = z.infer<typeof activityCalendarSchema>;
