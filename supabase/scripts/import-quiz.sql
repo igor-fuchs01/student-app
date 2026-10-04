@@ -1,4 +1,5 @@
--- Student App — imports one quiz (simulado) described in JSON straight into the
+-- Student App — imports one quiz (simulado or, with "kind": "exercise", an
+-- exercise list of one topic) described in JSON straight into the
 -- database. It is an operator tool, not part of the API: the app never calls it
 -- and it leaves nothing behind that the Data API could reach.
 --
@@ -10,6 +11,14 @@
 --     -f supabase/scripts/import-quiz.sql
 --
 -- The JSON format is documented in docs/07-importacao-de-simulados.md.
+--
+-- An exercise list uses the same format with "kind": "exercise", "subjectScope":
+-- "single", its "subject" and its "topic", and no "durationMinutes". Its
+-- questions may omit "topic", and any they give must be the list's own:
+--
+--   { "kind": "exercise", "title": "Normalização — Exercícios 2",
+--     "subjectScope": "single", "subject": "Banco de Dados", "topic": "Normalização",
+--     "difficulty": "easy", "questions": [ ... ] }
 --
 -- How it works:
 --   * everything runs inside one transaction: the whole payload is validated
@@ -246,13 +255,17 @@ DECLARE
   quiz_title     text;
   quiz_scope     text;
   quiz_subject   text;
+  quiz_kind      text;
+  quiz_topic     text;
   subject_name   text;
+  topic_name     text;
   q_type         text;
   q_where        text;
   entry_keys     text[];
   term_texts     text[];
   v_subject_id   integer;
   v_topic_id     integer;
+  v_quiz_topic_id integer;
   v_quiz_id      integer;
   v_question_id  integer;
   v_blank_id     integer;
@@ -271,6 +284,12 @@ BEGIN
   quiz_title := btrim(COALESCE(payload ->> 'title', ''));
   quiz_scope := payload ->> 'subjectScope';
   quiz_subject := payload ->> 'subject';
+  quiz_kind := COALESCE(payload ->> 'kind', 'exam');
+  quiz_topic := payload ->> 'topic';
+
+  IF quiz_kind NOT IN ('exam', 'exercise') THEN
+    problems := problems || 'quiz: "kind" must be "exam" or "exercise"';
+  END IF;
 
   IF quiz_title <> '' AND EXISTS (SELECT 1 FROM quizzes WHERE title = quiz_title) THEN
     problems := problems || format('quiz: a quiz titled %L already exists', quiz_title);
@@ -296,11 +315,35 @@ BEGIN
     problems := problems || 'quiz: "difficulty" must be "easy", "medium" or "hard"';
   END IF;
 
-  IF jsonb_typeof(payload -> 'durationMinutes') IS DISTINCT FROM 'number' THEN
-    problems := problems || 'quiz: "durationMinutes" must be a positive whole number';
-  ELSIF (payload ->> 'durationMinutes')::numeric <= 0
-     OR (payload ->> 'durationMinutes')::numeric % 1 <> 0 THEN
-    problems := problems || 'quiz: "durationMinutes" must be a positive whole number';
+  -- An exercise list belongs to one topic of one subject and has no time limit.
+  IF quiz_kind = 'exercise' THEN
+    IF quiz_scope IS DISTINCT FROM 'single' THEN
+      problems := problems || 'quiz: an exercise list needs "subjectScope" set to "single"';
+    END IF;
+
+    IF quiz_topic IS NULL OR btrim(quiz_topic) = '' THEN
+      problems := problems || 'quiz: "topic" is required when "kind" is "exercise"';
+    ELSIF v_subject_id IS NOT NULL THEN
+      SELECT id INTO v_quiz_topic_id FROM topics WHERE subject_id = v_subject_id AND name = quiz_topic;
+      IF NOT FOUND THEN
+        problems := problems || format('quiz: topic %L of subject %L was not found', quiz_topic, quiz_subject);
+      END IF;
+    END IF;
+
+    IF payload ? 'durationMinutes' THEN
+      problems := problems || 'quiz: "durationMinutes" must be omitted when "kind" is "exercise"';
+    END IF;
+  ELSE
+    IF quiz_topic IS NOT NULL THEN
+      problems := problems || 'quiz: "topic" must be omitted unless "kind" is "exercise"';
+    END IF;
+
+    IF jsonb_typeof(payload -> 'durationMinutes') IS DISTINCT FROM 'number' THEN
+      problems := problems || 'quiz: "durationMinutes" must be a positive whole number';
+    ELSIF (payload ->> 'durationMinutes')::numeric <= 0
+       OR (payload ->> 'durationMinutes')::numeric % 1 <> 0 THEN
+      problems := problems || 'quiz: "durationMinutes" must be a positive whole number';
+    END IF;
   END IF;
 
   IF jsonb_typeof(payload -> 'questions') IS DISTINCT FROM 'array' THEN
@@ -326,6 +369,13 @@ BEGIN
     -- Outside a single-subject quiz each question says which subject it belongs
     -- to, because topic names are unique per subject, not globally.
     subject_name := COALESCE(question ->> 'subject', quiz_subject);
+    -- In an exercise list a question may omit its topic: it is the list's topic.
+    topic_name := COALESCE(question ->> 'topic', CASE WHEN quiz_kind = 'exercise' THEN quiz_topic END);
+
+    IF quiz_kind = 'exercise'
+       AND (subject_name IS DISTINCT FROM quiz_subject OR topic_name IS DISTINCT FROM quiz_topic) THEN
+      problems := problems || format('%s: every question of an exercise list must be of its subject and topic', q_where);
+    END IF;
 
     IF q_type IS NULL
        OR q_type NOT IN ('multiple_choice', 'multiple_answer', 'single_choice',
@@ -337,8 +387,7 @@ BEGIN
       CONTINUE;
     END IF;
 
-    IF jsonb_typeof(question -> 'topic') IS DISTINCT FROM 'string'
-       OR btrim(question ->> 'topic') = '' THEN
+    IF topic_name IS NULL OR btrim(topic_name) = '' THEN
       problems := problems || format('%s: "topic" must be a non-empty string', q_where);
     ELSIF subject_name IS NULL OR btrim(subject_name) = '' THEN
       problems := problems || format('%s: "subject" is required because the quiz covers every subject', q_where);
@@ -346,10 +395,10 @@ BEGIN
       PERFORM 1
       FROM topics t
       JOIN subjects s ON s.id = t.subject_id
-      WHERE s.name = subject_name AND t.name = question ->> 'topic';
+      WHERE s.name = subject_name AND t.name = topic_name;
 
       IF NOT FOUND THEN
-        problems := problems || format('%s: topic %L of subject %L was not found', q_where, question ->> 'topic', subject_name);
+        problems := problems || format('%s: topic %L of subject %L was not found', q_where, topic_name, subject_name);
       END IF;
     END IF;
 
@@ -481,12 +530,14 @@ BEGIN
   -- 3. Insert
   -- ===========================================================================
 
-  INSERT INTO quizzes (title, subject_scope, subject_id, duration_minutes, difficulty)
+  INSERT INTO quizzes (title, kind, subject_scope, subject_id, topic_id, duration_minutes, difficulty)
   VALUES (
     quiz_title,
+    quiz_kind::quiz_kind,
     quiz_scope::quiz_subject_scope,
     CASE WHEN quiz_scope = 'single' THEN v_subject_id END,
-    (payload ->> 'durationMinutes')::integer,
+    v_quiz_topic_id,
+    CASE WHEN quiz_kind = 'exam' THEN (payload ->> 'durationMinutes')::integer END,
     (payload ->> 'difficulty')::difficulty_level
   )
   RETURNING id INTO v_quiz_id;
@@ -497,11 +548,12 @@ BEGIN
   LOOP
     q_type := question ->> 'type';
     subject_name := COALESCE(question ->> 'subject', quiz_subject);
+    topic_name := COALESCE(question ->> 'topic', CASE WHEN quiz_kind = 'exercise' THEN quiz_topic END);
 
     SELECT t.id INTO STRICT v_topic_id
     FROM topics t
     JOIN subjects s ON s.id = t.subject_id
-    WHERE s.name = subject_name AND t.name = question ->> 'topic';
+    WHERE s.name = subject_name AND t.name = topic_name;
 
     -- Only the columns the type uses are filled; the CHECK constraints in
     -- the questions migration reject anything else.
