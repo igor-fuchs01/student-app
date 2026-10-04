@@ -640,3 +640,7 @@ export function getMockSubjectDetail(subjectId: string): SubjectDetail | undefin
 
   return { ...subject, topics: [...subject.topics].sort((a, b) => a.number - b.number) };
 }
+
+export function hasMockTopic(topicId: string): boolean {
+  return MOCK_SUBJECTS.some((subject) => subject.topics.some((topic) => topic.id === topicId));
+}

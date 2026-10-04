@@ -1,4 +1,5 @@
 import type {
+  ExerciseSummary,
   Question,
   QuizAnswer,
   QuizDetail,
@@ -8,8 +9,16 @@ import type {
 } from "@models/quizzes";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
+import { getMockSubjectDetail, hasMockTopic } from "./subjects";
 
 type MockQuizDefinition = Omit<QuizSummary, "questionCount" | "attemptsCount">;
+
+// subjectId and topicId point at mocks/subjects.ts; the questions come from QUESTION_BANK.
+type MockExerciseDefinition = Pick<ExerciseSummary, "id" | "title" | "difficulty"> & {
+  subjectId: string;
+  topicId: string;
+  questionIds: string[];
+};
 
 type QuestionOutcome = "correct" | "incorrect" | "unanswered" | "self_review";
 
@@ -303,6 +312,82 @@ const QUIZZES: MockQuizDefinition[] = [
   },
 ];
 
+// Some assuntos have no list on purpose, so the empty state of the exercises screen shows up.
+const EXERCISES: MockExerciseDefinition[] = [
+  {
+    id: "ex-estruturas-de-dados-1",
+    title: "Estruturas de Dados — Exercícios 1",
+    subjectId: "algoritmos",
+    topicId: "estruturas-de-dados",
+    difficulty: "medium",
+    questionIds: ["q5", "q7"],
+  },
+  {
+    id: "ex-organizacao-de-computadores-1",
+    title: "Organização de Computadores — Exercícios 1",
+    subjectId: "arquitetura-computadores",
+    topicId: "organizacao-de-computadores",
+    difficulty: "easy",
+    questionIds: ["q4", "q8"],
+  },
+  {
+    id: "ex-processos-e-threads-1",
+    title: "Processos e Threads — Exercícios 1",
+    subjectId: "sistemas-operacionais",
+    topicId: "processos-e-threads",
+    difficulty: "medium",
+    questionIds: ["q10", "q11"],
+  },
+  {
+    id: "ex-fundamentos-de-redes-1",
+    title: "Fundamentos de Redes — Exercícios 1",
+    subjectId: "tecnologia-informacao",
+    topicId: "fundamentos-de-redes",
+    difficulty: "easy",
+    questionIds: ["q13"],
+  },
+  {
+    id: "ex-seguranca-da-informacao-1",
+    title: "Segurança da Informação — Exercícios 1",
+    subjectId: "tecnologia-informacao",
+    topicId: "seguranca-da-informacao",
+    difficulty: "easy",
+    questionIds: ["q12"],
+  },
+  {
+    id: "ex-modelagem-conceitual-1",
+    title: "Modelagem Conceitual — Exercícios 1",
+    subjectId: "banco-de-dados",
+    topicId: "modelagem-conceitual",
+    difficulty: "easy",
+    questionIds: ["q1"],
+  },
+  {
+    id: "ex-normalizacao-1",
+    title: "Normalização — Exercícios 1",
+    subjectId: "banco-de-dados",
+    topicId: "modelo-relacional-e-normalizacao",
+    difficulty: "medium",
+    questionIds: ["q2"],
+  },
+  {
+    id: "ex-sql-1",
+    title: "SQL — Exercícios 1",
+    subjectId: "banco-de-dados",
+    topicId: "sql",
+    difficulty: "easy",
+    questionIds: ["q3", "q9"],
+  },
+  {
+    id: "ex-sql-2",
+    title: "SQL — Exercícios 2",
+    subjectId: "banco-de-dados",
+    topicId: "sql",
+    difficulty: "hard",
+    questionIds: ["q6"],
+  },
+];
+
 // Attempts submitted per student, kept only in memory for the mock session.
 const attemptsByStudent = new Map<string, Map<string, number>>();
 
@@ -329,16 +414,60 @@ export function buildMockQuizList(studentId: string): QuizSummary[] {
   }));
 }
 
+function exerciseQuestions(exercise: MockExerciseDefinition): Question[] {
+  return QUESTION_BANK.filter((question) => exercise.questionIds.includes(question.id));
+}
+
+// undefined when topicId names no topic, so the handler can answer 404 like the edge function.
+export function buildMockExerciseList(
+  studentId: string,
+  topicId?: string,
+): ExerciseSummary[] | undefined {
+  if (topicId !== undefined && !hasMockTopic(topicId)) return undefined;
+
+  const exercises = topicId
+    ? EXERCISES.filter((exercise) => exercise.topicId === topicId)
+    : EXERCISES;
+
+  return exercises.flatMap((exercise) => {
+    const subject = getMockSubjectDetail(exercise.subjectId);
+    const topic = subject?.topics.find((item) => item.id === exercise.topicId);
+    if (!subject || !topic) return [];
+
+    return [
+      {
+        id: exercise.id,
+        title: exercise.title,
+        subjectId: subject.id,
+        subjectName: subject.name,
+        topicId: topic.id,
+        topicNumber: topic.number,
+        topicName: topic.name,
+        questionCount: exerciseQuestions(exercise).length,
+        attemptsCount: attemptsByStudent.get(studentId)?.get(exercise.id) ?? 0,
+        difficulty: exercise.difficulty,
+      },
+    ];
+  });
+}
+
+// Simulados and exercise lists share the detail and the attempt endpoints; only a simulado has a
+// time limit.
 export function getMockQuizDetail(id: string): QuizDetail | undefined {
   const quiz = findQuiz(id);
-  if (!quiz) return undefined;
+  if (quiz) {
+    return {
+      id: quiz.id,
+      title: quiz.title,
+      durationMinutes: quiz.durationMinutes,
+      questions: questionsFor(quiz),
+    };
+  }
 
-  return {
-    id: quiz.id,
-    title: quiz.title,
-    durationMinutes: quiz.durationMinutes,
-    questions: questionsFor(quiz),
-  };
+  const exercise = EXERCISES.find((item) => item.id === id);
+  if (!exercise) return undefined;
+
+  return { id: exercise.id, title: exercise.title, questions: exerciseQuestions(exercise) };
 }
 
 function excerpt(text: string, maxLength = 90): string {
@@ -443,7 +572,7 @@ function buildReviewItem(
 }
 
 export function correctMockQuizAttempt(id: string, answers: QuizAnswer[]): QuizResult | undefined {
-  const quiz = findQuiz(id);
+  const quiz = getMockQuizDetail(id);
   if (!quiz) return undefined;
 
   const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer]));
@@ -456,7 +585,7 @@ export function correctMockQuizAttempt(id: string, answers: QuizAnswer[]): QuizR
   const reviewItems: QuizReviewItem[] = [];
   const subjectTotals = new Map<string, { correct: number; total: number }>();
 
-  for (const question of questionsFor(quiz)) {
+  for (const question of quiz.questions) {
     const answer = answerByQuestionId.get(question.id);
     const outcome = gradeQuestion(question, answer);
     counts[outcome] += 1;

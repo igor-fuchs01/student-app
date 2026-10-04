@@ -15,6 +15,7 @@ import { INVALID_CREDENTIALS_MESSAGE, type ApiErrorBody, type ApiErrorCode } fro
 import { buildMockDashboard } from "./dashboard";
 import { createMockJwt, verifyMockJwt } from "./jwt";
 import {
+  buildMockExerciseList,
   buildMockQuizList,
   correctMockQuizAttempt,
   getMockQuizDetail,
@@ -129,6 +130,16 @@ export const handlers = [
   http.get(
     api(API_ENDPOINTS.quizzes.list),
     authenticated(({ account }) => HttpResponse.json(buildMockQuizList(account.user.id))),
+  ),
+
+  http.get(
+    api(API_ENDPOINTS.exercises.list),
+    authenticated(({ request, account }) => {
+      const topicId = new URL(request.url).searchParams.get("topicId") ?? undefined;
+      const exercises = buildMockExerciseList(account.user.id, topicId);
+      if (!exercises) return errorResponse(404, "NOT_FOUND", "Assunto não encontrado.");
+      return HttpResponse.json(exercises);
+    }),
   ),
 
   http.get(
