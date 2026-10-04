@@ -6,6 +6,7 @@ const envSchema = z
     VITE_MOCK_DELAY_MS: z.coerce.number().int().nonnegative().default(500),
     VITE_SUPABASE_URL: z.url({ protocol: /^https?$/ }).optional(),
     VITE_SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+    VITE_TURNSTILE_SITE_KEY: z.string().optional(),
   })
   .refine(
     (env) =>
@@ -36,3 +37,6 @@ export const MOCK_API_BASE_URL = "/api";
 export const SUPABASE_URL = env.data.VITE_SUPABASE_URL ?? "";
 
 export const SUPABASE_PUBLISHABLE_KEY = env.data.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
+
+// Empty when the login shows no captcha: in mock mode, or when no key is set (local Supabase).
+export const TURNSTILE_SITE_KEY = USE_MOCKS ? "" : (env.data.VITE_TURNSTILE_SITE_KEY ?? "");
