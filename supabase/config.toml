@@ -402,6 +402,9 @@ verify_jwt = false
 [functions.get-dashboard]
 verify_jwt = false
 
+[functions.get-activity-calendar]
+verify_jwt = false
+
 [functions.get-ranking]
 verify_jwt = false
 
