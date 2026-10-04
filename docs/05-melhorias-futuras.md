@@ -25,6 +25,7 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 14 | [Gráficos escolhidos pelo aluno](#14-gráficos-escolhidos-pelo-aluno) | Produto | 8 |
 | 15 | [Histórico de provas realizadas](#15-histórico-de-provas-realizadas) | Produto | — |
 | 16 | [Endpoints de administração do conteúdo](#16-endpoints-de-administração-do-conteúdo) | Produto | Backend |
+| 17 | [Resetar o preparo de um simulado](#17-resetar-o-preparo-de-um-simulado) | Produto | — |
 
 ---
 
@@ -528,3 +529,42 @@ coloca o painel administrativo na Fase 7. Enquanto uma única pessoa cura o cont
 7. **Documentação.** Ao implementar, atualizar [`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md),
    [`04-contratos-de-api.md`](04-contratos-de-api.md), [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md)
    e [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md), e remover este item daqui.
+
+---
+
+## 17. Resetar o preparo de um simulado
+
+**Situação atual.** O preparo é calculado a partir de todas as respostas que o aluno já enviou
+(`private.v_student_subject_performance` e `private.v_student_topic_performance`), sem distinguir de
+qual tentativa vieram. Não há como descartar um simulado: as tentativas antigas continuam pesando no
+preparo da disciplina, nos assuntos prioritários e no painel de Início para sempre.
+
+**Objetivo.** Um botão "Resetar preparo" em cada simulado, para o aluno zerar completamente o preparo
+que vem dele e recomeçar do zero, por exemplo depois de estudar de novo o conteúdo.
+
+**Por que fica para depois do MVP.** O MVP ainda está fechando o ciclo de responder e ver o
+resultado, e um reset só faz sentido quando o aluno tiver feito o mesmo simulado várias vezes.
+
+**Proposta.**
+
+1. **Modelo de dados.** Em vez de apagar as tentativas, marcá-las como descartadas (por exemplo
+   `quiz_attempts.reset_at`, nulo nas válidas), em uma migration nova. As views de desempenho passam
+   a ignorar as tentativas com `reset_at` preenchido, então o preparo volta a zero para aquele
+   simulado sem perder o registro do que foi feito.
+2. **Contrato** (aditivo, [`04-contratos-de-api.md`](04-contratos-de-api.md), seção 1.4):
+   `POST /quizzes/:id/reset` marca todas as tentativas do aluno autenticado naquele simulado e
+   devolve `204`. A edge function só altera tentativas do próprio aluno, nunca as de outro.
+3. **Regras a decidir.**
+   - Se o histórico de provas (item 15) mostra as tentativas resetadas, com a indicação de que não
+     contam mais no preparo, ou as esconde.
+   - Os indicadores de esforço do ranking (questões respondidas, simulados concluídos, dias
+     estudados) **não** devem ser zerados: o reset apaga o desempenho, não o esforço já feito
+     ([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11).
+4. **UI.** O botão fica no card do simulado na lista, desabilitado quando não há tentativas, e pede
+   confirmação explicando que o preparo daquele simulado será zerado e que a ação não pode ser
+   desfeita. Depois do reset, as queries de simulados, disciplinas e painel são invalidadas no
+   TanStack Query.
+5. **Mock.** `handlers.ts` ganha a rota, descartando as tentativas guardadas no mock.
+6. **Documentação.** Ao implementar, atualizar [`02-regras-de-negocio.md`](02-regras-de-negocio.md),
+   [`04-contratos-de-api.md`](04-contratos-de-api.md) e
+   [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md), e remover este item daqui.
