@@ -49,6 +49,7 @@ função nenhuma exposta: as edge functions leem as tabelas e views e montam o J
 | `GET /quizzes/:id` | `GET get-quiz?id=:id` |
 | `POST /quizzes/:id/attempts` | `POST submit-quiz-attempt`, com o corpo `{ quizId, answers }` |
 | `GET /ranking` | `GET get-ranking` |
+| `GET /ranking/activity` | `GET get-activity-calendar?month=` |
 
 Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https://`) e
 `VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
@@ -144,6 +145,7 @@ O que existe são tetos de tamanho no envio de simulado. No modo mock não há l
 | `GET` | `/quizzes/:id` | Sim | `200` [`QuizDetail`](#311-quizdetail) | `quizzesApi.getQuiz` |
 | `POST` | `/quizzes/:id/attempts` | Sim | `200` [`QuizResult`](#314-quizresult) | `quizzesApi.submitQuizAttempt` |
 | `GET` | `/ranking` | Sim | `200` [`RankingData`](#315-rankingdata) | `rankingApi.getRanking` |
+| `GET` | `/ranking/activity` | Sim | `200` [`ActivityCalendar`](#321-activitycalendar) | `rankingApi.getActivityCalendar` |
 
 ---
 
@@ -598,6 +600,49 @@ Retorna o perfil de consistência do aluno e o ranking de consistência da turma
 
 ---
 
+### `GET /ranking/activity`
+
+Retorna o calendário de estudos de um mês do próprio aluno: os dias em que esteve ativo e quantos
+simulados e listas de exercícios enviou em cada um. Nunca traz dados de outros alunos.
+
+**Autenticação:** exigida. **Corpo da requisição:** nenhum.
+
+**Query string**
+
+| Parâmetro | Tipo | Regras |
+|---|---|---|
+| `month` | string | Opcional. `YYYY-MM`. Padrão: o mês atual. |
+
+**Respostas**
+
+| Status | Corpo | Quando |
+|---|---|---|
+| `200` | [`ActivityCalendar`](#321-activitycalendar) | Sempre, para um aluno autenticado. `days` pode ser vazio. |
+| `400` | Erro, código `VALIDATION_ERROR` | `month` fora do formato `YYYY-MM`. |
+| `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
+
+```json
+{
+  "month": "2026-10",
+  "days": [
+    { "date": "2026-10-01", "examsCount": 1, "exercisesCount": 0 },
+    { "date": "2026-10-03", "examsCount": 0, "exercisesCount": 2 }
+  ]
+}
+```
+
+Um dia entra em `days` quando é um dia de estudo (`student_activity_days`) ou tem uma tentativa
+enviada. As datas seguem o relógio do banco, o mesmo usado para registrar o dia de estudo no envio.
+
+**Comportamento no cliente:** o calendário fica abaixo do perfil, na tela de ranking. Mostra um mês
+por vez (domingo a sábado), começando no atual; as setas trocam de mês e não avançam além do mês
+atual. Dias ativos ficam destacados, com um marcador laranja quando houve simulado e um verde
+quando houve lista de exercícios, e o dia de hoje tem contorno. Abaixo vêm o total de dias ativos,
+simulados e listas do mês. Cada mês é uma entrada própria no cache, e o mês anterior continua na
+tela enquanto o próximo carrega.
+
+---
+
 ### 3.1 `StudentUser`
 
 | Campo | Tipo | Regras |
@@ -848,6 +893,19 @@ Um assunto (aula) da disciplina, como em [`02-regras-de-negocio.md`](02-regras-d
 | `attemptsCount` | integer | `>= 0`. Quantas tentativas desta lista o aluno já enviou. |
 | `difficulty` | enum | `"easy"`, `"medium"`, ou `"hard"`, como em [`QuizSummary`](#310-quizsummary). |
 
+### 3.21 `ActivityCalendar`
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `month` | string | `YYYY-MM`. O mês pedido. |
+| `days` | `ActivityDay[]` | Só os dias com atividade no mês, em ordem crescente de data. Pode ser vazio. |
+| `days[].date` | string | Data ISO `YYYY-MM-DD`, dentro de `month`. |
+| `days[].examsCount` | integer | `>= 0`. Simulados enviados no dia. |
+| `days[].exercisesCount` | integer | `>= 0`. Listas de exercícios enviadas no dia. |
+
+Um dia com os dois contadores em `0` foi um dia de estudo sem envio registrado; a tela o mostra só
+como dia ativo.
+
 ---
 
 ## 4. Erros
@@ -941,6 +999,9 @@ Particularidades do mock:
 - **Dashboard:** o histórico vem de um gerador com semente fixa (`mocks/dashboard.ts`), com
   um ano de respostas sobre as disciplinas e assuntos do mock, e é agregado com as mesmas
   regras da edge function. Ele não muda quando o aluno envia um simulado no mock.
+- **Calendário de estudos:** usa os dias de estudo desse mesmo histórico, então concorda com o
+  dashboard. Cada dia ativo recebe uma mistura fixa de simulados e listas de exercícios, derivada
+  do próprio dia; envios feitos no mock não aparecem nele.
 - **Nota e desempenho por assunto:** questões `self_review` ficam fora de `scorePercent` e de
   `subjectPerformance`; questões não respondidas entram no denominador dos dois.
 - **Bundle:** o MSW e os dados do mock são carregados por import dinâmico somente quando

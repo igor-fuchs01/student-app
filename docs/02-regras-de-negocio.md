@@ -284,6 +284,13 @@ O ranking também não mostra o nome dos outros alunos (LGPD): o banco não guar
 colega aparece como "Estudante {posição}" e só a linha do próprio aluno usa o nome que ele digitou
 no login, guardado no navegador.
 
+### Calendário de estudos
+
+A tela de ranking mostra ao aluno um calendário mensal **só com a atividade dele**: os dias em que
+esteve ativo e, em cada um, se enviou simulado ou lista de exercícios. É um indicador de
+constância, como o streak, então mostra quantidades de envios e nunca notas ou acertos. O
+calendário de um aluno nunca é exibido para outros.
+
 ### Elementos de gamificação usados
 
 Gamificação **moderada**: streaks, badges, metas semanais, número de questões, simulados concluídos, dias estudados, pequenas conquistas.

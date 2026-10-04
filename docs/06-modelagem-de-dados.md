@@ -82,6 +82,7 @@ direta com o Postgres e monta o JSON em TypeScript. O banco não gera nem guarda
 | `GET /quizzes/:id` | `get-quiz?id=` |
 | `POST /quizzes/:id/attempts` | `submit-quiz-attempt` |
 | `GET /ranking` | `get-ranking` |
+| `GET /ranking/activity` | `get-activity-calendar?month=` |
 
 A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
 chamar a API sem passar pelo app, então a segurança fica em camadas:
