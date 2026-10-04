@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants` e `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava) e `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
@@ -78,6 +78,7 @@ direta com o Postgres e monta o JSON em TypeScript. O banco não gera nem guarda
 | `GET /subjects` | `list-subjects` |
 | `GET /subjects/:id` | `get-subject?id=` |
 | `GET /quizzes` | `list-quizzes` |
+| `GET /exercises` | `list-exercises?topicId=` |
 | `GET /quizzes/:id` | `get-quiz?id=` |
 | `POST /quizzes/:id/attempts` | `submit-quiz-attempt` |
 | `GET /ranking` | `get-ranking` |
@@ -138,6 +139,7 @@ da equipe, inclusive quem não programa.
 | **Lacuna** | Espaço `{{id}}` no texto de uma questão, preenchido por seleção, por texto ou arrastando um termo. |
 | **Termo** | Item arrastável de uma questão de drag and drop. |
 | **Simulado** | Conjunto ordenado de questões, com duração e dificuldade. Pode ser de uma disciplina ou integrado. |
+| **Lista de exercícios** | Um simulado de tipo `exercise`: questões de um único assunto, sem duração. Fica na mesma tabela e usa as mesmas tentativas, correção e resultado. |
 | **Tentativa** | Envio de um simulado por um aluno. |
 | **Resposta** | O que o aluno respondeu em uma questão de uma tentativa, com o resultado da correção. |
 | **Dia de estudo** | Dia em que o aluno teve atividade. É a base do streak. |
@@ -159,6 +161,7 @@ da equipe, inclusive quem não programa.
 | Questão — Termo | 1 : N | Só no drag and drop. |
 | Termo — Lacuna | 1 : N | No drag and drop, cada lacuna tem um termo correto. |
 | Disciplina — Simulado | 0..1 : N | Um simulado é de uma disciplina ou é integrado (sem disciplina). |
+| Assunto — Lista de exercícios | 1 : N | Uma lista de exercícios é de exatamente um assunto (`quizzes.topic_id`); um assunto pode ter várias listas. Um simulado (`kind = 'exam'`) não tem assunto. |
 | Simulado — Questão | N : M | Um simulado tem pelo menos uma questão; uma questão pode estar em vários simulados. O relacionamento tem um atributo: a **ordem** da questão no simulado. |
 | Simulado — Tentativa | 1 : N | Sem limite: o aluno refaz o simulado quantas vezes quiser, e cada envio vira uma tentativa. |
 | Tentativa — Questão | N : M, via **Resposta** | Resposta é uma entidade associativa: no máximo uma por questão em cada tentativa. Questões sem resposta contam como não respondidas. |
@@ -230,7 +233,7 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Alternativa | `question_options` (de questão) e `question_blank_options` (de lacuna) |
 | Lacuna | `question_blanks` (seleção única e dissertativa) e `question_slots` (drag and drop) |
 | Termo | `question_terms` |
-| Simulado | `quizzes` |
+| Simulado e Lista de exercícios | `quizzes`, separados por `kind` (`exam` ou `exercise`) |
 | Simulado — Questão (N : M) | `quiz_questions` |
 | Tentativa | `quiz_attempts` |
 | Resposta | `quiz_attempt_answers`, com os valores múltiplos em `quiz_attempt_answer_options`, `quiz_attempt_answer_blanks` e `quiz_attempt_answer_slots` |
@@ -250,6 +253,11 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
   usuário do Auth por `students.auth_user_id` (uuid, único). É o único uuid do modelo, obrigatório
   porque `auth.users.id` e `auth.uid()` são uuid; todo id próprio da aplicação é inteiro. Apagar o
   usuário apaga o aluno.
+- **Lista de exercícios na tabela de simulados.** Ela só difere do simulado por ter um assunto e
+  não ter duração, então fica em `quizzes` com `kind = 'exercise'`. `CHECK`s garantem que
+  `topic_id` exista só nela, que `duration_minutes` seja nulo só nela e que ela seja sempre de uma
+  disciplina (`subject_scope = 'single'`). Assim tentativas, respostas e correção servem aos dois
+  sem tabelas paralelas.
 - **Relacionamento N : M** entre Simulado e Questão vira a tabela associativa `quiz_questions`, que
   também guarda o atributo do relacionamento (`order_index`).
 - **Tipos de questão em uma única tabela.** Os seis tipos diferem em poucas colunas (`prompt`,
@@ -425,8 +433,10 @@ erDiagram
     quizzes {
         int id PK
         text title
+        quiz_kind kind
         quiz_subject_scope subject_scope
         int subject_id FK
+        int topic_id FK
         int duration_minutes
         difficulty_level difficulty
     }
@@ -489,9 +499,9 @@ concentra o arredondamento das porcentagens; cada view decide o que conta como r
 |---|---|
 | `v_subject_summary` | `Subject.materialsCount`, `Subject.questionsCount` |
 | `v_student_subject_performance` | `Subject.preparationPercent` |
-| `v_quiz_summary` | `QuizSummary.questionCount` |
+| `v_quiz_summary` | `QuizSummary.questionCount`, `ExerciseSummary.questionCount` |
 | `v_student_streak`, `v_student_ranking` | `streakDays`, `RankingData.entries` |
-| `v_student_ranking_profile` | `RankingData.profile`, `DashboardData.streakDays` e `DashboardData.weeklyGoal` |
+| `v_student_ranking_profile` | `RankingData.profile` (`quizzesCompleted` conta só simulados), `DashboardData.streakDays` e `DashboardData.weeklyGoal` |
 
 `QuizSummary.attemptsCount` é contado pela edge function `list-quizzes`, filtrado pelo aluno. O
 `QuizResult` inteiro (contadores, `scorePercent`, `subjectPerformance` e `reviewItems`) é
