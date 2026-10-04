@@ -45,7 +45,7 @@ export function AppHeader({
   return (
     <StyledHeader>
       <StyledHeaderInner>
-        <StyledBrand>🎓 Student App</StyledBrand>
+        <StyledBrand />
         <StyledNav aria-label="Navegação principal" $hideOnMobile={hideMobileNav}>
           {NAV_ITEMS.map((item) => {
             const icon = <StyledNavIcon aria-hidden="true">{item.icon}</StyledNavIcon>;

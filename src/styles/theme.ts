@@ -16,6 +16,8 @@ export const theme = {
     danger: "oklch(57% 0.19 27)",
     danger600: "oklch(49% 0.19 27)",
     danger100: "oklch(94% 0.04 27)",
+    brand: "oklch(37% 0.08 152)",
+    brandAccent: "oklch(66% 0.17 135)",
   },
   fonts: {
     heading: '"Poppins", system-ui, sans-serif',

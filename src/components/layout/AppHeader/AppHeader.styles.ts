@@ -1,5 +1,6 @@
 import styled, { css } from "styled-components";
 import { Link } from "react-router-dom";
+import { Brand } from "@components/layout/Brand";
 
 export const StyledHeader = styled.header`
   position: sticky;
@@ -27,10 +28,7 @@ export const StyledHeaderInner = styled.div`
   }
 `;
 
-export const StyledBrand = styled.span`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 800;
-  font-size: 14px;
+export const StyledBrand = styled(Brand)`
   margin-right: 20px;
 `;
 

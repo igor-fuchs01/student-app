@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { Button } from "@components/ui/Button";
+import { Brand } from "@components/layout/Brand";
 
 export const StyledPage = styled.div`
   min-height: 100%;
@@ -32,10 +33,7 @@ export const StyledFormCard = styled.form`
   }
 `;
 
-export const StyledBrand = styled.div`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 800;
-  font-size: 17px;
+export const StyledBrand = styled(Brand)`
   margin-bottom: 28px;
 `;
 

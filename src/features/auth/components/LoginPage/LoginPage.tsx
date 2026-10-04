@@ -60,7 +60,7 @@ export function LoginPage() {
   return (
     <StyledPage>
       <StyledFormCard onSubmit={handleSubmit} noValidate>
-        <StyledBrand>🎓 Student App</StyledBrand>
+        <StyledBrand size="lg" />
         <StyledTitle>Que bom ter você de volta!</StyledTitle>
 
         <TextField
