@@ -9,10 +9,14 @@ import { callFunction } from "./callFunction";
 const ACCESS_CODE_EMAIL_DOMAIN = "alunos.student-app.invalid";
 
 export const supabaseAuthApi = {
-  async login({ accessCode, password }: LoginCredentials): Promise<AuthSession> {
+  async login(
+    { accessCode, password }: LoginCredentials,
+    captchaToken?: string,
+  ): Promise<AuthSession> {
     const { data, error } = await getSupabase().auth.signInWithPassword({
       email: `${accessCode}@${ACCESS_CODE_EMAIL_DOMAIN}`,
       password,
+      options: { captchaToken },
     });
 
     if (error) {

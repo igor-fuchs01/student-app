@@ -4,6 +4,8 @@ import { z } from "zod";
 import { loginFormSchema } from "@models/auth";
 import { TextField } from "@components/ui/TextField";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
+import { TURNSTILE_SITE_KEY } from "@services/api/config";
+import { TurnstileWidget } from "@features/auth/components/TurnstileWidget";
 import {
   StyledPage,
   StyledFormCard,
@@ -27,6 +29,8 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const isSubmitting = status === "authenticating";
 
@@ -46,14 +50,20 @@ export function LoginPage() {
     }
     setFieldErrors({});
 
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setFormError("Confirme que você não é um robô.");
+      return;
+    }
+
     try {
       const { displayName: name, ...credentials } = result.data;
-      await login(credentials, name);
+      await login(credentials, name, captchaToken ?? undefined);
       navigate("/", { replace: true });
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : "Não foi possível entrar. Tente novamente.",
       );
+      setCaptchaResetKey((key) => key + 1);
     }
   }
 
@@ -105,6 +115,14 @@ export function LoginPage() {
           disabled={isSubmitting}
           required
         />
+
+        {TURNSTILE_SITE_KEY && (
+          <TurnstileWidget
+            siteKey={TURNSTILE_SITE_KEY}
+            resetKey={captchaResetKey}
+            onTokenChange={setCaptchaToken}
+          />
+        )}
 
         {formError && <StyledFormError role="alert">{formError}</StyledFormError>}
 

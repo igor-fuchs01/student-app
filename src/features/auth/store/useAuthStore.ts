@@ -11,7 +11,11 @@ type AuthState = {
   status: AuthStatus;
   user: StudentUser | null;
   displayName: string | null;
-  login: (credentials: LoginCredentials, displayName: string) => Promise<void>;
+  login: (
+    credentials: LoginCredentials,
+    displayName: string,
+    captchaToken?: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -27,10 +31,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: existingSession?.user ?? null,
   displayName: displayNameStorage.get(),
 
-  async login(credentials, displayName) {
+  async login(credentials, displayName, captchaToken) {
     set({ status: "authenticating" });
     try {
-      const session = await authApi.login(credentials);
+      const session = await authApi.login(credentials, captchaToken);
       tokenStorage.saveSession(session);
       displayNameStorage.save(displayName);
       set({ status: "authenticated", user: session.user, displayName });
