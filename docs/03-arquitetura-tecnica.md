@@ -134,6 +134,12 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
 
 No Supabase, a renovação do token é feita pelo SDK. No modo mock não há renovação.
 
+O login tem CAPTCHA do Cloudflare Turnstile quando `VITE_TURNSTILE_SITE_KEY` está definida e o app
+não está no modo mock. O componente `TurnstileWidget` (`features/auth/components/`) carrega o
+script da Cloudflare, sem pacote npm, e entrega o token à `LoginPage`, que o repassa a
+`authApi.login`. Quem valida o token é o Supabase Auth: o front só o obtém. A configuração está em
+[`07-publicacao-no-supabase.md`](07-publicacao-no-supabase.md#5-ativar-o-captcha-do-login).
+
 Componentes não fazem chamadas HTTP diretamente. A separação entre apresentação e lógica é obrigatória.
 
 ---

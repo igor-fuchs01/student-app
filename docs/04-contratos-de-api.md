@@ -55,6 +55,9 @@ Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https
 `VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
 regras de acesso do banco estão em [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
 
+`VITE_TURNSTILE_SITE_KEY` é opcional: com ela, a tela de login mostra o CAPTCHA do Cloudflare
+Turnstile (veja [`POST /auth/login`](#post-authlogin)). No modo mock ela é ignorada.
+
 #### Edge functions e CORS
 
 As edge functions ficam em `supabase/functions/` (Deno + TypeScript), uma pasta por endpoint.
@@ -174,12 +177,20 @@ instituição, e o nome que ele digita na tela de login fica só no navegador (v
 }
 ```
 
+**CAPTCHA (só no Supabase).** Com o CAPTCHA ativado no Supabase Auth (Authentication → Attack
+Protection, provedor Turnstile), o login exige um token do widget do Cloudflare Turnstile, enviado
+em `signInWithPassword({ ..., options: { captchaToken } })`. O token não faz parte de
+`LoginCredentials`: a tela o obtém do widget e o passa à parte para `authApi.login`. Cada token vale
+para uma única tentativa, então a tela reinicia o widget depois de qualquer falha. Quem confere o
+token é o Supabase Auth, com a secret key que só ele conhece; o mock não exige token.
+
 **Respostas**
 
 | Status | Corpo | Quando |
 |---|---|---|
 | `200` | [`AuthSession`](#32-authsession) | As credenciais são válidas. |
 | `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, código em branco ou malformado, ou senha vazia. |
+| `400` | Erro, código `CAPTCHA_FAILED` | Só no Supabase com CAPTCHA ativado: token ausente, expirado ou já usado. As credenciais nem chegam a ser conferidas. |
 | `401` | Erro, código `INVALID_CREDENTIALS` | Nenhuma conta corresponde ao código, ou a senha está errada. |
 
 ```json
@@ -934,6 +945,7 @@ O cliente expõe toda falha como um `ApiError` com `status`, `code` e `message`.
 |---|---|---|---|
 | `VALIDATION_ERROR` | `400` | Servidor | O corpo da requisição está ausente ou inválido. |
 | `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: código de acesso desconhecido ou senha errada. |
+| `CAPTCHA_FAILED` | `400` | Servidor | Falha no login: o Supabase Auth recusou o token do CAPTCHA (ausente, expirado ou já usado). |
 | `UNAUTHORIZED` | `401` | Servidor | Endpoint autenticado chamado sem um token válido. |
 | `NOT_FOUND` | `404` | Servidor | A rota ou o recurso não existe. |
 | `NETWORK_ERROR` | `0` | Cliente | Nenhuma resposta foi recebida (offline, falha de DNS, CORS, servidor fora do ar). |
