@@ -75,6 +75,19 @@ Modos suportados:
 
 **O frontend nunca é a única fonte de verdade do cronômetro.** O backend também cumpre o seu papel.
 
+### Exercícios por assunto
+
+Além dos simulados, o aluno pratica com **listas de exercícios** (aba "Exercícios"):
+
+- cada lista reúne questões de **um único assunto** (Aula); um assunto pode ter várias listas;
+- não há limite de tempo nem escolha de cronômetro: o aluno só confirma o início em um pop-up;
+- de resto, funciona como um simulado: navegação, marcação para revisão, revisão, envio,
+  correção e resultado;
+- o "Praticar questões" do detalhe da disciplina abre as listas do assunto do subassunto
+  selecionado;
+- as respostas contam no preparo, nas questões respondidas, na meta semanal e na sequência de
+  dias, mas uma lista enviada **não** conta como simulado concluído.
+
 ---
 
 ## 4. Persistência durante o simulado
@@ -233,7 +246,7 @@ A gamificação existe para incentivar **hábitos de estudo**, não competição
 | Streak | Dias consecutivos estudando |
 | Streak semanal | Semanas consecutivas com atividade |
 | Questões realizadas | Quantidade de questões respondidas |
-| Simulados concluídos | Quantidade de simulados finalizados |
+| Simulados concluídos | Quantidade de simulados finalizados (listas de exercícios não contam) |
 | Dias estudados | Dias com alguma atividade |
 
 Exemplos de exibição:
