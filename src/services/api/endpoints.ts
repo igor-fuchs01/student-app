@@ -14,4 +14,7 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/quizzes/${id}`,
     submitAttempt: (id: string) => `/quizzes/${id}/attempts`,
   },
+  exercises: {
+    list: "/exercises",
+  },
 } as const;

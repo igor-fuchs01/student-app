@@ -19,6 +19,27 @@ export type QuizSummary = z.infer<typeof quizSummarySchema>;
 
 export const quizzesResponseSchema = z.array(quizSummarySchema);
 
+export const exerciseSummarySchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  subjectId: z.string().min(1),
+  subjectName: z.string().min(1),
+  topicId: z.string().min(1),
+  topicNumber: z.number().int().positive(),
+  topicName: z.string().min(1),
+  questionCount: z.number().int().positive(),
+  attemptsCount: z.number().int().nonnegative(),
+  difficulty: difficultySchema,
+});
+
+export type ExerciseSummary = z.infer<typeof exerciseSummarySchema>;
+
+export const exercisesResponseSchema = z.array(exerciseSummarySchema);
+
+export type ExerciseFilters = {
+  topicId?: string;
+};
+
 const questionOptionSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
