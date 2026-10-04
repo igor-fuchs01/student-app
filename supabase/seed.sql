@@ -8,7 +8,7 @@
 --
 -- Covers one full round trip: a subject with two assuntos, their subassuntos and
 -- one material, one question of each of the six types, a quiz with all of them,
--- and one submitted attempt whose answers exercise every review status (correct,
+-- an exercise list per assunto with its questions, and one submitted attempt whose answers exercise every review status (correct,
 -- incorrect, pending_review) plus unanswered questions. demo0002 has a longer
 -- streak, so the ranking has an order to show.
 --
@@ -199,6 +199,21 @@ SELECT z.id, q.id, ROW_NUMBER() OVER (ORDER BY q.id)
 FROM quizzes z
 CROSS JOIN questions q
 WHERE z.title = 'Banco de Dados — Simulado 1';
+
+-- -----------------------------------------------------------------------------
+-- Exercise lists: one per topic, with the questions of that topic
+-- -----------------------------------------------------------------------------
+
+INSERT INTO quizzes (title, kind, subject_scope, subject_id, topic_id, difficulty)
+SELECT t.name || ' — Exercícios 1', 'exercise', 'single', t.subject_id, t.id, 'easy'
+FROM topics t
+WHERE t.name IN ('Modelagem ER', 'Normalização');
+
+INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+SELECT z.id, q.id, ROW_NUMBER() OVER (PARTITION BY z.id ORDER BY q.id)
+FROM quizzes z
+JOIN questions q ON q.topic_id = z.topic_id
+WHERE z.kind = 'exercise';
 
 -- -----------------------------------------------------------------------------
 -- One submitted attempt: 1 correct, 1 incorrect, 1 pending review, 3 unanswered
