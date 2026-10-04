@@ -170,7 +170,9 @@ export function SubjectDetailPage() {
                     ))}
                   </StyledMaterialList>
 
-                  <Button onClick={() => navigate("/simulados")}>Praticar questões</Button>
+                  <Button onClick={() => navigate(`/exercicios?assunto=${selection.topic.id}`)}>
+                    Praticar questões
+                  </Button>
                 </Card>
               </StyledSections>
             </StyledLayout>
