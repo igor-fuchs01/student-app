@@ -45,6 +45,7 @@ função nenhuma exposta: as edge functions leem as tabelas e views e montam o J
 | `GET /subjects` | `GET list-subjects` |
 | `GET /subjects/:id` | `GET get-subject?id=:id` |
 | `GET /quizzes` | `GET list-quizzes` |
+| `GET /exercises` | `GET list-exercises?topicId=` |
 | `GET /quizzes/:id` | `GET get-quiz?id=:id` |
 | `POST /quizzes/:id/attempts` | `POST submit-quiz-attempt`, com o corpo `{ quizId, answers }` |
 | `GET /ranking` | `GET get-ranking` |
@@ -139,6 +140,7 @@ O que existe são tetos de tamanho no envio de simulado. No modo mock não há l
 | `GET` | `/subjects` | Sim | `200` [`Subject`](#39-subject)`[]` | `subjectsApi.getSubjects` |
 | `GET` | `/subjects/:id` | Sim | `200` [`SubjectDetail`](#316-subjectdetail) | `subjectsApi.getSubject` |
 | `GET` | `/quizzes` | Sim | `200` [`QuizSummary`](#310-quizsummary)`[]` | `quizzesApi.getQuizzes` |
+| `GET` | `/exercises` | Sim | `200` [`ExerciseSummary`](#320-exercisesummary)`[]` | `quizzesApi.getExercises` |
 | `GET` | `/quizzes/:id` | Sim | `200` [`QuizDetail`](#311-quizdetail) | `quizzesApi.getQuiz` |
 | `POST` | `/quizzes/:id/attempts` | Sim | `200` [`QuizResult`](#314-quizresult) | `quizzesApi.submitQuizAttempt` |
 | `GET` | `/ranking` | Sim | `200` [`RankingData`](#315-rankingdata) | `rankingApi.getRanking` |
@@ -406,14 +408,16 @@ de cada subassunto. É o que a tela `/disciplinas/:subjectId` exibe.
 - `summary`, `keyPoints` e `description` são texto simples, sem HTML ou Markdown, para não exigir um
   renderizador de conteúdo rico nesta etapa.
 - Os materiais abrem `fileUrl` em outra aba; não existe tela de materiais.
-- "Praticar questões" leva para `/simulados`, porque ainda não há como praticar um subassunto
-  específico (ver [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 6).
+- "Praticar questões" leva para `/exercicios?assunto={topic.id}`: as listas de exercícios do
+  assunto do subassunto selecionado (ver [`GET /exercises`](#get-exercises)). As questões são
+  classificadas por assunto, não por subassunto.
 
 ---
 
 ### `GET /quizzes`
 
-Lista os simulados disponíveis para o aluno.
+Lista os simulados disponíveis para o aluno. As listas de exercícios não entram aqui (ver
+[`GET /exercises`](#get-exercises)).
 
 **Autenticação:** exigida. **Corpo da requisição:** nenhum.
 
@@ -443,9 +447,65 @@ informação; o botão "Iniciar" está sempre disponível.
 
 ---
 
+### `GET /exercises`
+
+Lista as listas de exercícios: cada uma reúne questões de um único assunto e não tem limite de
+tempo. Uma lista de exercícios é um quiz, então a tentativa usa os mesmos
+[`GET /quizzes/:id`](#get-quizzesid) e [`POST /quizzes/:id/attempts`](#post-quizzesidattempts).
+
+**Autenticação:** exigida. **Corpo da requisição:** nenhum.
+
+**Query string**
+
+| Parâmetro | Tipo | Regras |
+|---|---|---|
+| `topicId` | string | Opcional. Devolve só as listas desse assunto (o `id` de [`SubjectTopic`](#317-subjecttopic)). O filtro é feito no banco, pelo índice de `quizzes.topic_id`. Sem ele, vêm todas as listas. |
+
+**Respostas**
+
+| Status | Corpo | Quando |
+|---|---|---|
+| `200` | [`ExerciseSummary`](#320-exercisesummary)`[]` | Sempre, para um aluno autenticado. Pode ser vazio, inclusive para um assunto que existe mas ainda não tem listas. |
+| `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
+| `404` | Erro, código `NOT_FOUND` | `topicId` não numérico ou de assunto inexistente. |
+
+```json
+[
+  {
+    "id": "ex-sql-1",
+    "title": "SQL — Exercícios 1",
+    "subjectId": "banco-de-dados",
+    "subjectName": "Banco de Dados",
+    "topicId": "sql",
+    "topicNumber": 3,
+    "topicName": "SQL: Definição e Manipulação",
+    "questionCount": 2,
+    "attemptsCount": 0,
+    "difficulty": "easy"
+  }
+]
+```
+
+A lista vem ordenada por disciplina, número da aula e título; listas sem questões ficam de fora.
+
+**Comportamento no cliente**
+
+- A aba "Exercícios" (`/exercicios`) mostra um card por lista, agrupados por disciplina. Com
+  `?assunto={topicId}` (vindo do "Praticar questões" do detalhe da disciplina), pede
+  `GET /exercises?topicId=` e mostra só as listas desse assunto, com um link para ver todas. Um
+  assunto sem listas mostra um aviso; um `404` mostra o erro com o link para ver todas.
+- Cada filtro é uma entrada própria no cache (`["exercises", topicId ?? "all"]`).
+- "Iniciar" abre um pop-up de confirmação, sem escolha de cronômetro. A tentativa roda em
+  `/exercicios/:id`, sem limite de tempo, com a mesma navegação, revisão, envio e resultado do
+  simulado.
+- Não há limite de tentativas; `attemptsCount` é só informativo.
+
+---
+
 ### `GET /quizzes/:id`
 
-Retorna um simulado com todas as suas questões, usado durante a tentativa.
+Retorna um simulado ou uma lista de exercícios com todas as suas questões, usado durante a
+tentativa.
 
 **Autenticação:** exigida. **Corpo da requisição:** nenhum.
 
@@ -462,7 +522,8 @@ Retorna um simulado com todas as suas questões, usado durante a tentativa.
 
 **Comportamento no cliente**
 
-- Antes de começar, o aluno escolhe entre **tempo limite** (`durationMinutes`) e **sem limite**.
+- Antes de começar um simulado, o aluno escolhe entre **tempo limite** (`durationMinutes`) e
+  **sem limite**. Uma lista de exercícios não tem `durationMinutes` e começa sempre sem limite.
 - O cronômetro é calculado a partir do instante de início da tentativa, não de um contador,
   então não atrasa quando a aba fica em segundo plano.
 - No modo com tempo limite, quando o tempo acaba as respostas são travadas e a tentativa é
@@ -648,7 +709,7 @@ para `dashboardApi.getDashboard` e que vira a query string de `GET /dashboard`.
 |---|---|---|
 | `id` | string | Não vazio. |
 | `title` | string | Não vazio. |
-| `durationMinutes` | integer | `> 0`. |
+| `durationMinutes` | integer | Opcional, `> 0`. Presente num simulado; ausente numa lista de exercícios, que não tem limite de tempo. |
 | `questions` | [`Question`](#312-question)`[]` | Pelo menos uma questão. Exibidas na ordem do array. |
 
 ### 3.12 `Question`
@@ -719,7 +780,7 @@ como "Não respondida" caso contrário.
 | `profile.weeklyGoalCompleted` | integer | `>= 0`. |
 | `profile.weeklyGoalTarget` | integer | `> 0`. |
 | `profile.questionsAnswered` | integer | `>= 0`. |
-| `profile.quizzesCompleted` | integer | `>= 0`. |
+| `profile.quizzesCompleted` | integer | `>= 0`. Só simulados; listas de exercícios enviadas não contam. |
 | `entries` | `RankingEntry[]` | Ordenado por posição. |
 
 `RankingEntry`:
@@ -771,6 +832,21 @@ Um assunto (aula) da disciplina, como em [`02-regras-de-negocio.md`](02-regras-d
 | `id` | string | Não vazio. Único na disciplina. |
 | `title` | string | Não vazio. Título exibido na lista. |
 | `fileUrl` | string | Não vazio. Endereço do arquivo, aberto em outra aba. |
+
+### 3.20 `ExerciseSummary`
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id` | string | Não vazio. Usado em `/quizzes/:id`, como o de um simulado. |
+| `title` | string | Não vazio. |
+| `subjectId` | string | Não vazio. Disciplina do assunto. |
+| `subjectName` | string | Não vazio. |
+| `topicId` | string | Não vazio. Mesmo `id` de [`SubjectTopic`](#317-subjecttopic); filtra a tela por `?assunto=`. |
+| `topicNumber` | integer | `> 0`. Exibido como "Aula {topicNumber}". |
+| `topicName` | string | Não vazio. |
+| `questionCount` | integer | `> 0`. |
+| `attemptsCount` | integer | `>= 0`. Quantas tentativas desta lista o aluno já enviou. |
+| `difficulty` | enum | `"easy"`, `"medium"`, ou `"hard"`, como em [`QuizSummary`](#310-quizsummary). |
 
 ---
 
@@ -852,6 +928,11 @@ Particularidades do mock:
   questões do banco do mock; os demais usam as questões da sua disciplina, e `questionCount`
   é calculado a partir delas. `attemptsCount` é contado em memória e volta a zero quando a página
   é recarregada.
+- **Exercícios:** as listas ficam em `mocks/quizzes.ts`, cada uma com o assunto (ids de
+  `mocks/subjects.ts`) e as questões do banco do mock escolhidas para ele. Alguns assuntos ficam
+  sem lista de propósito, para a tela mostrar o aviso de assunto vazio. `topicId` usa os ids de
+  texto do mock (ex.: `sql`) e um assunto que não existe responde `404`. O detalhe, o envio e o
+  `attemptsCount` funcionam como os de um simulado.
 - **Correção:** `multiple_answer` só é correta com exatamente as alternativas corretas;
   `single_choice` e `drag_and_drop` exigem todas as lacunas corretas. Uma dissertativa (ou
   lacuna dissertativa) idêntica à referência, ignorando maiúsculas e espaços extras, é
