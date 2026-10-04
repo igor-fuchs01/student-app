@@ -1,6 +1,11 @@
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { studentUserSchema, type AuthSession, type LoginCredentials } from "@models/auth";
-import { ApiError, INVALID_CREDENTIALS_MESSAGE, NETWORK_ERROR_MESSAGE } from "../errors";
+import {
+  ApiError,
+  CAPTCHA_FAILED_MESSAGE,
+  INVALID_CREDENTIALS_MESSAGE,
+  NETWORK_ERROR_MESSAGE,
+} from "../errors";
 import { getSupabase } from "../supabaseClient";
 import { callFunction } from "./callFunction";
 
@@ -22,6 +27,10 @@ export const supabaseAuthApi = {
     if (error) {
       if (isAuthRetryableFetchError(error)) {
         throw new ApiError(0, "NETWORK_ERROR", NETWORK_ERROR_MESSAGE);
+      }
+      // Turnstile token missing, expired or already used: the credentials were not even checked.
+      if (error.code === "captcha_failed") {
+        throw new ApiError(error.status ?? 400, "CAPTCHA_FAILED", CAPTCHA_FAILED_MESSAGE);
       }
       // Same answer for an unknown access code and a wrong password, so accounts can't be probed.
       throw new ApiError(401, "INVALID_CREDENTIALS", INVALID_CREDENTIALS_MESSAGE);

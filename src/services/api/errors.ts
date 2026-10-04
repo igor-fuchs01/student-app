@@ -3,6 +3,7 @@ import { z } from "zod";
 const API_ERROR_CODES = [
   "VALIDATION_ERROR",
   "INVALID_CREDENTIALS",
+  "CAPTCHA_FAILED",
   "UNAUTHORIZED",
   "NOT_FOUND",
   "NETWORK_ERROR",
@@ -19,6 +20,9 @@ export const INVALID_RESPONSE_MESSAGE =
   "Recebemos uma resposta inválida do servidor. Tente novamente.";
 
 export const INVALID_CREDENTIALS_MESSAGE = "Código de acesso ou senha inválidos.";
+
+export const CAPTCHA_FAILED_MESSAGE =
+  "Não foi possível confirmar que você não é um robô. Tente novamente.";
 
 export const UNKNOWN_ERROR_MESSAGE = "Ocorreu um erro inesperado. Tente novamente.";
 
