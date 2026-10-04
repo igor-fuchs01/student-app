@@ -15,7 +15,8 @@ import {
 type StartQuizModalProps = {
   quizTitle: string;
   questionCount: number;
-  durationMinutes: number;
+  // Absent for an exercise list: there is no timer to choose, so it always starts without one.
+  durationMinutes?: number;
   onCancel: () => void;
   onConfirm: (timeLimitEnabled: boolean) => void;
 };
@@ -28,13 +29,34 @@ export function StartQuizModal({
   onConfirm,
 }: StartQuizModalProps) {
   const [timeLimitEnabled, setTimeLimitEnabled] = useState(true);
+  const questionCountLabel = formatCount(questionCount, "questão", "questões");
+
+  if (durationMinutes === undefined) {
+    return (
+      <Modal ariaLabel="Pronto para começar os exercícios?" onClose={onCancel}>
+        <StyledTitle>Pronto para começar?</StyledTitle>
+        <StyledBody>
+          Você está prestes a iniciar a lista de exercícios <strong>{quizTitle}</strong> (
+          {questionCountLabel}), sem limite de tempo.
+        </StyledBody>
+
+        <StyledActions>
+          <Button variant="secondary" onClick={onCancel}>
+            Voltar
+          </Button>
+          <Button variant="primary" onClick={() => onConfirm(false)}>
+            Começar exercícios
+          </Button>
+        </StyledActions>
+      </Modal>
+    );
+  }
 
   return (
     <Modal ariaLabel="Pronto para começar o simulado?" onClose={onCancel}>
       <StyledTitle>Pronto para começar?</StyledTitle>
       <StyledBody>
-        Você está prestes a iniciar o simulado <strong>{quizTitle}</strong> (
-        {formatCount(questionCount, "questão", "questões")}).
+        Você está prestes a iniciar o simulado <strong>{quizTitle}</strong> ({questionCountLabel}).
         <br />
         Escolha o tipo do cronômetro:
       </StyledBody>

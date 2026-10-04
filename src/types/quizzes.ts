@@ -132,7 +132,8 @@ export type EssayBlanksQuestion = z.infer<typeof essayBlanksQuestionSchema>;
 export const quizDetailSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  durationMinutes: z.number().int().positive(),
+  // Absent for an exercise list, which has no time limit.
+  durationMinutes: z.number().int().positive().optional(),
   questions: z.array(questionSchema).min(1),
 });
 

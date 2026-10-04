@@ -5,7 +5,8 @@ import { sql } from "../_shared/db.ts";
 import { ApiError, serveEndpoint } from "../_shared/http.ts";
 import { loadQuizQuestions, toQuestionDto } from "../_shared/questions.ts";
 
-type QuizRow = { id: number; title: string; duration_minutes: number };
+// duration_minutes is null for an exercise list, which has no time limit.
+type QuizRow = { id: number; title: string; duration_minutes: number | null };
 
 serveEndpoint("GET", async ({ url }) => {
   // A non-numeric id answers 404, like an unknown quiz; so does a quiz without questions.
@@ -21,7 +22,7 @@ serveEndpoint("GET", async ({ url }) => {
   return {
     id: String(quiz.id),
     title: quiz.title,
-    durationMinutes: quiz.duration_minutes,
+    durationMinutes: quiz.duration_minutes ?? undefined,
     questions: questions.map(toQuestionDto),
   };
 });

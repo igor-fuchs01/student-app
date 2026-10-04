@@ -56,10 +56,12 @@ function QuizAttempt({ quizId }: { quizId: string }) {
 
   const inProgress = hasStarted && !isFinished && Boolean(quiz);
   const attemptBasePath = `/simulados/${quizId}`;
+  // An exercise list has no durationMinutes, so it never runs against the clock.
+  const hasTimeLimit = timeLimitEnabled && quiz?.durationMinutes !== undefined;
 
   const elapsedSeconds = startedAt === null ? 0 : Math.max(0, Math.floor((now - startedAt) / 1000));
   const remainingSeconds = Math.max(0, (quiz?.durationMinutes ?? 0) * 60 - elapsedSeconds);
-  const isTimeUp = timeLimitEnabled && startedAt !== null && remainingSeconds === 0;
+  const isTimeUp = hasTimeLimit && startedAt !== null && remainingSeconds === 0;
 
   const blocker = useBlocker(
     ({ nextLocation }) =>
@@ -157,7 +159,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
         setAnswer,
         markedForReview,
         toggleMarkedForReview,
-        timeLimitEnabled,
+        timeLimitEnabled: hasTimeLimit,
         remainingSeconds,
         elapsedSeconds,
         isTimeUp,
