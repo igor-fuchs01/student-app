@@ -22,7 +22,8 @@ src/
 ├── features/
 │   ├── auth/          # login, store de sessão (Zustand), useLogout
 │   ├── dashboard/
-│   ├── quizzes/       # lista, tentativa, revisão e resultado de simulados
+│   ├── exercises/     # lista de exercícios por assunto (a tentativa reaproveita quizzes/)
+│   ├── quizzes/       # lista, tentativa, revisão e resultado de simulados e exercícios
 │   ├── ranking/
 │   └── subjects/
 ├── services/
@@ -60,6 +61,9 @@ O risco natural deste produto é que **toda a lógica acabe concentrada na featu
   autenticação, se renderizam as rotas filhas (`<Outlet />`) ou redirecionam.
 - Cada página é carregada sob demanda (`lazy`), gerando um chunk por rota.
 - Erros de renderização ou de carregamento de uma rota exibem `RouteErrorPage`.
+- `/exercicios/:quizId` (com `revisao`) e `/exercicios/:quizId/resultado` usam as mesmas telas de
+  `/simulados/...`. A rota leva `handle: { attemptKind: "exercise" }`, e `useAttemptKind()`
+  (`features/quizzes/hooks/`) devolve o caminho da lista, a aba ativa e os textos de cada tipo.
 - Na Vercel, o `vercel.json` reescreve todo caminho para `/index.html`, para que abrir ou
   recarregar uma rota (ex.: `/simulados`) carregue o app em vez de dar 404. Arquivos que existem no
   build (`/assets/*`, `mockServiceWorker.js`) continuam sendo servidos diretamente, porque a Vercel
@@ -90,8 +94,9 @@ página e não dispara requisição (`refetchOnWindowFocus: false`).
 
 O cache continua valendo: enquanto a nova resposta não chega, a página mostra o que já tinha, sem
 piscar uma tela de "Carregando…" a cada visita. A exceção é o simulado em andamento
-(`QuizAttemptLayout`), que é o layout de `/simulados/:quizId`: ir da prova para a revisão e voltar
-não desmonta o layout, então a prova não é buscada de novo no meio da tentativa.
+(`QuizAttemptLayout`), que é o layout de `/simulados/:quizId` e `/exercicios/:quizId`: ir da
+prova para a revisão e voltar não desmonta o layout, então a prova não é buscada de novo no meio
+da tentativa.
 
 ### Zustand — estado global do cliente
 
