@@ -5,15 +5,13 @@ import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
+import { useAttemptKind } from "@features/quizzes/hooks/useAttemptKind";
 import type { QuizAttemptContextValue } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { quizzesApi } from "@services/api/quizzesApi";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import type { QuizAnswer } from "@models/quizzes";
-
-const LEAVE_ATTEMPT_MESSAGE =
-  "Você está no meio de um simulado. Se sair agora, as informações desta atividade serão perdidas. Deseja sair mesmo assim?";
 
 type StartNavigationState = { timeLimitEnabled?: boolean } | null | undefined;
 
@@ -31,6 +29,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   const navigate = useNavigate();
   const location = useLocation();
   const userId = useAuthStore((state) => state.user?.id);
+  const attemptKind = useAttemptKind();
 
   const quizQuery = useQuery({
     queryKey: ["quiz", quizId],
@@ -55,7 +54,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   const autoSubmittedRef = useRef(false);
 
   const inProgress = hasStarted && !isFinished && Boolean(quiz);
-  const attemptBasePath = `/simulados/${quizId}`;
+  const attemptBasePath = `${attemptKind.listPath}/${quizId}`;
   // An exercise list has no durationMinutes, so it never runs against the clock.
   const hasTimeLimit = timeLimitEnabled && quiz?.durationMinutes !== undefined;
 
@@ -74,12 +73,12 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   useEffect(() => {
     if (blocker.state !== "blocked") return;
 
-    if (window.confirm(LEAVE_ATTEMPT_MESSAGE)) {
+    if (window.confirm(attemptKind.leaveMessage)) {
       blocker.proceed();
     } else {
       blocker.reset();
     }
-  }, [blocker]);
+  }, [blocker, attemptKind.leaveMessage]);
 
   useEffect(() => {
     if (!inProgress) return;
@@ -173,19 +172,22 @@ function QuizAttempt({ quizId }: { quizId: string }) {
 
   return (
     <PageLayout
-      active="simulados"
-      logoutConfirmation={inProgress ? LEAVE_ATTEMPT_MESSAGE : undefined}
+      active={attemptKind.navKey}
+      logoutConfirmation={inProgress ? attemptKind.leaveMessage : undefined}
       hideMobileNav={inProgress}
     >
       {(quizQuery.isLoading || !contextValue) && !quizQuery.isError && (
-        <StatusMessage message="Carregando simulado…" />
+        <StatusMessage message={attemptKind.loadingMessage} />
       )}
 
       {quizQuery.isError && (
         <StatusMessage
-          message="Não foi possível carregar este simulado."
+          message={attemptKind.loadErrorMessage}
           error={quizQuery.error}
-          action={{ label: "Voltar para simulados", onClick: () => navigate("/simulados") }}
+          action={{
+            label: attemptKind.backToListLabel,
+            onClick: () => navigate(attemptKind.listPath),
+          }}
         />
       )}
 
@@ -194,7 +196,7 @@ function QuizAttempt({ quizId }: { quizId: string }) {
           quizTitle={contextValue.quiz.title}
           questionCount={contextValue.quiz.questions.length}
           durationMinutes={contextValue.quiz.durationMinutes}
-          onCancel={() => navigate("/simulados")}
+          onCancel={() => navigate(attemptKind.listPath)}
           onConfirm={startAttempt}
         />
       )}

@@ -6,6 +6,7 @@ import {
   QuestionGrid,
   type QuestionGridLegendItem,
 } from "@features/quizzes/components/QuestionGrid";
+import { useAttemptKind } from "@features/quizzes/hooks/useAttemptKind";
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import {
@@ -44,6 +45,7 @@ function formatClock(totalSeconds: number): string {
 
 export function QuizAnsweringPage() {
   const navigate = useNavigate();
+  const { listPath } = useAttemptKind();
   const {
     quiz,
     currentIndex,
@@ -78,7 +80,7 @@ export function QuizAnsweringPage() {
   }, [isGridOpen]);
 
   if (isTimeUp) {
-    return <Navigate to={`/simulados/${quiz.id}/revisao`} replace />;
+    return <Navigate to={`${listPath}/${quiz.id}/revisao`} replace />;
   }
 
   const question = quiz.questions[currentIndex];
@@ -87,7 +89,7 @@ export function QuizAnsweringPage() {
 
   function goNext() {
     if (isLast) {
-      navigate(`/simulados/${quiz.id}/revisao`);
+      navigate(`${listPath}/${quiz.id}/revisao`);
     } else {
       setCurrentIndex(currentIndex + 1);
     }

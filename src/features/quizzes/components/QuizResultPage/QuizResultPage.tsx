@@ -8,6 +8,7 @@ import { PageLayout } from "@components/layout/PageLayout";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
 import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { ExamReview } from "@features/quizzes/components/ExamReview";
+import { useAttemptKind } from "@features/quizzes/hooks/useAttemptKind";
 import { toggleSetItem } from "@features/quizzes/toggleSetItem";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import { formatCount } from "@utils/formatCount";
@@ -46,16 +47,20 @@ export function QuizResultPage() {
   const { quizId = "" } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.user?.id);
+  const attemptKind = useAttemptKind();
   const [attempt] = useState(() => (userId ? quizAttemptStorage.load(userId, quizId) : null));
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [view, setView] = useState<ResultView>("performance");
 
   if (!attempt) {
     return (
-      <PageLayout active="simulados">
+      <PageLayout active={attemptKind.navKey}>
         <StatusMessage
-          message="Nenhum resultado deste simulado foi encontrado neste navegador."
-          action={{ label: "Ver simulados", onClick: () => navigate("/simulados") }}
+          message={attemptKind.resultNotFoundMessage}
+          action={{
+            label: attemptKind.seeListLabel,
+            onClick: () => navigate(attemptKind.listPath),
+          }}
         />
       </PageLayout>
     );
@@ -69,7 +74,7 @@ export function QuizResultPage() {
   }
 
   return (
-    <PageLayout active="simulados">
+    <PageLayout active={attemptKind.navKey}>
       <StyledHeaderRow>
         <div>
           <StyledTitle>Resultado — {quiz.title}</StyledTitle>
@@ -168,14 +173,14 @@ export function QuizResultPage() {
       )}
 
       <StyledPageActions>
-        <Button variant="secondary" onClick={() => navigate("/simulados")}>
+        <Button variant="secondary" onClick={() => navigate(attemptKind.listPath)}>
           Voltar
         </Button>
         <Button
           variant="primary"
           onClick={() => setView(view === "performance" ? "review" : "performance")}
         >
-          {view === "performance" ? "Rever prova" : "Mostrar desempenho"}
+          {view === "performance" ? attemptKind.reviewLabel : "Mostrar desempenho"}
         </Button>
       </StyledPageActions>
     </PageLayout>

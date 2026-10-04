@@ -7,6 +7,7 @@ import {
   QuestionGrid,
   type QuestionGridLegendItem,
 } from "@features/quizzes/components/QuestionGrid";
+import { useAttemptKind } from "@features/quizzes/hooks/useAttemptKind";
 import { useQuizAttemptContext } from "@features/quizzes/hooks/useQuizAttemptContext";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import { formatCount } from "@utils/formatCount";
@@ -30,6 +31,7 @@ const LEGEND: QuestionGridLegendItem[] = [
 
 export function QuizReviewPage() {
   const navigate = useNavigate();
+  const { listPath, submitLabel, confirmSubmitTitle } = useAttemptKind();
   const {
     quiz,
     answers,
@@ -49,7 +51,7 @@ export function QuizReviewPage() {
 
   function goToQuestion(index: number) {
     setCurrentIndex(index);
-    navigate(`/simulados/${quiz.id}`);
+    navigate(`${listPath}/${quiz.id}`);
   }
 
   return (
@@ -98,21 +100,21 @@ export function QuizReviewPage() {
 
       {!isTimeUp && (
         <StyledFooter>
-          <Button variant="secondary" onClick={() => navigate(`/simulados/${quiz.id}`)}>
+          <Button variant="secondary" onClick={() => navigate(`${listPath}/${quiz.id}`)}>
             Voltar a responder
           </Button>
           <Button variant="primary" onClick={() => setConfirmOpen(true)}>
-            Enviar simulado
+            {submitLabel}
           </Button>
         </StyledFooter>
       )}
 
       {confirmOpen && !isTimeUp && (
         <Modal
-          ariaLabel="Confirmar envio do simulado"
+          ariaLabel={confirmSubmitTitle}
           onClose={isSubmitting ? undefined : () => setConfirmOpen(false)}
         >
-          <StyledConfirmTitle>Enviar simulado?</StyledConfirmTitle>
+          <StyledConfirmTitle>{confirmSubmitTitle}</StyledConfirmTitle>
           <StyledConfirmBody>
             {unansweredCount > 0 ? (
               <>
