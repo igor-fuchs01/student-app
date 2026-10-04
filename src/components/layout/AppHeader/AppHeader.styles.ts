@@ -44,7 +44,7 @@ export const StyledNav = styled.nav<{ $hideOnMobile: boolean }>`
     right: 0;
     bottom: 0;
     display: ${({ $hideOnMobile }) => ($hideOnMobile ? "none" : "grid")};
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: ${({ theme }) => theme.colors.surface};

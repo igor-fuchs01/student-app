@@ -13,7 +13,7 @@ import {
   StyledHeaderActions,
 } from "./AppHeader.styles";
 
-export type ActiveNavKey = "inicio" | "disciplinas" | "simulados" | "ranking";
+export type ActiveNavKey = "inicio" | "disciplinas" | "exercicios" | "simulados" | "ranking";
 
 type AppHeaderProps = {
   active: ActiveNavKey;
@@ -25,6 +25,7 @@ type AppHeaderProps = {
 const NAV_ITEMS: { key: ActiveNavKey; label: string; icon: string; to: string }[] = [
   { key: "inicio", label: "Início", icon: "🏠", to: "/" },
   { key: "disciplinas", label: "Disciplinas", icon: "📚", to: "/disciplinas" },
+  { key: "exercicios", label: "Exercícios", icon: "✏️", to: "/exercicios" },
   { key: "simulados", label: "Simulados", icon: "📝", to: "/simulados" },
   { key: "ranking", label: "Ranking", icon: "🏆", to: "/ranking" },
 ];
