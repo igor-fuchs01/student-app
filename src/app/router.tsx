@@ -2,6 +2,10 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@app/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@app/routes/PublicOnlyRoute";
 import { RouteErrorPage } from "@app/routes/RouteErrorPage";
+import type { AttemptKindHandle } from "@features/quizzes/hooks/useAttemptKind";
+
+// The exercise lists reuse the simulado attempt screens; the handle tells them which one they are.
+const EXERCISE_HANDLE: AttemptKindHandle = { attemptKind: "exercise" };
 
 export const router = createBrowserRouter([
   {
@@ -74,6 +78,45 @@ export const router = createBrowserRouter([
       },
       {
         path: "/simulados/:quizId/resultado",
+        lazy: () =>
+          import("@features/quizzes/components/QuizResultPage").then(({ QuizResultPage }) => ({
+            Component: QuizResultPage,
+          })),
+      },
+      {
+        path: "/exercicios",
+        lazy: () =>
+          import("@features/exercises/components/ExercisesPage").then(({ ExercisesPage }) => ({
+            Component: ExercisesPage,
+          })),
+      },
+      {
+        path: "/exercicios/:quizId",
+        handle: EXERCISE_HANDLE,
+        lazy: () =>
+          import("@features/quizzes/components/QuizAttemptLayout").then(
+            ({ QuizAttemptLayout }) => ({ Component: QuizAttemptLayout }),
+          ),
+        children: [
+          {
+            index: true,
+            lazy: () =>
+              import("@features/quizzes/components/QuizAnsweringPage").then(
+                ({ QuizAnsweringPage }) => ({ Component: QuizAnsweringPage }),
+              ),
+          },
+          {
+            path: "revisao",
+            lazy: () =>
+              import("@features/quizzes/components/QuizReviewPage").then(({ QuizReviewPage }) => ({
+                Component: QuizReviewPage,
+              })),
+          },
+        ],
+      },
+      {
+        path: "/exercicios/:quizId/resultado",
+        handle: EXERCISE_HANDLE,
         lazy: () =>
           import("@features/quizzes/components/QuizResultPage").then(({ QuizResultPage }) => ({
             Component: QuizResultPage,
