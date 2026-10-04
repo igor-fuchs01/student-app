@@ -12,6 +12,12 @@ export const StyledLayout = styled.div`
   }
 `;
 
+export const StyledSidebar = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
 export const StyledProfileCard = styled(Card)`
   padding: 22px;
 `;

@@ -4,9 +4,11 @@ import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { rankingApi } from "@services/api/rankingApi";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
+import { ActivityCalendar } from "@features/ranking/components/ActivityCalendar";
 import { formatCount } from "@utils/formatCount";
 import {
   StyledLayout,
+  StyledSidebar,
   StyledProfileCard,
   StyledAvatar,
   StyledProfileName,
@@ -60,45 +62,48 @@ export function RankingPage() {
 
       {rankingQuery.data && user && (
         <StyledLayout>
-          <StyledProfileCard tone="surface">
-            <StyledAvatar aria-hidden="true">{getInitials(displayName)}</StyledAvatar>
-            <StyledProfileName>{displayName}</StyledProfileName>
-            <StyledProfileCourse>{user.course}</StyledProfileCourse>
-            <StyledDivider />
+          <StyledSidebar>
+            <StyledProfileCard tone="surface">
+              <StyledAvatar aria-hidden="true">{getInitials(displayName)}</StyledAvatar>
+              <StyledProfileName>{displayName}</StyledProfileName>
+              <StyledProfileCourse>{user.course}</StyledProfileCourse>
+              <StyledDivider />
 
-            <StyledMutedLabel>Sequência atual</StyledMutedLabel>
-            <StyledStreak>
-              🔥 {formatCount(rankingQuery.data.profile.streakDays, "dia", "dias")}
-            </StyledStreak>
+              <StyledMutedLabel>Sequência atual</StyledMutedLabel>
+              <StyledStreak>
+                🔥 {formatCount(rankingQuery.data.profile.streakDays, "dia", "dias")}
+              </StyledStreak>
 
-            <StyledMutedLabel>
-              Meta semanal — {rankingQuery.data.profile.weeklyGoalCompleted}/
-              {rankingQuery.data.profile.weeklyGoalTarget} questões
-            </StyledMutedLabel>
-            <ProgressBar
-              value={
-                (rankingQuery.data.profile.weeklyGoalCompleted /
-                  rankingQuery.data.profile.weeklyGoalTarget) *
-                100
-              }
-              label="Progresso da meta semanal"
-            />
+              <StyledMutedLabel>
+                Meta semanal — {rankingQuery.data.profile.weeklyGoalCompleted}/
+                {rankingQuery.data.profile.weeklyGoalTarget} questões
+              </StyledMutedLabel>
+              <ProgressBar
+                value={
+                  (rankingQuery.data.profile.weeklyGoalCompleted /
+                    rankingQuery.data.profile.weeklyGoalTarget) *
+                  100
+                }
+                label="Progresso da meta semanal"
+              />
 
-            <StyledStatsGrid>
-              <StyledStat $tone="accent">
-                <StyledStatValue $tone="accent">
-                  {rankingQuery.data.profile.questionsAnswered}
-                </StyledStatValue>
-                <StyledStatLabel>questões</StyledStatLabel>
-              </StyledStat>
-              <StyledStat $tone="accent2">
-                <StyledStatValue $tone="accent2">
-                  {rankingQuery.data.profile.quizzesCompleted}
-                </StyledStatValue>
-                <StyledStatLabel>simulados</StyledStatLabel>
-              </StyledStat>
-            </StyledStatsGrid>
-          </StyledProfileCard>
+              <StyledStatsGrid>
+                <StyledStat $tone="accent">
+                  <StyledStatValue $tone="accent">
+                    {rankingQuery.data.profile.questionsAnswered}
+                  </StyledStatValue>
+                  <StyledStatLabel>questões</StyledStatLabel>
+                </StyledStat>
+                <StyledStat $tone="accent2">
+                  <StyledStatValue $tone="accent2">
+                    {rankingQuery.data.profile.quizzesCompleted}
+                  </StyledStatValue>
+                  <StyledStatLabel>simulados</StyledStatLabel>
+                </StyledStat>
+              </StyledStatsGrid>
+            </StyledProfileCard>
+            <ActivityCalendar />
+          </StyledSidebar>
 
           <div>
             <StyledRankingTitle>Ranking de consistência</StyledRankingTitle>
