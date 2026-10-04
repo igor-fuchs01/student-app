@@ -15,8 +15,9 @@ src/
 │   ├── providers/     # QueryProvider (TanStack Query)
 │   ├── routes/        # ProtectedRoute, PublicOnlyRoute, RouteErrorPage
 │   └── router.tsx     # definição das rotas (data router)
+├── assets/            # imagens importadas pelos componentes (ex.: logo-mark.png)
 ├── components/
-│   ├── layout/        # AppHeader, PageLayout (header + conteúdo da página)
+│   ├── layout/        # AppHeader, Brand (logo), PageLayout (header + conteúdo da página)
 │   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, Modal, ...)
 ├── features/
 │   ├── auth/          # login, store de sessão (Zustand), useLogout

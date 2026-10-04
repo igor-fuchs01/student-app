@@ -281,11 +281,15 @@ estudados. "Questões realizadas" conta questões **respondidas**, nunca acertos
 
 ## 10. Logo e identidade da aplicação
 
-**Situação atual.** A marca é o emoji "🎓" seguido de "Student App", repetida em dois lugares
-(`AppHeader` e `LoginPage`, cada um com seu próprio `StyledBrand`). O `index.html` não define
-favicon nem `theme-color`, e o título da aba é "Student App".
+**Situação atual.** O logo (símbolo do livro com circuito, recortado da arte original em PNG) e
+o nome "Student App" ficam no componente `Brand` (`src/components/layout/Brand/`), usado no
+`AppHeader` e na `LoginPage`: o símbolo dentro de um quadrado arredondado, "Student" em verde
+escuro (`theme.colors.brand`) e "App" em verde claro (`theme.colors.brandAccent`). O símbolo fica
+em `src/assets/logo-mark.png`; o `index.html` define o favicon (`public/favicon-32.png`), o ícone
+de atalho no iOS (`public/apple-touch-icon.png`) e o `theme-color`.
 
-**Objetivo.** Criar um logo próprio e aplicá-lo de forma consistente na aplicação.
+**Objetivo.** Concluir a identidade visual: o que falta é decidir o nome final, ter o logo em
+SVG (inclusive `favicon.svg`) e em versão monocromática, e a imagem para redes sociais.
 
 **Por que fica para depois do MVP.** Não afeta o funcionamento; depende de uma decisão de marca.
 
@@ -301,11 +305,8 @@ favicon nem `theme-color`, e o título da aba é "Student App".
    - Versões: símbolo, horizontal (símbolo e nome) e monocromática.
 3. **Entregáveis.** SVG do logo, `favicon.svg`, PNG de 32 px e de 180 px (atalho no iOS) e
    imagem para compartilhamento em redes sociais.
-4. **Implementação.**
-   - Arquivos em `public/` (favicons) e `src/assets/` (logo usado nos componentes).
-   - Um único componente de marca em `src/components/layout/`, substituindo os dois
-     `StyledBrand` duplicados, com texto alternativo acessível.
-   - Atualizar o `index.html`: favicon, `theme-color` e título.
+4. **Implementação.** Trocar `src/assets/logo-mark.png` pelo SVG no componente `Brand`, adicionar
+   `public/favicon.svg` ao `index.html` e, se o nome mudar, atualizar o `Brand` e o título.
 
 ---
 
