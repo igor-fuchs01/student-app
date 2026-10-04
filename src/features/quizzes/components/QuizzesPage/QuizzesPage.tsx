@@ -5,8 +5,9 @@ import { Button } from "@components/ui/Button";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
+import { DIFFICULTY_LABEL } from "@features/quizzes/difficultyLabel";
 import { quizzesApi } from "@services/api/quizzesApi";
-import type { QuizDifficulty, QuizSummary } from "@models/quizzes";
+import type { QuizSummary } from "@models/quizzes";
 import { formatCount } from "@utils/formatCount";
 import {
   StyledPageTitle,
@@ -19,12 +20,6 @@ import {
   StyledQuizTitle,
   StyledSubjectBadge,
 } from "./QuizzesPage.styles";
-
-const DIFFICULTY_LABEL: Record<QuizDifficulty, string> = {
-  easy: "Fácil",
-  medium: "Média",
-  hard: "Difícil",
-};
 
 export function QuizzesPage() {
   const navigate = useNavigate();
