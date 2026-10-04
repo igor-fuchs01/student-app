@@ -9,10 +9,11 @@ import {
 import { loginCredentialsSchema, type AuthSession } from "@models/auth";
 import { dashboardPeriodSchema } from "@models/dashboard";
 import { submitQuizAttemptSchema } from "@models/quizzes";
+import { activityMonthSchema } from "@models/ranking";
 import { MOCK_API_BASE_URL, MOCK_DELAY_MS } from "../config";
 import { API_ENDPOINTS } from "../endpoints";
 import { INVALID_CREDENTIALS_MESSAGE, type ApiErrorBody, type ApiErrorCode } from "../errors";
-import { buildMockDashboard } from "./dashboard";
+import { buildMockActivityCalendar, buildMockDashboard } from "./dashboard";
 import { createMockJwt, verifyMockJwt } from "./jwt";
 import {
   buildMockExerciseList,
@@ -171,6 +172,17 @@ export const handlers = [
   http.get(
     api(API_ENDPOINTS.ranking),
     authenticated(({ account }) => HttpResponse.json(buildMockRanking(account.user))),
+  ),
+
+  http.get(
+    api(API_ENDPOINTS.activityCalendar),
+    authenticated(({ request }) => {
+      const month = activityMonthSchema.safeParse(
+        new URL(request.url).searchParams.get("month") ?? new Date().toISOString().slice(0, 7),
+      );
+      if (!month.success) return errorResponse(400, "VALIDATION_ERROR", "Mês inválido.");
+      return HttpResponse.json(buildMockActivityCalendar(month.data));
+    }),
   ),
 
   http.all(api("/*"), () => errorResponse(404, "NOT_FOUND", "Recurso não encontrado.")),

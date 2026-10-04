@@ -5,6 +5,7 @@ import type {
   StudyFocusLevel,
   StudyFocusTopic,
 } from "@models/dashboard";
+import type { ActivityCalendar } from "@models/ranking";
 import { buildMockSubjects, getMockSubjectDetail } from "./subjects";
 
 type MockAnswer = {
@@ -214,4 +215,20 @@ export function buildMockDashboard({
     preparationBreakdown: { scope: subjectId ? "topic" : "subject", items: breakdownItems },
     studyFocus: { items: focus.slice(0, FOCUS_LIMIT), totalCount: focus.length },
   };
+}
+
+// GET /ranking/activity over the same history, so the calendar agrees with the dashboard. Each
+// study day gets a fixed mix of simulados and exercise lists, derived from the day itself.
+export function buildMockActivityCalendar(month: string): ActivityCalendar {
+  const days = [...HISTORY.activityDays]
+    .sort((a, b) => a - b)
+    .map((day) => ({ day, date: isoDate(day) }))
+    .filter(({ date }) => date.startsWith(`${month}-`))
+    .map(({ day, date }) => ({
+      date,
+      examsCount: day % 3 === 0 ? 1 : 0,
+      exercisesCount: day % 3 === 0 ? 0 : 1 + (Math.abs(day) % 2),
+    }));
+
+  return { month, days };
 }
