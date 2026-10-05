@@ -43,6 +43,9 @@ export const StyledNav = styled.nav<{ $hideOnMobile: boolean }>`
     left: 0;
     right: 0;
     bottom: 0;
+    /* The header turns static here, so its z-index no longer covers this bar. Above the page
+       content, below the question drawer (50/60) and the modal (100). */
+    z-index: 30;
     display: ${({ $hideOnMobile }) => ($hideOnMobile ? "none" : "grid")};
     grid-template-columns: repeat(5, 1fr);
     gap: 0;
