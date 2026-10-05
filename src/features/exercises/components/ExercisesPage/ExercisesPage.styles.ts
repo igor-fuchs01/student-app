@@ -39,6 +39,33 @@ export const StyledSubjectTitle = styled.h2`
   margin: 0 0 12px;
 `;
 
+export const StyledTopicSection = styled.section`
+  & + & {
+    margin-top: 22px;
+  }
+`;
+
+export const StyledTopicHeader = styled.div`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 10px;
+`;
+
+export const StyledTopicTitle = styled.h3`
+  font-family: ${({ theme }) => theme.fonts.heading};
+  font-weight: 700;
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.accent600};
+  margin: 0;
+`;
+
+export const StyledTopicName = styled.span`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 12.5px;
+`;
+
 export const StyledGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);

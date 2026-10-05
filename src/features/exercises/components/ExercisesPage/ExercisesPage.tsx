@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Badge } from "@components/ui/Badge";
+import { Badge, type BadgeTone } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
 import { DIFFICULTY_LABEL } from "@features/quizzes/difficultyLabel";
 import { quizzesApi } from "@services/api/quizzesApi";
-import type { ExerciseSummary } from "@models/quizzes";
+import type { ExerciseSummary, QuizDifficulty } from "@models/quizzes";
 import { formatCount } from "@utils/formatCount";
 import {
   StyledPageTitle,
@@ -16,6 +16,10 @@ import {
   StyledAllLink,
   StyledSubjectSection,
   StyledSubjectTitle,
+  StyledTopicSection,
+  StyledTopicHeader,
+  StyledTopicTitle,
+  StyledTopicName,
   StyledGrid,
   StyledExerciseCard,
   StyledExerciseTitle,
@@ -23,26 +27,48 @@ import {
   StyledCardFooter,
 } from "./ExercisesPage.styles";
 
-type SubjectGroup = { subjectId: string; subjectName: string; exercises: ExerciseSummary[] };
+type TopicGroup = {
+  topicId: string;
+  topicNumber: number;
+  topicName: string;
+  exercises: ExerciseSummary[];
+};
 
-// The API already orders the lists by subject, so grouping keeps that order.
-function groupBySubject(exercises: ExerciseSummary[]): SubjectGroup[] {
-  const groups: SubjectGroup[] = [];
+type SubjectGroup = { subjectId: string; subjectName: string; topics: TopicGroup[] };
+
+const DIFFICULTY_TONE: Record<QuizDifficulty, BadgeTone> = {
+  easy: "accent",
+  medium: "accent2",
+  hard: "danger",
+};
+
+// Groups the lists by subject and, inside it, by lesson (aula), whatever their difficulty. The API
+// already orders them by subject, lesson and title, so grouping keeps that order.
+function groupBySubjectAndTopic(exercises: ExerciseSummary[]): SubjectGroup[] {
+  const subjects: SubjectGroup[] = [];
 
   for (const exercise of exercises) {
-    const group = groups.find((item) => item.subjectId === exercise.subjectId);
-    if (group) {
-      group.exercises.push(exercise);
-    } else {
-      groups.push({
-        subjectId: exercise.subjectId,
-        subjectName: exercise.subjectName,
-        exercises: [exercise],
-      });
+    let subject = subjects.find((item) => item.subjectId === exercise.subjectId);
+    if (!subject) {
+      subject = { subjectId: exercise.subjectId, subjectName: exercise.subjectName, topics: [] };
+      subjects.push(subject);
     }
+
+    let topic = subject.topics.find((item) => item.topicId === exercise.topicId);
+    if (!topic) {
+      topic = {
+        topicId: exercise.topicId,
+        topicNumber: exercise.topicNumber,
+        topicName: exercise.topicName,
+        exercises: [],
+      };
+      subject.topics.push(topic);
+    }
+
+    topic.exercises.push(exercise);
   }
 
-  return groups;
+  return subjects;
 }
 
 export function ExercisesPage() {
@@ -87,7 +113,7 @@ export function ExercisesPage() {
           <StyledPageSubtitle>
             {topic
               ? `Aula ${topic.topicNumber} - ${topic.topicName} · ${topic.subjectName}`
-              : "Listas de exercícios por assunto, sem limite de tempo."}
+              : "Listas de exercícios de cada aula, sem limite de tempo."}
           </StyledPageSubtitle>
           {topicId && <StyledAllLink to="/exercicios">Ver todos os exercícios</StyledAllLink>}
 
@@ -101,29 +127,48 @@ export function ExercisesPage() {
             />
           )}
 
-          {groupBySubject(exercises).map((group) => (
-            <StyledSubjectSection key={group.subjectId} aria-label={group.subjectName}>
-              {!topicId && <StyledSubjectTitle>{group.subjectName}</StyledSubjectTitle>}
-              <StyledGrid>
-                {group.exercises.map((exercise) => (
-                  <StyledExerciseCard key={exercise.id}>
-                    <Badge tone="accent">
-                      Aula {exercise.topicNumber} - {exercise.topicName}
-                    </Badge>
-                    <StyledExerciseTitle>{exercise.title}</StyledExerciseTitle>
-                    <StyledExerciseMeta>
-                      {formatCount(exercise.questionCount, "questão", "questões")} ·{" "}
-                      {formatCount(exercise.attemptsCount, "tentativa", "tentativas")} ·{" "}
-                      {DIFFICULTY_LABEL[exercise.difficulty]}
-                    </StyledExerciseMeta>
-                    <StyledCardFooter>
-                      <Button variant="secondary" onClick={() => setStartModalExercise(exercise)}>
-                        Iniciar
-                      </Button>
-                    </StyledCardFooter>
-                  </StyledExerciseCard>
-                ))}
-              </StyledGrid>
+          {groupBySubjectAndTopic(exercises).map((subject) => (
+            <StyledSubjectSection key={subject.subjectId} aria-label={subject.subjectName}>
+              {!topicId && <StyledSubjectTitle>{subject.subjectName}</StyledSubjectTitle>}
+
+              {subject.topics.map((topicGroup) => (
+                <StyledTopicSection
+                  key={topicGroup.topicId}
+                  aria-label={`Exercícios da Aula ${topicGroup.topicNumber}`}
+                >
+                  <StyledTopicHeader>
+                    <StyledTopicTitle>Exercícios da Aula {topicGroup.topicNumber}</StyledTopicTitle>
+                    <StyledTopicName>
+                      {topicGroup.topicName} ·{" "}
+                      {formatCount(topicGroup.exercises.length, "lista", "listas")}
+                    </StyledTopicName>
+                  </StyledTopicHeader>
+
+                  <StyledGrid>
+                    {topicGroup.exercises.map((exercise) => (
+                      <StyledExerciseCard key={exercise.id}>
+                        <Badge tone={DIFFICULTY_TONE[exercise.difficulty]}>
+                          {DIFFICULTY_LABEL[exercise.difficulty]}
+                        </Badge>
+                        <StyledExerciseTitle>{exercise.title}</StyledExerciseTitle>
+                        <StyledExerciseMeta>
+                          Aula {exercise.topicNumber} ·{" "}
+                          {formatCount(exercise.questionCount, "questão", "questões")} ·{" "}
+                          {formatCount(exercise.attemptsCount, "tentativa", "tentativas")}
+                        </StyledExerciseMeta>
+                        <StyledCardFooter>
+                          <Button
+                            variant="secondary"
+                            onClick={() => setStartModalExercise(exercise)}
+                          >
+                            Iniciar
+                          </Button>
+                        </StyledCardFooter>
+                      </StyledExerciseCard>
+                    ))}
+                  </StyledGrid>
+                </StyledTopicSection>
+              ))}
             </StyledSubjectSection>
           ))}
         </>
