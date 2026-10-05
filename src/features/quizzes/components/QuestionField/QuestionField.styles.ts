@@ -161,7 +161,6 @@ export const StyledCodeSentence = styled.div`
   border-radius: ${({ theme }) => theme.radii.md};
   border: 1px solid ${({ theme }) => theme.colors.divider};
   background: ${({ theme }) => theme.colors.bg};
-  overflow-wrap: anywhere;
 `;
 
 export const StyledBlankInput = styled.input<{ $answered?: boolean }>`

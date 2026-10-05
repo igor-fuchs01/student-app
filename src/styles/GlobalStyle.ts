@@ -17,6 +17,8 @@ export const GlobalStyle = createGlobalStyle`
     background: ${({ theme }) => theme.colors.bg};
     color: ${({ theme }) => theme.colors.text};
     line-height: 1.5;
+    /* Long unspaced strings (paths, "user:x:UID:GID:...") break instead of widening the page. */
+    overflow-wrap: anywhere;
   }
 
   h1,
