@@ -1,11 +1,12 @@
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
+import { Brand } from "@components/layout/Brand";
 import { useLogout } from "@features/auth/hooks/useLogout";
 import { formatCount } from "@utils/formatCount";
 import {
   StyledHeader,
   StyledHeaderInner,
-  StyledBrand,
+  StyledBrandLink,
   StyledNav,
   StyledNavLink,
   StyledNavLinkActive,
@@ -46,7 +47,9 @@ export function AppHeader({
   return (
     <StyledHeader>
       <StyledHeaderInner>
-        <StyledBrand />
+        <StyledBrandLink to="/" aria-label="Student App — ir para o Início">
+          <Brand />
+        </StyledBrandLink>
         <StyledNav aria-label="Navegação principal" $hideOnMobile={hideMobileNav}>
           {NAV_ITEMS.map((item) => {
             const icon = <StyledNavIcon aria-hidden="true">{item.icon}</StyledNavIcon>;

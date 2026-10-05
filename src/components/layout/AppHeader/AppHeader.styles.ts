@@ -1,6 +1,5 @@
 import styled, { css } from "styled-components";
 import { Link } from "react-router-dom";
-import { Brand } from "@components/layout/Brand";
 
 export const StyledHeader = styled.header`
   position: sticky;
@@ -28,8 +27,17 @@ export const StyledHeaderInner = styled.div`
   }
 `;
 
-export const StyledBrand = styled(Brand)`
+export const StyledBrandLink = styled(Link)`
+  display: inline-flex;
   margin-right: 20px;
+  border-radius: ${({ theme }) => theme.radii.md};
+  color: inherit;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 4px;
+  }
 `;
 
 export const StyledNav = styled.nav<{ $hideOnMobile: boolean }>`
