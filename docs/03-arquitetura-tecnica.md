@@ -188,6 +188,9 @@ Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (poi
   rodapé, com ícone e rótulo; o header deixa de ser fixo no topo. Durante um simulado em
   andamento a barra fica oculta (`PageLayout` com `hideMobileNav`), para o aluno se concentrar
   e para dar lugar aos botões do simulado.
+- **Camadas (`z-index`).** Como o header deixa de ser fixo, a barra inferior tem o próprio
+  `z-index: 30`: acima do conteúdo da página (cards, tooltips e cabeçalhos fixos de tabela), abaixo
+  da barra e da gaveta de questões do simulado (40, 50 e 60) e do `Modal` (100).
 - **Simulado.** Título, "Questão X de Y" e cronômetro ficam fixos no topo; "Voltar" e
   "Avançar" ficam fixos no rodapé, com um botão (☰) entre eles que abre a grade de questões em
   uma gaveta inferior (bottom sheet). A gaveta fecha ao escolher uma questão, ao tocar fora dela,
@@ -199,6 +202,9 @@ Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (poi
 - **Ações em pilha.** Pares de botões de rodapé e de modais ficam empilhados, em largura total,
   com a ação principal em cima.
 - Listas com rolagem interna (como "Questões para revisar") passam a rolar com a página.
+- **Textos longos sem espaço** (caminhos, linhas como `username:x:UID:GID:...`) quebram em
+  qualquer ponto em vez de alargar a página: o `GlobalStyle` aplica `overflow-wrap: anywhere` ao
+  `body`, herdado por toda a aplicação. Isso vale para todas as larguras, não só no celular.
 
 ### Toque e acessibilidade
 
@@ -213,6 +219,9 @@ Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (poi
   focar.
 - Elementos fixos nas bordas respeitam as áreas seguras do iPhone (`env(safe-area-inset-*)`),
   habilitadas por `viewport-fit=cover` no `index.html`.
+- O logo do header é um link para o Início (`/`), no desktop e no celular, com
+  `aria-label="Student App — ir para o Início"`. Durante uma tentativa, o clique passa pela mesma
+  confirmação de saída da navegação. O logo da tela de login não é link.
 
 ---
 
