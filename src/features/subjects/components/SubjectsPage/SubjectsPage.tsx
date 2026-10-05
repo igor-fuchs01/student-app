@@ -9,15 +9,10 @@ import {
   StyledGrid,
   StyledSubjectLink,
   StyledSubjectCard,
-  StyledIntegratedCard,
   StyledInitial,
-  StyledIntegratedInitial,
   StyledSubjectName,
   StyledSubjectMeta,
   StyledSubjectPreparation,
-  StyledIntegratedEyebrow,
-  StyledIntegratedTitle,
-  StyledIntegratedDescription,
 } from "./SubjectsPage.styles";
 
 export function SubjectsPage() {
@@ -59,17 +54,6 @@ export function SubjectsPage() {
                 </StyledSubjectCard>
               </StyledSubjectLink>
             ))}
-
-            <StyledIntegratedCard tone="accent">
-              <StyledIntegratedInitial>TODAS</StyledIntegratedInitial>
-              <StyledIntegratedEyebrow>Simulado integrado</StyledIntegratedEyebrow>
-              <StyledIntegratedTitle>Todas as disciplinas</StyledIntegratedTitle>
-              <StyledIntegratedDescription>
-                Questões combinadas das{" "}
-                {formatCount(subjectsQuery.data.length, "disciplina", "disciplinas")} em uma única
-                prova.
-              </StyledIntegratedDescription>
-            </StyledIntegratedCard>
           </StyledGrid>
         </>
       )}
