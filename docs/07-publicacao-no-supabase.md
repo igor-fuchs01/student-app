@@ -152,6 +152,15 @@ O CAPTCHA só protege depois do passo 3: sem ele, qualquer um chama o Supabase A
 token. No Supabase local o CAPTCHA fica desligado (`[auth.captcha]` comentado no `config.toml`);
 deixe `VITE_TURNSTILE_SITE_KEY` vazia no `.env.development` para não mostrar o widget.
 
+O widget é sempre renderizado no tema claro (`theme: "light"` em `TurnstileWidget`), porque o app
+não tem tema escuro; sem isso ele seguiria o modo escuro do sistema.
+
+Na tela de login, o console do navegador mostra avisos que vêm de dentro do iframe do Turnstile
+(origem `…/normal?lang=pt-br`) e não do app: `Blocked script execution in 'about:blank'…`,
+`The powerPreference option is currently ignored…`, `No available adapters.` e
+`OTS parsing error: … WOFF 2.0…`. São esperados, não afetam o login e não dá para removê-los pelo
+código do app. Para ver só os logs do app no DevTools, filtre com `-normal?lang`.
+
 ## 6. Publicar mudanças no banco
 
 Toda mudança no banco é uma **migration nova**, nunca a edição de uma já aplicada:
