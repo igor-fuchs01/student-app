@@ -12,12 +12,17 @@
 --
 -- The JSON format is documented in docs/07-importacao-de-simulados.md.
 --
--- An exercise list uses the same format with "kind": "exercise", "subjectScope":
--- "single", its "subject" and its "topic", and no "durationMinutes". Its
--- questions may omit "topic", and any they give must be the list's own:
+-- Every quiz belongs to one "subject"; there is no integrated simulado, so
+-- "subjectScope" is no longer part of the format (an old payload with
+-- "subjectScope": "single" is still accepted, "all" is refused). A question may
+-- omit "subject", and any it gives must be the quiz's own.
+--
+-- An exercise list uses the same format with "kind": "exercise" and its
+-- "topic", and no "durationMinutes". Its questions may omit "topic", and any
+-- they give must be the list's own:
 --
 --   { "kind": "exercise", "title": "Normalização — Exercícios 2",
---     "subjectScope": "single", "subject": "Banco de Dados", "topic": "Normalização",
+--     "subject": "Banco de Dados", "topic": "Normalização",
 --     "difficulty": "easy", "questions": [ ... ] }
 --
 -- How it works:
@@ -48,7 +53,6 @@ CREATE TEMP TABLE quiz_import_payload ON COMMIT DROP AS
 SELECT $json$
 {
   "title": "Banco de Dados — Simulado 2",
-  "subjectScope": "single",
   "subject": "Banco de Dados",
   "durationMinutes": 20,
   "difficulty": "medium",
@@ -253,7 +257,6 @@ DECLARE
   idx            bigint;
   entry_idx      bigint;
   quiz_title     text;
-  quiz_scope     text;
   quiz_subject   text;
   quiz_kind      text;
   quiz_topic     text;
@@ -282,7 +285,6 @@ BEGIN
 
   problems := problems || pg_temp.text_errors(payload, 'title', 'quiz');
   quiz_title := btrim(COALESCE(payload ->> 'title', ''));
-  quiz_scope := payload ->> 'subjectScope';
   quiz_subject := payload ->> 'subject';
   quiz_kind := COALESCE(payload ->> 'kind', 'exam');
   quiz_topic := payload ->> 'topic';
@@ -295,19 +297,17 @@ BEGIN
     problems := problems || format('quiz: a quiz titled %L already exists', quiz_title);
   END IF;
 
-  IF quiz_scope IS DISTINCT FROM 'single' AND quiz_scope IS DISTINCT FROM 'all' THEN
-    problems := problems || 'quiz: "subjectScope" must be "single" or "all"';
-  ELSIF quiz_scope = 'single' THEN
-    IF quiz_subject IS NULL OR btrim(quiz_subject) = '' THEN
-      problems := problems || 'quiz: "subject" is required when "subjectScope" is "single"';
-    ELSE
-      SELECT id INTO v_subject_id FROM subjects WHERE name = quiz_subject;
-      IF NOT FOUND THEN
-        problems := problems || format('quiz: subject %L was not found', quiz_subject);
-      END IF;
+  IF payload ? 'subjectScope' AND payload ->> 'subjectScope' IS DISTINCT FROM 'single' THEN
+    problems := problems || 'quiz: integrated quizzes no longer exist; remove "subjectScope" and give the quiz a "subject"';
+  END IF;
+
+  IF quiz_subject IS NULL OR btrim(quiz_subject) = '' THEN
+    problems := problems || 'quiz: "subject" must be a non-empty string';
+  ELSE
+    SELECT id INTO v_subject_id FROM subjects WHERE name = quiz_subject;
+    IF NOT FOUND THEN
+      problems := problems || format('quiz: subject %L was not found', quiz_subject);
     END IF;
-  ELSIF quiz_subject IS NOT NULL THEN
-    problems := problems || 'quiz: "subject" must be omitted when "subjectScope" is "all"';
   END IF;
 
   IF payload ->> 'difficulty' IS NULL
@@ -317,10 +317,6 @@ BEGIN
 
   -- An exercise list belongs to one topic of one subject and has no time limit.
   IF quiz_kind = 'exercise' THEN
-    IF quiz_scope IS DISTINCT FROM 'single' THEN
-      problems := problems || 'quiz: an exercise list needs "subjectScope" set to "single"';
-    END IF;
-
     IF quiz_topic IS NULL OR btrim(quiz_topic) = '' THEN
       problems := problems || 'quiz: "topic" is required when "kind" is "exercise"';
     ELSIF v_subject_id IS NOT NULL THEN
@@ -366,15 +362,17 @@ BEGIN
   LOOP
     q_where := format('question %s', idx);
     q_type := question ->> 'type';
-    -- Outside a single-subject quiz each question says which subject it belongs
-    -- to, because topic names are unique per subject, not globally.
+    -- A question may omit its subject: it is the quiz's subject.
     subject_name := COALESCE(question ->> 'subject', quiz_subject);
     -- In an exercise list a question may omit its topic: it is the list's topic.
     topic_name := COALESCE(question ->> 'topic', CASE WHEN quiz_kind = 'exercise' THEN quiz_topic END);
 
-    IF quiz_kind = 'exercise'
-       AND (subject_name IS DISTINCT FROM quiz_subject OR topic_name IS DISTINCT FROM quiz_topic) THEN
-      problems := problems || format('%s: every question of an exercise list must be of its subject and topic', q_where);
+    IF subject_name IS DISTINCT FROM quiz_subject THEN
+      problems := problems || format('%s: every question must be of the quiz''s subject', q_where);
+    END IF;
+
+    IF quiz_kind = 'exercise' AND topic_name IS DISTINCT FROM quiz_topic THEN
+      problems := problems || format('%s: every question of an exercise list must be of its topic', q_where);
     END IF;
 
     IF q_type IS NULL
@@ -390,7 +388,8 @@ BEGIN
     IF topic_name IS NULL OR btrim(topic_name) = '' THEN
       problems := problems || format('%s: "topic" must be a non-empty string', q_where);
     ELSIF subject_name IS NULL OR btrim(subject_name) = '' THEN
-      problems := problems || format('%s: "subject" is required because the quiz covers every subject', q_where);
+      -- The missing subject is already reported for the quiz itself.
+      NULL;
     ELSE
       PERFORM 1
       FROM topics t
@@ -530,12 +529,11 @@ BEGIN
   -- 3. Insert
   -- ===========================================================================
 
-  INSERT INTO quizzes (title, kind, subject_scope, subject_id, topic_id, duration_minutes, difficulty)
+  INSERT INTO quizzes (title, kind, subject_id, topic_id, duration_minutes, difficulty)
   VALUES (
     quiz_title,
     quiz_kind::quiz_kind,
-    quiz_scope::quiz_subject_scope,
-    CASE WHEN quiz_scope = 'single' THEN v_subject_id END,
+    v_subject_id,
     v_quiz_topic_id,
     CASE WHEN quiz_kind = 'exam' THEN (payload ->> 'durationMinutes')::integer END,
     (payload ->> 'difficulty')::difficulty_level
