@@ -190,8 +190,8 @@ SELECT id, 'b1', 'chave primária', 1 FROM questions WHERE type = 'essay_blanks'
 -- Quiz
 -- -----------------------------------------------------------------------------
 
-INSERT INTO quizzes (title, subject_scope, subject_id, duration_minutes, difficulty)
-SELECT 'Banco de Dados — Simulado 1', 'single', id, 10, 'hard'
+INSERT INTO quizzes (title, subject_id, duration_minutes, difficulty)
+SELECT 'Banco de Dados — Simulado 1', id, 10, 'hard'
 FROM subjects WHERE name = 'Banco de Dados';
 
 INSERT INTO quiz_questions (quiz_id, question_id, order_index)
@@ -204,8 +204,8 @@ WHERE z.title = 'Banco de Dados — Simulado 1';
 -- Exercise lists: one per topic, with the questions of that topic
 -- -----------------------------------------------------------------------------
 
-INSERT INTO quizzes (title, kind, subject_scope, subject_id, topic_id, difficulty)
-SELECT t.name || ' — Exercícios 1', 'exercise', 'single', t.subject_id, t.id, 'easy'
+INSERT INTO quizzes (title, kind, subject_id, topic_id, difficulty)
+SELECT t.name || ' — Exercícios 1', 'exercise', t.subject_id, t.id, 'easy'
 FROM topics t
 WHERE t.name IN ('Modelagem ER', 'Normalização');
 
