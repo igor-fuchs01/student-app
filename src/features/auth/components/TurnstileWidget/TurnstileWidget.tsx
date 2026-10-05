@@ -6,6 +6,7 @@ const SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render
 type TurnstileRenderOptions = {
   sitekey: string;
   language: string;
+  theme: "light" | "dark" | "auto";
   callback: (token: string) => void;
   "expired-callback": () => void;
   "error-callback": () => void;
@@ -67,6 +68,8 @@ export function TurnstileWidget({ siteKey, resetKey, onTokenChange }: TurnstileW
         const id = turnstile.render(containerRef.current, {
           sitekey: siteKey,
           language: "pt-br",
+          // The app has no dark theme, so the widget never follows the system's dark mode.
+          theme: "light",
           callback: (token) => onTokenChangeRef.current(token),
           "expired-callback": () => onTokenChangeRef.current(null),
           "error-callback": () => onTokenChangeRef.current(null),
