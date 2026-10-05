@@ -163,15 +163,14 @@ export const StyledQuizTitle = styled.td`
   }
 `;
 
-export const StyledSubjectBadge = styled.span<{ $integrated?: boolean }>`
-  background: ${({ theme, $integrated }) => ($integrated ? theme.colors.accent : "transparent")};
-  color: ${({ theme, $integrated }) => ($integrated ? "#fff" : theme.colors.text)};
+export const StyledSubjectBadge = styled.span`
+  color: ${({ theme }) => theme.colors.text};
   font-size: 11px;
   font-weight: 700;
   padding: 3px 12px;
   border-radius: ${({ theme }) => theme.radii.pill};
 
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    padding: ${({ $integrated }) => ($integrated ? "3px 12px" : "0")};
+    padding: 0;
   }
 `;

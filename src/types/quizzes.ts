@@ -7,8 +7,7 @@ export type QuizDifficulty = z.infer<typeof difficultySchema>;
 export const quizSummarySchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  subjectScope: z.enum(["single", "all"]),
-  subjectName: z.string().optional(),
+  subjectName: z.string().min(1),
   questionCount: z.number().int().positive(),
   durationMinutes: z.number().int().positive(),
   attemptsCount: z.number().int().nonnegative(),

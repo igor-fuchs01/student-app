@@ -264,16 +264,8 @@ const QUESTION_BANK: Question[] = [
 
 const QUIZZES: MockQuizDefinition[] = [
   {
-    id: "integrado",
-    title: "Simulado integrado",
-    subjectScope: "all",
-    durationMinutes: 15,
-    difficulty: "medium",
-  },
-  {
     id: "algoritmos-1",
     title: "Algoritmos — Simulado 1",
-    subjectScope: "single",
     subjectName: "Algoritmos",
     durationMinutes: 5,
     difficulty: "medium",
@@ -281,7 +273,6 @@ const QUIZZES: MockQuizDefinition[] = [
   {
     id: "arquitetura-1",
     title: "Arquitetura — Simulado 1",
-    subjectScope: "single",
     subjectName: "Arquitetura de Computadores",
     durationMinutes: 5,
     difficulty: "easy",
@@ -289,7 +280,6 @@ const QUIZZES: MockQuizDefinition[] = [
   {
     id: "so-1",
     title: "Sistemas Operacionais — Simulado 1",
-    subjectScope: "single",
     subjectName: "Sistemas Operacionais",
     durationMinutes: 5,
     difficulty: "medium",
@@ -297,7 +287,6 @@ const QUIZZES: MockQuizDefinition[] = [
   {
     id: "ti-1",
     title: "Tecnologia da Informação — Simulado 1",
-    subjectScope: "single",
     subjectName: "Tecnologia da Informação",
     durationMinutes: 5,
     difficulty: "easy",
@@ -305,7 +294,6 @@ const QUIZZES: MockQuizDefinition[] = [
   {
     id: "bd-1",
     title: "Banco de Dados — Simulado 1",
-    subjectScope: "single",
     subjectName: "Banco de Dados",
     durationMinutes: 10,
     difficulty: "hard",
@@ -402,7 +390,6 @@ function findQuiz(id: string): MockQuizDefinition | undefined {
 }
 
 function questionsFor(quiz: MockQuizDefinition): Question[] {
-  if (quiz.subjectScope === "all") return QUESTION_BANK;
   return QUESTION_BANK.filter((question) => question.subjectName === quiz.subjectName);
 }
 

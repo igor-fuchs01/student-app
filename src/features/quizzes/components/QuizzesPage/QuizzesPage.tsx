@@ -50,9 +50,7 @@ export function QuizzesPage() {
       {quizzesQuery.data && (
         <>
           <StyledPageTitle>Lista de simulados</StyledPageTitle>
-          <StyledPageSubtitle>
-            Um simulado por disciplina e um integrado que mistura diversas questões.
-          </StyledPageSubtitle>
+          <StyledPageSubtitle>Um simulado por disciplina, com as questões dela.</StyledPageSubtitle>
 
           <StyledTableCard tone="surface">
             <StyledTable>
@@ -81,9 +79,7 @@ export function QuizzesPage() {
                   <StyledTableRow key={quiz.id}>
                     <StyledQuizTitle>{quiz.title}</StyledQuizTitle>
                     <td>
-                      <StyledSubjectBadge $integrated={quiz.subjectScope === "all"}>
-                        {quiz.subjectScope === "all" ? "Todas" : quiz.subjectName}
-                      </StyledSubjectBadge>
+                      <StyledSubjectBadge>{quiz.subjectName}</StyledSubjectBadge>
                     </td>
                     <td>{formatCount(quiz.questionCount, "questão", "questões")}</td>
                     <td>{quiz.durationMinutes} min</td>
