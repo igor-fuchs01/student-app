@@ -1,13 +1,15 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:2E9EF7,100:7F5AF0&height=190&section=header&text=Student%20App%20%F0%9F%8E%93&fontSize=48&fontColor=ffffff&animation=fadeIn&fontAlignY=36" alt="Student App" width="100%" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1F4F37,100:5DAA2A&height=190&section=header&text=Student%20App&fontSize=48&fontColor=ffffff&animation=fadeIn&fontAlignY=36" alt="Student App" width="100%" />
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=1000&color=2E9EF7&center=true&vCenter=true&width=560&lines=Bem-vindo%28a%29+ao+Student+App+%F0%9F%8E%93;Pratique+com+simulados+de+verdade+%F0%9F%93%9D;Descubra+o+que+ainda+precisa+estudar+%F0%9F%93%9A;Const%C3%A2ncia+vale+mais+que+nota+%F0%9F%94%A5" alt="Typing SVG" />
+<img src="src/assets/logo-mark.png" alt="Logo do Student App" width="140" />
+
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=1000&color=3B7D2C&center=true&vCenter=true&width=560&lines=Bem-vindo%28a%29+ao+Student+App+%F0%9F%8E%93;Pratique+com+simulados+de+verdade+%F0%9F%93%9D;Descubra+o+que+ainda+precisa+estudar+%F0%9F%93%9A;Const%C3%A2ncia+vale+mais+que+nota+%F0%9F%94%A5" alt="Typing SVG" />
 
 **Estude para as provas sabendo exatamente o que revisar.**
 
 [![CI](https://github.com/igor-fuchs01/student-app/actions/workflows/ci.yml/badge.svg)](https://github.com/igor-fuchs01/student-app/actions/workflows/ci.yml)
-[![Licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-2E9EF7)](LICENSE)
+[![Licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-5DAA2A)](LICENSE)
 
 </div>
 
@@ -61,6 +63,6 @@ Abra **http://localhost:5173** e entre com o código de acesso `demo0001` / senh
 
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:7F5AF0,100:2E9EF7&height=110&section=footer" alt="" width="100%" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:5DAA2A,100:1F4F37&height=110&section=footer" alt="" width="100%" />
 
 </div>
