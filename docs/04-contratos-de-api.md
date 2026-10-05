@@ -503,7 +503,10 @@ A lista vem ordenada por disciplina, número da aula e título; listas sem quest
 
 **Comportamento no cliente**
 
-- A aba "Exercícios" (`/exercicios`) mostra um card por lista, agrupados por disciplina. Com
+- A aba "Exercícios" (`/exercicios`) mostra um card por lista, agrupados por disciplina e, dentro
+  dela, por aula: cada grupo se chama "Exercícios da Aula {topicNumber}" e reúne todas as listas do
+  assunto, de qualquer dificuldade. O selo do card mostra a dificuldade (Fácil, Média ou Difícil).
+  Com
   `?assunto={topicId}` (vindo do "Praticar questões" do detalhe da disciplina), pede
   `GET /exercises?topicId=` e mostra só as listas desse assunto, com um link para ver todas. Um
   assunto sem listas mostra um aviso; um `404` mostra o erro com o link para ver todas.
