@@ -351,8 +351,8 @@ Retorna as disciplinas do curso do aluno autenticado.
 ```
 
 **Comportamento no cliente:** as disciplinas são renderizadas na ordem do array. Cada card é um
-link para `/disciplinas/:subjectId`. O card do simulado integrado é fixo na UI, informa quantas
-disciplinas foram retornadas e não é clicável.
+link para `/disciplinas/:subjectId`. Não há card de simulado integrado: todo simulado é de uma
+disciplina.
 
 ---
 
@@ -444,13 +444,13 @@ Lista os simulados disponíveis para o aluno. As listas de exercícios não entr
 ```json
 [
   {
-    "id": "integrado",
-    "title": "Simulado integrado",
-    "subjectScope": "all",
-    "questionCount": 13,
-    "durationMinutes": 15,
+    "id": "bd-1",
+    "title": "Banco de Dados — Simulado 1",
+    "subjectName": "Banco de Dados",
+    "questionCount": 4,
+    "durationMinutes": 10,
     "attemptsCount": 2,
-    "difficulty": "medium"
+    "difficulty": "hard"
   }
 ]
 ```
@@ -752,8 +752,7 @@ para `dashboardApi.getDashboard` e que vira a query string de `GET /dashboard`.
 |---|---|---|
 | `id` | string | Não vazio. Usado em `/quizzes/:id`. |
 | `title` | string | Não vazio. |
-| `subjectScope` | enum | `"single"` (uma disciplina) ou `"all"` (simulado integrado). |
-| `subjectName` | string | Opcional. Presente quando `subjectScope` é `"single"`. |
+| `subjectName` | string | Não vazio. Disciplina do simulado; todo simulado é de uma disciplina. |
 | `questionCount` | integer | `> 0`. |
 | `durationMinutes` | integer | `> 0`. Duração do modo com tempo limite. |
 | `attemptsCount` | integer | `>= 0`. Quantas tentativas deste simulado o aluno já enviou. |
@@ -994,10 +993,9 @@ Particularidades do mock:
 - **Disciplinas:** todas as disciplinas da lista têm detalhe, os assuntos saem ordenados por
   `number`, `materialsCount` é a soma dos materiais dos subassuntos, e os `fileUrl` apontam para
   arquivos que não existem no projeto.
-- **Simulados:** todos os simulados da lista têm detalhe. O simulado integrado usa todas as
-  questões do banco do mock; os demais usam as questões da sua disciplina, e `questionCount`
-  é calculado a partir delas. `attemptsCount` é contado em memória e volta a zero quando a página
-  é recarregada.
+- **Simulados:** todos os simulados da lista têm detalhe. Cada um usa as questões da sua
+  disciplina no banco do mock, e `questionCount` é calculado a partir delas. `attemptsCount` é
+  contado em memória e volta a zero quando a página é recarregada.
 - **Exercícios:** as listas ficam em `mocks/quizzes.ts`, cada uma com o assunto (ids de
   `mocks/subjects.ts`) e as questões do banco do mock escolhidas para ele. Alguns assuntos ficam
   sem lista de propósito, para a tela mostrar o aviso de assunto vazio. `topicId` usa os ids de

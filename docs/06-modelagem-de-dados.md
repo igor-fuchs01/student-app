@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava) e `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) e `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
@@ -139,7 +139,7 @@ da equipe, inclusive quem não programa.
 | **Alternativa** | Opção que o aluno pode escolher: de uma questão (múltipla escolha e múltiplas alternativas) ou de uma lacuna (seleção única). |
 | **Lacuna** | Espaço `{{id}}` no texto de uma questão, preenchido por seleção, por texto ou arrastando um termo. |
 | **Termo** | Item arrastável de uma questão de drag and drop. |
-| **Simulado** | Conjunto ordenado de questões, com duração e dificuldade. Pode ser de uma disciplina ou integrado. |
+| **Simulado** | Conjunto ordenado de questões de uma disciplina, com duração e dificuldade. Não existe simulado integrado. |
 | **Lista de exercícios** | Um simulado de tipo `exercise`: questões de um único assunto, sem duração. Fica na mesma tabela e usa as mesmas tentativas, correção e resultado. |
 | **Tentativa** | Envio de um simulado por um aluno. |
 | **Resposta** | O que o aluno respondeu em uma questão de uma tentativa, com o resultado da correção. |
@@ -161,7 +161,7 @@ da equipe, inclusive quem não programa.
 | Lacuna — Alternativa | 1 : N | Só na seleção única. Uma alternativa pertence a uma questão **ou** a uma lacuna, nunca às duas. |
 | Questão — Termo | 1 : N | Só no drag and drop. |
 | Termo — Lacuna | 1 : N | No drag and drop, cada lacuna tem um termo correto. |
-| Disciplina — Simulado | 0..1 : N | Um simulado é de uma disciplina ou é integrado (sem disciplina). |
+| Disciplina — Simulado | 1 : N | Todo simulado (e toda lista de exercícios) é de exatamente uma disciplina. |
 | Assunto — Lista de exercícios | 1 : N | Uma lista de exercícios é de exatamente um assunto (`quizzes.topic_id`); um assunto pode ter várias listas. Um simulado (`kind = 'exam'`) não tem assunto. |
 | Simulado — Questão | N : M | Um simulado tem pelo menos uma questão; uma questão pode estar em vários simulados. O relacionamento tem um atributo: a **ordem** da questão no simulado. |
 | Simulado — Tentativa | 1 : N | Sem limite: o aluno refaz o simulado quantas vezes quiser, e cada envio vira uma tentativa. |
@@ -256,8 +256,8 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
   usuário apaga o aluno.
 - **Lista de exercícios na tabela de simulados.** Ela só difere do simulado por ter um assunto e
   não ter duração, então fica em `quizzes` com `kind = 'exercise'`. `CHECK`s garantem que
-  `topic_id` exista só nela, que `duration_minutes` seja nulo só nela e que ela seja sempre de uma
-  disciplina (`subject_scope = 'single'`). Assim tentativas, respostas e correção servem aos dois
+  `topic_id` exista só nela e que `duration_minutes` seja nulo só nela; como todo quiz, ela tem
+  `subject_id` obrigatório. Assim tentativas, respostas e correção servem aos dois
   sem tabelas paralelas.
 - **Relacionamento N : M** entre Simulado e Questão vira a tabela associativa `quiz_questions`, que
   também guarda o atributo do relacionamento (`order_index`).
@@ -317,7 +317,7 @@ erDiagram
     questions ||--o{ question_slots : ""
     question_terms ||--o{ question_slots : ""
 
-    subjects |o--o{ quizzes : ""
+    subjects ||--o{ quizzes : ""
     quizzes ||--|{ quiz_questions : ""
     questions ||--o{ quiz_questions : ""
     quizzes ||--o{ quiz_attempts : ""
@@ -435,7 +435,6 @@ erDiagram
         int id PK
         text title
         quiz_kind kind
-        quiz_subject_scope subject_scope
         int subject_id FK
         int topic_id FK
         int duration_minutes
@@ -488,7 +487,7 @@ erDiagram
     }
 ```
 
-Enums: `question_type`, `quiz_subject_scope` (`single`, `all`), `difficulty_level` (`easy`,
+Enums: `question_type`, `quiz_kind` (`exam`, `exercise`), `difficulty_level` (`easy`,
 `medium`, `hard`) e `review_status` (`correct`, `incorrect`, `pending_review`).
 
 ### 2.4 Views (informações derivadas)
