@@ -15,13 +15,49 @@ export const StyledTitle = styled.h2`
   font-size: 15px;
   font-weight: 700;
   line-height: 1.3;
-  margin: 0;
+  margin: 0 0 14px;
 `;
 
-export const StyledSubtitle = styled.p`
-  font-size: 12.5px;
+export const StyledHighlight = styled.div`
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 16px;
+  border-radius: ${({ theme }) => theme.radii.md};
+  background: ${({ theme }) => theme.colors.accent100};
+
+  > button {
+    margin-top: 10px;
+  }
+`;
+
+export const StyledHighlightName = styled.p`
+  margin: 0;
+  font-family: ${({ theme }) => theme.fonts.heading};
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+`;
+
+export const StyledTopicMeta = styled.span`
+  font-size: 12px;
   color: ${({ theme }) => theme.colors.muted};
-  margin: 2px 0 12px;
+`;
+
+export const StyledAction = styled.span`
+  font-size: 12.5px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.accent600};
+`;
+
+export const StyledNextLabel = styled.p`
+  flex: none;
+  margin: 18px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.muted};
 `;
 
 export const StyledList = styled.ul`
@@ -35,9 +71,10 @@ export const StyledList = styled.ul`
 
 export const StyledItem = styled.li<{ $hidden: boolean }>`
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
   border-top: 1px solid ${({ theme }) => theme.colors.divider};
   visibility: ${({ $hidden }) => ($hidden ? "hidden" : "visible")};
 
@@ -47,52 +84,25 @@ export const StyledItem = styled.li<{ $hidden: boolean }>`
   }
 `;
 
-export const StyledItemTop = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-`;
-
-export const StyledTopicName = styled.div`
+export const StyledTopicName = styled.span`
   min-width: 0;
-  font-size: 13.5px;
-  font-weight: 600;
-`;
-
-export const StyledTopicMeta = styled.span`
-  display: block;
-  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
   font-weight: 500;
+`;
+
+export const StyledPercent = styled.span`
+  flex: none;
+  font-size: 12.5px;
   color: ${({ theme }) => theme.colors.muted};
-`;
-
-export const StyledAccuracy = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-
-  > :first-child {
-    flex: 1;
-  }
-
-  b {
-    width: 34px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-`;
-
-export const StyledAction = styled.span`
-  font-size: 12px;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.accent600};
+  font-variant-numeric: tabular-nums;
 `;
 
 export const StyledMore = styled.p`
   flex: none;
-  margin: 4px 0 12px;
+  margin: 6px 0 0;
   font-size: 12px;
   color: ${({ theme }) => theme.colors.muted};
 `;
