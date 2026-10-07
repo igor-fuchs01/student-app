@@ -1,102 +1,31 @@
 import styled from "styled-components";
-import { Link } from "react-router-dom";
-import { Card } from "@components/ui/Card";
 
-export const StyledPageTitle = styled.h1`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 700;
-  font-size: 20px;
-  margin: 0 0 4px;
+export const StyledHiddenTitle = styled.h1`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 `;
 
-export const StyledPageSubtitle = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  margin: 0 0 12px;
-`;
-
-export const StyledAllLink = styled(Link)`
-  display: inline-block;
-  color: ${({ theme }) => theme.colors.accent600};
-  font-size: 12.5px;
-  font-weight: 700;
-  text-decoration: none;
-  margin-bottom: 8px;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-export const StyledSubjectSection = styled.section`
-  margin-top: 20px;
-`;
-
-export const StyledSubjectTitle = styled.h2`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 700;
-  font-size: 15px;
-  margin: 0 0 12px;
-`;
-
-export const StyledTopicSection = styled.section`
-  & + & {
-    margin-top: 22px;
-  }
-`;
-
-export const StyledTopicHeader = styled.div`
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  margin-bottom: 10px;
-`;
-
-export const StyledTopicTitle = styled.h3`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 700;
-  font-size: 14px;
-  color: ${({ theme }) => theme.colors.accent600};
-  margin: 0;
-`;
-
-export const StyledTopicName = styled.span`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 12.5px;
-`;
-
-export const StyledGrid = styled.div`
+// Lessons on the left and the chosen lesson on the right; on narrow screens only one of them is
+// shown, the lesson once the student picked one.
+export const StyledLayout = styled.div<{ $showLesson: boolean }>`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+
+    > :first-child {
+      display: ${({ $showLesson }) => ($showLesson ? "none" : "flex")};
+    }
+
+    > :last-child {
+      display: ${({ $showLesson }) => ($showLesson ? "flex" : "none")};
+    }
   }
-`;
-
-export const StyledExerciseCard = styled(Card)`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 18px;
-`;
-
-export const StyledExerciseTitle = styled.div`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-weight: 700;
-  font-size: 15px;
-`;
-
-export const StyledExerciseMeta = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 12.5px;
-  margin: 0;
-`;
-
-export const StyledCardFooter = styled.div`
-  margin-top: auto;
-  padding-top: 6px;
 `;

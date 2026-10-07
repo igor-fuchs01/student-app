@@ -1,90 +1,62 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Badge, type BadgeTone } from "@components/ui/Badge";
-import { Button } from "@components/ui/Button";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { StartQuizModal } from "@features/quizzes/components/StartQuizModal";
-import { DIFFICULTY_LABEL } from "@features/quizzes/difficultyLabel";
+import { groupExercises, lessonStatus } from "@features/exercises/groupExercises";
 import { quizzesApi } from "@services/api/quizzesApi";
-import type { ExerciseSummary, QuizDifficulty } from "@models/quizzes";
-import { formatCount } from "@utils/formatCount";
-import {
-  StyledPageTitle,
-  StyledPageSubtitle,
-  StyledAllLink,
-  StyledSubjectSection,
-  StyledSubjectTitle,
-  StyledTopicSection,
-  StyledTopicHeader,
-  StyledTopicTitle,
-  StyledTopicName,
-  StyledGrid,
-  StyledExerciseCard,
-  StyledExerciseTitle,
-  StyledExerciseMeta,
-  StyledCardFooter,
-} from "./ExercisesPage.styles";
-
-type TopicGroup = {
-  topicId: string;
-  topicNumber: number;
-  topicName: string;
-  exercises: ExerciseSummary[];
-};
-
-type SubjectGroup = { subjectId: string; subjectName: string; topics: TopicGroup[] };
-
-const DIFFICULTY_TONE: Record<QuizDifficulty, BadgeTone> = {
-  easy: "accent",
-  medium: "accent2",
-  hard: "danger",
-};
-
-// Groups the lists by subject and, inside it, by lesson (aula), whatever their difficulty. The API
-// already orders them by subject, lesson and title, so grouping keeps that order.
-function groupBySubjectAndTopic(exercises: ExerciseSummary[]): SubjectGroup[] {
-  const subjects: SubjectGroup[] = [];
-
-  for (const exercise of exercises) {
-    let subject = subjects.find((item) => item.subjectId === exercise.subjectId);
-    if (!subject) {
-      subject = { subjectId: exercise.subjectId, subjectName: exercise.subjectName, topics: [] };
-      subjects.push(subject);
-    }
-
-    let topic = subject.topics.find((item) => item.topicId === exercise.topicId);
-    if (!topic) {
-      topic = {
-        topicId: exercise.topicId,
-        topicNumber: exercise.topicNumber,
-        topicName: exercise.topicName,
-        exercises: [],
-      };
-      subject.topics.push(topic);
-    }
-
-    topic.exercises.push(exercise);
-  }
-
-  return subjects;
-}
+import { subjectsApi } from "@services/api/subjectsApi";
+import type { ExerciseSummary } from "@models/quizzes";
+import { LessonNav } from "./LessonNav";
+import { LessonPanel } from "./LessonPanel";
+import { StyledHiddenTitle, StyledLayout } from "./ExercisesPage.styles";
 
 export function ExercisesPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const topicId = searchParams.get("assunto") ?? undefined;
+  const [searchParams, setSearchParams] = useSearchParams();
   const [startModalExercise, setStartModalExercise] = useState<ExerciseSummary | null>(null);
 
-  // The API filters by topic, so a topic's screen only downloads that topic's lists.
   const exercisesQuery = useQuery({
-    queryKey: ["exercises", topicId ?? "all"],
-    queryFn: ({ signal }) => quizzesApi.getExercises({ topicId }, signal),
+    queryKey: ["exercises", "all"],
+    queryFn: ({ signal }) => quizzesApi.getExercises({}, signal),
   });
 
-  const exercises = exercisesQuery.data;
-  const topic = topicId ? exercises?.[0] : undefined;
+  // The subject and the lesson live in the URL, so back, reload and shared links keep them.
+  // "assunto" is the older name of "aula", still used by "Praticar questões".
+  const requestedLessonId = searchParams.get("aula") ?? searchParams.get("assunto") ?? undefined;
+  const subjects = exercisesQuery.data ? groupExercises(exercisesQuery.data) : [];
+  const subjectOfLesson = subjects.find((item) =>
+    item.lessons.some((lesson) => lesson.topicId === requestedLessonId),
+  );
+  const subject =
+    subjects.find((item) => item.subjectId === searchParams.get("disciplina")) ??
+    subjectOfLesson ??
+    subjects[0];
+  const chosenLesson = subject?.lessons.find((lesson) => lesson.topicId === requestedLessonId);
+  // Without a choice, the first lesson with a list still to do is shown next to the list.
+  const lesson =
+    chosenLesson ??
+    subject?.lessons.find((item) => lessonStatus(item) !== "done") ??
+    subject?.lessons[0];
+
+  // Same key as the subject detail screen, so both share the cached summaries and key points.
+  const subjectQuery = useQuery({
+    queryKey: ["subject", subject?.subjectId],
+    queryFn: ({ signal }) => subjectsApi.getSubject(subject?.subjectId ?? "", signal),
+    enabled: Boolean(subject),
+  });
+  const lessonContent = subjectQuery.data?.topics.find((topic) => topic.id === lesson?.topicId);
+
+  function selectSubject(subjectId: string) {
+    setSearchParams({ disciplina: subjectId });
+  }
+
+  function selectLesson(topicId: string) {
+    if (!subject) return;
+    setSearchParams({ disciplina: subject.subjectId, aula: topicId });
+    window.scrollTo({ top: 0 });
+  }
 
   function confirmStart() {
     if (!startModalExercise) return;
@@ -93,85 +65,49 @@ export function ExercisesPage() {
 
   return (
     <PageLayout active="exercicios">
+      <StyledHiddenTitle>Exercícios</StyledHiddenTitle>
+
       {exercisesQuery.isLoading && <StatusMessage message="Carregando exercícios…" />}
 
       {exercisesQuery.isError && (
         <StatusMessage
           message="Não foi possível carregar os exercícios agora."
           error={exercisesQuery.error}
-          action={
-            topicId
-              ? { label: "Ver todos os exercícios", onClick: () => navigate("/exercicios") }
-              : { label: "Tentar novamente", onClick: () => exercisesQuery.refetch() }
-          }
+          action={{ label: "Tentar novamente", onClick: () => exercisesQuery.refetch() }}
         />
       )}
 
-      {exercises && (
-        <>
-          <StyledPageTitle>Exercícios</StyledPageTitle>
-          <StyledPageSubtitle>
-            {topic
-              ? `Aula ${topic.topicNumber} - ${topic.topicName} · ${topic.subjectName}`
-              : "Listas de exercícios de cada aula, sem limite de tempo."}
-          </StyledPageSubtitle>
-          {topicId && <StyledAllLink to="/exercicios">Ver todos os exercícios</StyledAllLink>}
+      {exercisesQuery.data && !subject && (
+        <StatusMessage message="Ainda não há exercícios publicados." />
+      )}
 
-          {exercises.length === 0 && (
-            <StatusMessage
-              message={
-                topicId
-                  ? "Ainda não há exercícios para este assunto."
-                  : "Ainda não há exercícios publicados."
-              }
-            />
-          )}
+      {requestedLessonId && subject && !subjectOfLesson && (
+        <StatusMessage
+          message="Ainda não há exercícios para este assunto."
+          action={{ label: "Ver todos os exercícios", onClick: () => setSearchParams({}) }}
+        />
+      )}
 
-          {groupBySubjectAndTopic(exercises).map((subject) => (
-            <StyledSubjectSection key={subject.subjectId} aria-label={subject.subjectName}>
-              {!topicId && <StyledSubjectTitle>{subject.subjectName}</StyledSubjectTitle>}
-
-              {subject.topics.map((topicGroup) => (
-                <StyledTopicSection
-                  key={topicGroup.topicId}
-                  aria-label={`Exercícios da Aula ${topicGroup.topicNumber}`}
-                >
-                  <StyledTopicHeader>
-                    <StyledTopicTitle>Exercícios da Aula {topicGroup.topicNumber}</StyledTopicTitle>
-                    <StyledTopicName>
-                      {topicGroup.topicName} ·{" "}
-                      {formatCount(topicGroup.exercises.length, "lista", "listas")}
-                    </StyledTopicName>
-                  </StyledTopicHeader>
-
-                  <StyledGrid>
-                    {topicGroup.exercises.map((exercise) => (
-                      <StyledExerciseCard key={exercise.id}>
-                        <Badge tone={DIFFICULTY_TONE[exercise.difficulty]}>
-                          {DIFFICULTY_LABEL[exercise.difficulty]}
-                        </Badge>
-                        <StyledExerciseTitle>{exercise.title}</StyledExerciseTitle>
-                        <StyledExerciseMeta>
-                          Aula {exercise.topicNumber} ·{" "}
-                          {formatCount(exercise.questionCount, "questão", "questões")} ·{" "}
-                          {formatCount(exercise.attemptsCount, "tentativa", "tentativas")}
-                        </StyledExerciseMeta>
-                        <StyledCardFooter>
-                          <Button
-                            variant="secondary"
-                            onClick={() => setStartModalExercise(exercise)}
-                          >
-                            Iniciar
-                          </Button>
-                        </StyledCardFooter>
-                      </StyledExerciseCard>
-                    ))}
-                  </StyledGrid>
-                </StyledTopicSection>
-              ))}
-            </StyledSubjectSection>
-          ))}
-        </>
+      {subject && lesson && (!requestedLessonId || subjectOfLesson) && (
+        <StyledLayout $showLesson={Boolean(chosenLesson)}>
+          <LessonNav
+            key={subject.subjectId}
+            subjects={subjects}
+            subject={subject}
+            selectedLessonId={lesson.topicId}
+            onSubjectChange={selectSubject}
+            onLessonSelect={selectLesson}
+          />
+          <LessonPanel
+            key={lesson.topicId}
+            subjectName={subject.subjectName}
+            lesson={lesson}
+            content={lessonContent}
+            contentStatus={subjectQuery.status}
+            onStart={setStartModalExercise}
+            onBack={() => selectSubject(subject.subjectId)}
+          />
+        </StyledLayout>
       )}
 
       {startModalExercise && (
