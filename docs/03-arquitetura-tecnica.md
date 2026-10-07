@@ -18,7 +18,7 @@ src/
 ├── assets/            # imagens importadas pelos componentes (ex.: logo-mark.png)
 ├── components/
 │   ├── layout/        # AppHeader, Brand (logo), PageLayout (header + conteúdo da página)
-│   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, Modal, ...)
+│   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, FilterBar, Modal, ...)
 ├── features/
 │   ├── auth/          # login, store de sessão (Zustand), useLogout
 │   ├── dashboard/
@@ -195,6 +195,9 @@ Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (poi
   "Avançar" ficam fixos no rodapé, com um botão (☰) entre eles que abre a grade de questões em
   uma gaveta inferior (bottom sheet). A gaveta fecha ao escolher uma questão, ao tocar fora dela,
   no ✕ ou com Esc. Ao trocar de questão a página volta ao topo.
+- **Exercícios em lista e detalhe.** Em `ExercisesPage`, a lista de aulas e a aula escolhida ficam
+  lado a lado; até `md` só uma delas aparece (a aula, quando há `?aula=` na URL), com "← Aulas"
+  para voltar.
 - **Lista de simulados em cards.** A mesma tabela de `QuizzesPage` é reorganizada por CSS: cada
   linha vira um card e o cabeçalho fica visível só para leitores de tela.
 - **Revisão da prova (resultado).** A grade de questões vem antes da questão, para trocar de

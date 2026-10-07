@@ -315,10 +315,12 @@ ainda sem autocorreção) contam como respondidas, mas não entram no percentual
   não é tratada como erro.
 - Os filtros ficam na URL da tela (`/?periodo=30&disciplina=1`); trocar um filtro refaz a
   requisição mantendo o painel anterior na tela, esmaecido, até a resposta chegar.
-- `level` vira um badge com ícone e texto (`high` → "▲ Alta", `medium` → "● Média",
-  `few_practice` → "○ Pouco praticado"), e a ação sugerida sai de `level` e
-  `recentWrongCount`. O card mostra só os itens que cabem na altura da tela e informa quantos
-  ficaram de fora a partir de `totalCount`.
+- O card "O que estudar agora" destaca só o primeiro item: nome do assunto, uma linha com
+  sigla, aula e acerto, a ação sugerida (que sai de `level` e `recentWrongCount`) e o botão
+  "Estudar agora", que leva a `/disciplinas/:subjectId`. Abaixo, em "Em seguida", vêm no máximo
+  os dois itens seguintes, cada um em uma linha só com nome e acerto (sem barra); os que não
+  cabem na altura da tela ficam ocultos. `level` não é exibido. O rodapé informa, a partir de
+  `totalCount`, quantos assuntos ficaram de fora.
 - Sem nenhuma questão respondida no período, a tela convida a fazer um simulado em vez de
   mostrar gráficos vazios.
 
@@ -455,7 +457,10 @@ Lista os simulados disponíveis para o aluno. As listas de exercícios não entr
 ]
 ```
 
-**Comportamento no cliente:** não há limite de tentativas. `attemptsCount` é exibido apenas como
+**Comportamento no cliente:** acima da tabela há dois filtros, aplicados na própria tela sobre a
+lista já carregada: disciplina (as `subjectName` presentes na resposta) e dificuldade (Fácil, Média
+ou Difícil). Se nenhum simulado atende aos filtros, aparece um aviso no lugar da tabela. Não há
+limite de tentativas. `attemptsCount` é exibido apenas como
 informação; o botão "Iniciar" está sempre disponível.
 
 ---
@@ -503,17 +508,31 @@ A lista vem ordenada por disciplina, número da aula e título; listas sem quest
 
 **Comportamento no cliente**
 
-- A aba "Exercícios" (`/exercicios`) mostra um card por lista, agrupados por disciplina e, dentro
-  dela, por aula: cada grupo se chama "Exercícios da Aula {topicNumber}" e reúne todas as listas do
-  assunto, de qualquer dificuldade. O selo do card mostra a dificuldade (Fácil, Média ou Difícil).
-  Com
-  `?assunto={topicId}` (vindo do "Praticar questões" do detalhe da disciplina), pede
-  `GET /exercises?topicId=` e mostra só as listas desse assunto, com um link para ver todas. Um
-  assunto sem listas mostra um aviso; um `404` mostra o erro com o link para ver todas.
-- Cada filtro é uma entrada própria no cache (`["exercises", topicId ?? "all"]`).
-- "Iniciar" abre um pop-up de confirmação, sem escolha de cronômetro. A tentativa roda em
-  `/exercicios/:id`, sem limite de tempo, com a mesma navegação, revisão, envio e resultado do
-  simulado.
+- A aba "Exercícios" (`/exercicios`) pede `GET /exercises` sem filtro (cache
+  `["exercises", "all"]`) e mostra uma disciplina por vez, em lista e detalhe, sem título visível:
+  - **Lista de aulas** (à esquerda): a disciplina selecionada em destaque (seletor grande, com
+    "{n} aulas · {feitas} de {total} listas feitas" logo abaixo), busca pelo nome ou número da aula
+    (sem diferenciar maiúsculas nem acentos), filtro Todas / Pendentes / Feitas e uma linha por
+    aula com "Aula {topicNumber} · {topicName}", a situação (✓ todas feitas, ◐ em andamento,
+    ○ não iniciada) e "{feitas}/{total}". Uma lista conta como feita quando `attemptsCount > 0`.
+  - **Aula escolhida** (à direita): disciplina, nome, barra "{n} de {total} listas feitas", o
+    resumo da aula, os pontos-chave recolhidos ("Ver pontos-chave") e uma linha por lista com nº
+    de questões, situação e "Iniciar" ou "Refazer". A dificuldade não é exibida.
+- O resumo é a `description` do [`SubjectTopic`](#317-subjecttopic) e os pontos-chave são os
+  `keyPoints` dos seus subassuntos, vindos de [`GET /subjects/:id`](#get-subjectsid) da disciplina
+  selecionada, com a mesma chave de cache do detalhe da disciplina (`["subject", subjectId]`). Se
+  esse pedido falhar, a aula mostra um aviso no lugar do resumo e as listas continuam disponíveis.
+- A disciplina e a aula ficam na URL (`?disciplina={subjectId}&aula={topicId}`), então voltar,
+  recarregar e compartilhar o link mantêm a seleção. Sem aula na URL, a tela mostra a primeira
+  aula com lista pendente da disciplina (ou a primeira aula). `?assunto={topicId}` (vindo do
+  "Praticar questões" do detalhe da disciplina) é aceito como sinônimo de `aula`; um assunto sem
+  listas mostra um aviso com o link para ver todos.
+- No celular (até `md`), a tela mostra só a lista de aulas; tocar numa aula abre só a aula, com
+  "← Aulas" para voltar.
+- O filtro `topicId` do endpoint continua disponível, mas a tela não o usa mais.
+- "Iniciar" e "Refazer" abrem um pop-up de confirmação, sem escolha de cronômetro. A
+  tentativa roda em `/exercicios/:id`, sem limite de tempo, com a mesma navegação, revisão, envio e
+  resultado do simulado.
 - Não há limite de tentativas; `attemptsCount` é só informativo.
 
 ---
@@ -899,12 +918,12 @@ Um assunto (aula) da disciplina, como em [`02-regras-de-negocio.md`](02-regras-d
 | `title` | string | Não vazio. |
 | `subjectId` | string | Não vazio. Disciplina do assunto. |
 | `subjectName` | string | Não vazio. |
-| `topicId` | string | Não vazio. Mesmo `id` de [`SubjectTopic`](#317-subjecttopic); filtra a tela por `?assunto=`. |
+| `topicId` | string | Não vazio. Mesmo `id` de [`SubjectTopic`](#317-subjecttopic); escolhe a aula na tela por `?aula=` (ou `?assunto=`). |
 | `topicNumber` | integer | `> 0`. Exibido como "Aula {topicNumber}". |
 | `topicName` | string | Não vazio. |
 | `questionCount` | integer | `> 0`. |
 | `attemptsCount` | integer | `>= 0`. Quantas tentativas desta lista o aluno já enviou. |
-| `difficulty` | enum | `"easy"`, `"medium"`, ou `"hard"`, como em [`QuizSummary`](#310-quizsummary). |
+| `difficulty` | enum | `"easy"`, `"medium"`, ou `"hard"`, como em [`QuizSummary`](#310-quizsummary). Não é exibido na tela de exercícios. |
 
 ### 3.21 `ActivityCalendar`
 
@@ -995,7 +1014,9 @@ Particularidades do mock:
   (arquivos da página, Vite) não são interceptados.
 - **Disciplinas:** todas as disciplinas da lista têm detalhe, os assuntos saem ordenados por
   `number`, `materialsCount` é a soma dos materiais dos subassuntos, e os `fileUrl` apontam para
-  arquivos que não existem no projeto.
+  arquivos que não existem no projeto. Além dos assuntos curados, cada disciplina ganha aulas extras
+  (`EXTRA_LESSONS`), cada uma com um subassunto "Visão geral", pontos-chave e nenhum material, para
+  as telas mostrarem um semestre cheio.
 - **Simulados:** todos os simulados da lista têm detalhe. Cada um usa as questões da sua
   disciplina no banco do mock, e `questionCount` é calculado a partir delas. `attemptsCount` é
   contado em memória e volta a zero quando a página é recarregada.
@@ -1003,7 +1024,11 @@ Particularidades do mock:
   `mocks/subjects.ts`) e as questões do banco do mock escolhidas para ele. Alguns assuntos ficam
   sem lista de propósito, para a tela mostrar o aviso de assunto vazio. `topicId` usa os ids de
   texto do mock (ex.: `sql`) e um assunto que não existe responde `404`. O detalhe, o envio e o
-  `attemptsCount` funcionam como os de um simulado.
+  `attemptsCount` funcionam como os de um simulado. As aulas extras (e Lógica de Programação) têm
+  de 1 a 4 listas
+  (`EXTRA_LIST_COUNTS`) com as questões da disciplina, a lista sai na mesma ordem da edge function
+  (disciplina, aula, título), e a conta `demo0001` começa com algumas listas já feitas, para a tela
+  mostrar aulas feitas, em andamento e não iniciadas.
 - **Correção:** `multiple_answer` só é correta com exatamente as alternativas corretas;
   `single_choice` e `drag_and_drop` exigem todas as lacunas corretas. Uma dissertativa (ou
   lacuna dissertativa) idêntica à referência, ignorando maiúsculas e espaços extras, é
