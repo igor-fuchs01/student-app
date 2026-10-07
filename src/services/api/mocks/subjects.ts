@@ -1,6 +1,11 @@
-import { subjectSchema, type Subject, type SubjectDetail } from "@models/subjects";
+import {
+  subjectSchema,
+  type Subject,
+  type SubjectDetail,
+  type SubjectTopic,
+} from "@models/subjects";
 
-const MOCK_SUBJECTS: SubjectDetail[] = [
+const CURATED_SUBJECTS: SubjectDetail[] = [
   {
     id: "algoritmos",
     name: "Algoritmos",
@@ -629,6 +634,272 @@ const MOCK_SUBJECTS: SubjectDetail[] = [
     ],
   },
 ];
+
+type ExtraLesson = [
+  id: string,
+  number: number,
+  name: string,
+  description: string,
+  keyPoints: string[],
+];
+
+// Lessons beyond the curated ones above, so the screens show a full semester: each one has a
+// single subassunto with its key points and no materials yet.
+const EXTRA_LESSONS: Record<string, ExtraLesson[]> = {
+  algoritmos: [
+    [
+      "funcoes-e-procedimentos",
+      3,
+      "Funções e Procedimentos",
+      "Como dividir um algoritmo em partes reutilizáveis, com parâmetros e retorno.",
+      [
+        "Uma função devolve um valor; um procedimento só executa uma ação.",
+        "Parâmetros por valor copiam o dado; por referência alteram o original.",
+        "Funções pequenas e com um só objetivo são mais fáceis de testar.",
+      ],
+    ],
+    [
+      "recursao",
+      4,
+      "Recursão",
+      "Resolver um problema chamando a própria função para uma versão menor dele.",
+      [
+        "Toda recursão precisa de um caso base que encerra as chamadas.",
+        "Cada chamada ocupa espaço na pilha de execução.",
+        "Alguns problemas recursivos podem ser reescritos com laços.",
+      ],
+    ],
+    [
+      "ordenacao",
+      5,
+      "Algoritmos de Ordenação",
+      "Formas de colocar uma coleção em ordem e o custo de cada uma.",
+      [
+        "Bubble sort e insertion sort são O(n²) no pior caso.",
+        "Merge sort e quick sort dividem o problema e chegam a O(n log n).",
+        "Um algoritmo estável mantém a ordem de elementos iguais.",
+      ],
+    ],
+    [
+      "busca",
+      6,
+      "Algoritmos de Busca",
+      "Como encontrar um elemento em uma coleção, ordenada ou não.",
+      [
+        "A busca linear percorre todos os elementos: O(n).",
+        "A busca binária exige a coleção ordenada e é O(log n).",
+        "Escolher a estrutura certa pode evitar a busca.",
+      ],
+    ],
+    [
+      "analise-de-complexidade",
+      7,
+      "Análise de Complexidade",
+      "Como medir o crescimento do tempo e da memória de um algoritmo.",
+      [
+        "A notação O descreve o pior caso de crescimento.",
+        "Constantes e termos menores são desprezados.",
+        "Laços aninhados costumam multiplicar a complexidade.",
+      ],
+    ],
+    [
+      "arvores",
+      8,
+      "Árvores",
+      "Estruturas hierárquicas em que cada nó aponta para seus filhos.",
+      [
+        "Em uma árvore binária de busca, a esquerda guarda menores e a direita maiores.",
+        "Percursos: pré-ordem, em ordem e pós-ordem.",
+        "Árvores balanceadas mantêm a altura em O(log n).",
+      ],
+    ],
+    [
+      "grafos",
+      9,
+      "Grafos",
+      "Vértices ligados por arestas para representar relações e caminhos.",
+      [
+        "Podem ser representados por matriz ou lista de adjacência.",
+        "Busca em largura encontra o menor número de arestas até um vértice.",
+        "Busca em profundidade explora um caminho até o fim antes de voltar.",
+      ],
+    ],
+    [
+      "tabelas-hash",
+      10,
+      "Tabelas Hash",
+      "Acesso a dados por chave em tempo médio constante.",
+      [
+        "A função hash transforma a chave em uma posição.",
+        "Colisões são tratadas por encadeamento ou endereçamento aberto.",
+        "Um fator de carga alto piora o desempenho.",
+      ],
+    ],
+  ],
+  "arquitetura-computadores": [
+    [
+      "conjunto-de-instrucoes",
+      3,
+      "Conjunto de Instruções",
+      "As operações que o processador entende e como elas são codificadas.",
+      [
+        "Arquiteturas RISC têm instruções simples e de tamanho fixo.",
+        "Arquiteturas CISC têm instruções complexas e de tamanho variável.",
+        "Modos de endereçamento dizem onde está o operando.",
+      ],
+    ],
+    [
+      "pipeline-e-paralelismo",
+      4,
+      "Pipeline e Paralelismo",
+      "Como o processador executa várias instruções ao mesmo tempo.",
+      [
+        "O pipeline divide a execução em estágios sobrepostos.",
+        "Conflitos de dados e de controle geram bolhas no pipeline.",
+        "Processadores multinúcleo executam fluxos independentes em paralelo.",
+      ],
+    ],
+    [
+      "representacao-de-dados",
+      5,
+      "Representação de Dados",
+      "Como números, textos e sinais viram bits.",
+      [
+        "Complemento de dois representa inteiros negativos.",
+        "Ponto flutuante segue o padrão IEEE 754.",
+        "Unicode e UTF-8 representam caracteres de qualquer idioma.",
+      ],
+    ],
+  ],
+  "sistemas-operacionais": [
+    [
+      "sistemas-de-arquivos",
+      3,
+      "Sistemas de Arquivos",
+      "Como o sistema organiza, nomeia e protege os dados no disco.",
+      [
+        "Diretórios formam uma árvore de nomes.",
+        "Alocação contígua, encadeada ou indexada dos blocos.",
+        "Permissões controlam leitura, escrita e execução.",
+      ],
+    ],
+    [
+      "entrada-e-saida",
+      4,
+      "Gerência de Entrada e Saída",
+      "Como o sistema conversa com teclados, discos e redes.",
+      [
+        "Drivers escondem os detalhes de cada dispositivo.",
+        "Interrupções avisam a CPU quando o dispositivo termina.",
+        "DMA transfere dados sem ocupar a CPU.",
+      ],
+    ],
+    [
+      "virtualizacao",
+      5,
+      "Virtualização",
+      "Executar vários sistemas isolados na mesma máquina física.",
+      [
+        "O hipervisor reparte CPU, memória e dispositivos.",
+        "Contêineres compartilham o núcleo do sistema hospedeiro.",
+        "Máquinas virtuais isolam melhor; contêineres iniciam mais rápido.",
+      ],
+    ],
+  ],
+  "tecnologia-informacao": [
+    [
+      "modelo-osi-e-tcp-ip",
+      3,
+      "Modelos OSI e TCP/IP",
+      "As camadas que organizam a comunicação em rede.",
+      [
+        "O modelo OSI tem 7 camadas; o TCP/IP, 4.",
+        "TCP garante a entrega; UDP prioriza a velocidade.",
+        "Cada camada só conversa com a de cima e a de baixo.",
+      ],
+    ],
+    [
+      "computacao-em-nuvem",
+      4,
+      "Computação em Nuvem",
+      "Uso de recursos de computação sob demanda pela internet.",
+      [
+        "IaaS, PaaS e SaaS dividem quem cuida de cada parte.",
+        "A elasticidade ajusta os recursos à demanda.",
+        "Nuvem pública, privada e híbrida.",
+      ],
+    ],
+    [
+      "governanca-de-ti",
+      5,
+      "Governança de TI",
+      "Como alinhar a tecnologia aos objetivos da organização.",
+      [
+        "ITIL organiza a gestão de serviços de TI.",
+        "COBIT define controles e indicadores.",
+        "Acordos de nível de serviço (SLA) formalizam metas.",
+      ],
+    ],
+  ],
+  "banco-de-dados": [
+    [
+      "consultas-avancadas",
+      4,
+      "Consultas Avançadas",
+      "Combinar tabelas e resultados com JOIN, subconsultas e agregações.",
+      [
+        "INNER JOIN traz só as linhas com correspondência nas duas tabelas.",
+        "GROUP BY agrupa linhas; HAVING filtra os grupos.",
+        "Subconsultas podem aparecer no WHERE, no FROM e no SELECT.",
+      ],
+    ],
+    [
+      "transacoes-e-concorrencia",
+      5,
+      "Transações e Concorrência",
+      "Como o banco mantém os dados corretos com vários usuários ao mesmo tempo.",
+      [
+        "Propriedades ACID: atomicidade, consistência, isolamento e durabilidade.",
+        "COMMIT confirma e ROLLBACK desfaz a transação.",
+        "Níveis de isolamento evitam leituras sujas e fantasmas.",
+      ],
+    ],
+    [
+      "indices-e-desempenho",
+      6,
+      "Índices e Desempenho",
+      "Como acelerar consultas sem mudar o resultado.",
+      [
+        "Um índice evita percorrer a tabela inteira.",
+        "Índices aceleram leituras e deixam escritas mais lentas.",
+        "O plano de execução mostra como a consulta é resolvida.",
+      ],
+    ],
+  ],
+};
+
+function toTopic([id, number, name, description, keyPoints]: ExtraLesson): SubjectTopic {
+  return {
+    id,
+    number,
+    name,
+    description,
+    subtopics: [
+      {
+        id: `${id}-visao-geral`,
+        name: "Visão geral",
+        summary: description,
+        keyPoints,
+        materials: [],
+      },
+    ],
+  };
+}
+
+const MOCK_SUBJECTS: SubjectDetail[] = CURATED_SUBJECTS.map((subject) => ({
+  ...subject,
+  topics: [...subject.topics, ...(EXTRA_LESSONS[subject.id] ?? []).map(toTopic)],
+}));
 
 export function buildMockSubjects(): Subject[] {
   return MOCK_SUBJECTS.map((subject) => subjectSchema.parse(subject));

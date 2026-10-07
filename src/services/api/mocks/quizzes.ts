@@ -3,6 +3,7 @@ import type {
   Question,
   QuizAnswer,
   QuizDetail,
+  QuizDifficulty,
   QuizResult,
   QuizReviewItem,
   QuizSummary,
@@ -301,7 +302,7 @@ const QUIZZES: MockQuizDefinition[] = [
 ];
 
 // Some assuntos have no list on purpose, so the empty state of the exercises screen shows up.
-const EXERCISES: MockExerciseDefinition[] = [
+const CURATED_EXERCISES: MockExerciseDefinition[] = [
   {
     id: "ex-estruturas-de-dados-1",
     title: "Estruturas de Dados — Exercícios 1",
@@ -376,8 +377,74 @@ const EXERCISES: MockExerciseDefinition[] = [
   },
 ];
 
-// Attempts submitted per student, kept only in memory for the mock session.
-const attemptsByStudent = new Map<string, Map<string, number>>();
+// Lists for the lessons added in mocks/subjects.ts (EXTRA_LESSONS): [subjectId, topicId, title,
+// how many lists]. They reuse the subject's questions, since the mock bank is small.
+const EXTRA_LIST_COUNTS: [subjectId: string, topicId: string, title: string, count: number][] = [
+  ["algoritmos", "logica-de-programacao", "Lógica de Programação", 3],
+  ["algoritmos", "funcoes-e-procedimentos", "Funções e Procedimentos", 2],
+  ["algoritmos", "recursao", "Recursão", 3],
+  ["algoritmos", "ordenacao", "Ordenação", 4],
+  ["algoritmos", "busca", "Busca", 2],
+  ["algoritmos", "analise-de-complexidade", "Complexidade", 3],
+  ["algoritmos", "arvores", "Árvores", 2],
+  ["algoritmos", "grafos", "Grafos", 3],
+  ["algoritmos", "tabelas-hash", "Tabelas Hash", 1],
+  ["arquitetura-computadores", "conjunto-de-instrucoes", "Conjunto de Instruções", 2],
+  ["arquitetura-computadores", "pipeline-e-paralelismo", "Pipeline", 3],
+  ["arquitetura-computadores", "representacao-de-dados", "Representação de Dados", 2],
+  ["sistemas-operacionais", "sistemas-de-arquivos", "Sistemas de Arquivos", 2],
+  ["sistemas-operacionais", "entrada-e-saida", "Entrada e Saída", 1],
+  ["sistemas-operacionais", "virtualizacao", "Virtualização", 2],
+  ["tecnologia-informacao", "modelo-osi-e-tcp-ip", "Modelos OSI e TCP/IP", 3],
+  ["tecnologia-informacao", "computacao-em-nuvem", "Computação em Nuvem", 2],
+  ["tecnologia-informacao", "governanca-de-ti", "Governança de TI", 1],
+  ["banco-de-dados", "consultas-avancadas", "Consultas Avançadas", 3],
+  ["banco-de-dados", "transacoes-e-concorrencia", "Transações", 2],
+  ["banco-de-dados", "indices-e-desempenho", "Índices", 2],
+];
+
+const SUBJECT_QUESTION_IDS: Record<string, string[]> = {
+  algoritmos: ["q5", "q7"],
+  "arquitetura-computadores": ["q4", "q8"],
+  "sistemas-operacionais": ["q10", "q11"],
+  "tecnologia-informacao": ["q12", "q13"],
+  "banco-de-dados": ["q1", "q2", "q3", "q6", "q9"],
+};
+
+const DIFFICULTY_CYCLE: QuizDifficulty[] = ["easy", "medium", "hard"];
+
+const EXTRA_EXERCISES: MockExerciseDefinition[] = EXTRA_LIST_COUNTS.flatMap(
+  ([subjectId, topicId, title, count]) =>
+    Array.from({ length: count }, (_, index) => ({
+      id: `ex-${topicId}-extra-${index + 1}`,
+      title: `${title} — Exercícios ${index + 1}`,
+      subjectId,
+      topicId,
+      difficulty: DIFFICULTY_CYCLE[index % DIFFICULTY_CYCLE.length],
+      questionIds: SUBJECT_QUESTION_IDS[subjectId],
+    })),
+);
+
+const EXERCISES = [...CURATED_EXERCISES, ...EXTRA_EXERCISES];
+
+// Attempts submitted per student, kept only in memory for the mock session. The demo account
+// starts with some lists done, so the exercises screen shows done, started and new lessons.
+const DEMO_DONE_EXERCISES = [
+  "ex-logica-de-programacao-extra-1",
+  "ex-logica-de-programacao-extra-2",
+  "ex-logica-de-programacao-extra-3",
+  "ex-estruturas-de-dados-1",
+  "ex-recursao-extra-1",
+  "ex-ordenacao-extra-1",
+  "ex-ordenacao-extra-2",
+  "ex-busca-extra-1",
+  "ex-busca-extra-2",
+  "ex-sql-1",
+  "ex-consultas-avancadas-extra-1",
+];
+const attemptsByStudent = new Map<string, Map<string, number>>([
+  ["u_demo0001", new Map(DEMO_DONE_EXERCISES.map((id) => [id, 1]))],
+]);
 
 export function registerMockQuizAttempt(studentId: string, quizId: string): void {
   const studentAttempts = attemptsByStudent.get(studentId) ?? new Map<string, number>();
@@ -416,7 +483,7 @@ export function buildMockExerciseList(
     ? EXERCISES.filter((exercise) => exercise.topicId === topicId)
     : EXERCISES;
 
-  return exercises.flatMap((exercise) => {
+  const summaries = exercises.flatMap((exercise): ExerciseSummary[] => {
     const subject = getMockSubjectDetail(exercise.subjectId);
     const topic = subject?.topics.find((item) => item.id === exercise.topicId);
     if (!subject || !topic) return [];
@@ -436,6 +503,14 @@ export function buildMockExerciseList(
       },
     ];
   });
+
+  // Same order as the edge function: subject name, lesson number, title.
+  return summaries.sort(
+    (a, b) =>
+      a.subjectName.localeCompare(b.subjectName) ||
+      a.topicNumber - b.topicNumber ||
+      a.title.localeCompare(b.title),
+  );
 }
 
 // Simulados and exercise lists share the detail and the attempt endpoints; only a simulado has a
