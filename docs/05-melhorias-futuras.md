@@ -188,9 +188,9 @@ precisa estudar?"*
    - Destacar os assuntos com menor desempenho em um bloco "O que revisar primeiro", com link
      para os materiais do assunto quando a feature de materiais existir.
    - Mostrar o assunto nos cards de "Questões para revisar" e na revisão da prova.
-6. **Dashboard e recomendações.** Com várias questões por assunto, o card "O que estudar agora"
-   (`studyFocus` em `GET /dashboard`) passa a refletir o desempenho real de cada assunto, seguindo
-   as recomendações da seção 9 de [`02-regras-de-negocio.md`](02-regras-de-negocio.md).
+6. **Dashboard e recomendações.** Com várias questões por assunto, as recomendações
+   (`studyFocus` em `GET /dashboard`, hoje fora da tela) passam a refletir o desempenho real de
+   cada assunto, seguindo as recomendações da seção 9 de [`02-regras-de-negocio.md`](02-regras-de-negocio.md).
 7. **Mock e documentação.** Classificar as questões de `src/services/api/mocks/quizzes.ts` por
    assunto, calcular `topicPerformance` em `correctMockQuizAttempt` e documentar os novos
    campos em [`04-contratos-de-api.md`](04-contratos-de-api.md).
