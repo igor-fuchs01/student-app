@@ -523,9 +523,12 @@ A lista vem ordenada por disciplina, número da aula e título; listas sem quest
     (sem diferenciar maiúsculas nem acentos), filtro Todas / Pendentes / Feitas e uma linha por
     aula com "Aula {topicNumber} · {topicName}", a situação (✓ todas feitas, ◐ em andamento,
     ○ não iniciada) e "{feitas}/{total}". Uma lista conta como feita quando `attemptsCount > 0`.
-  - **Aula escolhida** (à direita): disciplina, nome, barra "{n} de {total} listas feitas", o
-    resumo da aula, os pontos-chave recolhidos ("Ver pontos-chave") e uma linha por lista com nº
-    de questões, situação e "Iniciar" ou "Refazer". A dificuldade não é exibida.
+  - **Aula escolhida** (à direita): "Aula {topicNumber} · {topicName}" com "{n} de {total} listas
+    feitas" ao lado e duas abas. "Listas ({total})", aberta por padrão, mostra um cartão por lista
+    com título, selo de situação ("✓ Feita {attemptsCount}×" ou "Não feita"), nº de questões e
+    "Iniciar" ou "Refazer"; só a primeira lista não feita tem o botão em destaque. "Resumo da
+    aula" mostra o resumo e os pontos-chave. As setas ← e → alternam entre as abas. A dificuldade
+    não é exibida.
 - O resumo é a `description` do [`SubjectTopic`](#317-subjecttopic) e os pontos-chave são os
   `keyPoints` dos seus subassuntos, vindos de [`GET /subjects/:id`](#get-subjectsid) da disciplina
   selecionada, com a mesma chave de cache do detalhe da disciplina (`["subject", subjectId]`). Se

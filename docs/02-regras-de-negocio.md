@@ -83,8 +83,8 @@ Além dos simulados, o aluno pratica com **listas de exercícios** (aba "Exercí
 - não há limite de tempo nem escolha de cronômetro: o aluno só confirma o início em um pop-up;
 - de resto, funciona como um simulado: navegação, marcação para revisão, revisão, envio,
   correção e resultado;
-- a aba mostra uma disciplina por vez e, em cada aula, o resumo e os pontos-chave junto das
-  listas; uma lista conta como **feita** depois do primeiro envio, e a aula indica quantas já
+- a aba mostra uma disciplina por vez e, em cada aula, as listas e, numa segunda aba, o resumo
+  e os pontos-chave; uma lista conta como **feita** depois do primeiro envio, e a aula indica quantas já
   foram feitas;
 - o "Praticar questões" do detalhe da disciplina abre as listas do assunto do subassunto
   selecionado;
