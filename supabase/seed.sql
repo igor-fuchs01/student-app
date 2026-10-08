@@ -271,10 +271,3 @@ FROM students s
 JOIN auth.users u ON u.id = s.auth_user_id AND u.email = 'demo0002@alunos.student-app.invalid'
 CROSS JOIN generate_series(0, 4) AS d;
 
-
--- -----------------------------------------------------------------------------
--- First access: codes still available, the same ones as the mock (novo0001-3)
--- -----------------------------------------------------------------------------
-
-INSERT INTO available_logins (access_code)
-VALUES ('novo0001'), ('novo0002'), ('novo0003');
