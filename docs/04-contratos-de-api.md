@@ -315,12 +315,20 @@ ainda sem autocorreção) contam como respondidas, mas não entram no percentual
   não é tratada como erro.
 - Os filtros ficam na URL da tela (`/?periodo=30&disciplina=1`); trocar um filtro refaz a
   requisição mantendo o painel anterior na tela, esmaecido, até a resposta chegar.
-- O card "O que estudar agora" destaca só o primeiro item: nome do assunto, uma linha com
-  sigla, aula e acerto, a ação sugerida (que sai de `level` e `recentWrongCount`) e o botão
-  "Estudar agora", que leva a `/disciplinas/:subjectId`. Abaixo, em "Em seguida", vêm no máximo
-  os dois itens seguintes, cada um em uma linha só com nome e acerto (sem barra); os que não
-  cabem na altura da tela ficam ocultos. `level` não é exibido. O rodapé informa, a partir de
-  `totalCount`, quantos assuntos ficaram de fora.
+- O card "O que estudar agora" mostra só o primeiro item, em três partes:
+  - **Assunto:** selo de prioridade vindo de `level` ("Prioridade alta", "Prioridade média" ou
+    "Pouca prática"), nome do assunto e "{sigla} · Aula {topicNumber}".
+  - **Por que agora:** barra de acerto com o marcador da meta de 80% e "Seu acerto: {percent}" /
+    "Meta: 80%" (a barra some quando `percent` é `null`), mais uma frase de motivo: poucas
+    questões corrigidas para `few_practice`; senão, os erros dos últimos 14 dias
+    (`recentWrongCount`); senão, o acerto abaixo da meta.
+  - **Próximo passo:** a ação sugerida (de `level` e `recentWrongCount`), com tempo estimado no
+    cliente (2 min por questão, mais 10 min quando inclui revisar o material), e o botão
+    "Estudar agora", que leva a `/disciplinas/:subjectId`.
+- Se `totalCount` passar de 1, o rodapé do card tem "Ver os outros {totalCount - 1} assuntos",
+  que abre um modal com os demais itens devolvidos (até 4), cada um com nome, selo, sigla, aula e
+  a frase de motivo; clicar leva a `/disciplinas/:subjectId`. Quando `totalCount` é maior que os
+  itens devolvidos, o modal avisa que mostra só os de maior prioridade.
 - Sem nenhuma questão respondida no período, a tela convida a fazer um simulado em vez de
   mostrar gráficos vazios.
 
