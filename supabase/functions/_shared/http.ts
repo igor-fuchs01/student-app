@@ -44,11 +44,8 @@ async function requireStudentId(request: Request): Promise<number> {
   throw new ApiError(401, "UNAUTHORIZED", "Sessão expirada. Faça login novamente.");
 }
 
-// Serves one authenticated endpoint: CORS, the method, the student and the error body.
-export function serveEndpoint(
-  method: "GET" | "POST",
-  handler: (context: EndpointContext) => Promise<unknown>,
-): void {
+// Serves one endpoint: CORS, the method and the error body.
+function serve(method: "GET" | "POST", handle: (request: Request) => Promise<unknown>): void {
   Deno.serve(async (request) => {
     const preflight = handlePreflight(request);
     if (preflight) return preflight;
@@ -62,8 +59,7 @@ export function serveEndpoint(
     }
 
     try {
-      const studentId = await requireStudentId(request);
-      return reply(200, await handler({ request, url: new URL(request.url), studentId }));
+      return reply(200, await handle(request));
     } catch (error) {
       if (error instanceof ApiError) {
         return reply(error.status, { code: error.code, message: error.message });
@@ -75,4 +71,24 @@ export function serveEndpoint(
       });
     }
   });
+}
+
+// Serves one authenticated endpoint: the student comes from the request's JWT.
+export function serveEndpoint(
+  method: "GET" | "POST",
+  handler: (context: EndpointContext) => Promise<unknown>,
+): void {
+  serve(method, async (request) => {
+    const studentId = await requireStudentId(request);
+    return handler({ request, url: new URL(request.url), studentId });
+  });
+}
+
+// Serves one endpoint that takes no JWT; only register-student, which runs before the account
+// exists.
+export function servePublicEndpoint(
+  method: "GET" | "POST",
+  handler: (context: Omit<EndpointContext, "studentId">) => Promise<unknown>,
+): void {
+  serve(method, (request) => handler({ request, url: new URL(request.url) }));
 }

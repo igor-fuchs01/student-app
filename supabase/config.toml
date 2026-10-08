@@ -420,6 +420,11 @@ verify_jwt = false
 [functions.submit-quiz-attempt]
 verify_jwt = false
 
+# Temporary first access: takes no JWT at all, since the account does not exist
+# yet (servePublicEndpoint in supabase/functions/_shared/http.ts).
+[functions.register-student]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
