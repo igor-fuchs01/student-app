@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { authSessionSchema, type AuthSession, type LoginCredentials } from "@models/auth";
+import {
+  authSessionSchema,
+  registerResultSchema,
+  type AuthSession,
+  type LoginCredentials,
+  type RegisterCredentials,
+  type RegisterResult,
+} from "@models/auth";
 import { USE_MOCKS } from "./config";
 import { API_ENDPOINTS } from "./endpoints";
 import { httpClient } from "./httpClient";
@@ -15,6 +22,12 @@ const mockAuthApi = {
 
   logout(): Promise<void> {
     return httpClient.post(API_ENDPOINTS.auth.logout, z.void());
+  },
+
+  register(credentials: RegisterCredentials): Promise<RegisterResult> {
+    return httpClient.post(API_ENDPOINTS.auth.register, registerResultSchema, credentials, {
+      authenticated: false,
+    });
   },
 };
 

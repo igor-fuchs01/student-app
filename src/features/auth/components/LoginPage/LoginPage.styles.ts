@@ -49,6 +49,27 @@ export const StyledSubmitButton = styled(Button)`
   margin-top: 20px;
 `;
 
+export const StyledModeButton = styled.button`
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: ${({ theme }) => theme.colors.accent600};
+  font-size: 13px;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+  }
+`;
+
 export const StyledFormError = styled.p`
   margin: 0 0 10px;
   font-size: 12.5px;

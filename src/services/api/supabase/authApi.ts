@@ -1,5 +1,12 @@
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
-import { studentUserSchema, type AuthSession, type LoginCredentials } from "@models/auth";
+import {
+  registerResultSchema,
+  studentUserSchema,
+  type AuthSession,
+  type LoginCredentials,
+  type RegisterCredentials,
+  type RegisterResult,
+} from "@models/auth";
 import {
   ApiError,
   CAPTCHA_FAILED_MESSAGE,
@@ -42,5 +49,12 @@ export const supabaseAuthApi = {
 
   async logout(): Promise<void> {
     await getSupabase().auth.signOut();
+  },
+
+  register(credentials: RegisterCredentials): Promise<RegisterResult> {
+    return callFunction("register-student", registerResultSchema, {
+      method: "POST",
+      body: credentials,
+    });
   },
 };

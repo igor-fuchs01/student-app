@@ -30,6 +30,33 @@ export const loginFormSchema = loginCredentialsSchema.extend({
   displayName: displayNameSchema,
 });
 
+// First access with an access code from the operator's list: the student chooses the password.
+// 72 is the most bcrypt reads, so a longer password would be silently cut.
+export const registerCredentialsSchema = loginCredentialsSchema.extend({
+  password: z
+    .string()
+    .min(6, "Use pelo menos 6 caracteres.")
+    .max(72, "Use no máximo 72 caracteres."),
+});
+
+export type RegisterCredentials = z.infer<typeof registerCredentialsSchema>;
+
+export const registerFormSchema = registerCredentialsSchema
+  .extend({
+    displayName: displayNameSchema,
+    passwordConfirmation: z.string(),
+  })
+  .refine((form) => form.password === form.passwordConfirmation, {
+    path: ["passwordConfirmation"],
+    message: "As senhas não conferem.",
+  });
+
+export const registerResultSchema = z.object({
+  accessCode: z.string().min(1),
+});
+
+export type RegisterResult = z.infer<typeof registerResultSchema>;
+
 export const authSessionSchema = z.object({
   token: z.string().min(1),
   user: studentUserSchema,

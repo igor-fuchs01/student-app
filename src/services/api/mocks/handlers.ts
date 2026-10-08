@@ -6,7 +6,12 @@ import {
   type HttpResponseResolver,
   type PathParams,
 } from "msw";
-import { loginCredentialsSchema, type AuthSession } from "@models/auth";
+import {
+  loginCredentialsSchema,
+  registerCredentialsSchema,
+  type AuthSession,
+  type RegisterResult,
+} from "@models/auth";
 import { dashboardPeriodSchema } from "@models/dashboard";
 import { submitQuizAttemptSchema } from "@models/quizzes";
 import { activityMonthSchema } from "@models/ranking";
@@ -24,7 +29,12 @@ import {
 } from "./quizzes";
 import { buildMockRanking } from "./ranking";
 import { buildMockSubjects, getMockSubjectDetail } from "./subjects";
-import { findAccountByAccessCode, findAccountById, type MockAccount } from "./users";
+import {
+  claimMockLogin,
+  findAccountByAccessCode,
+  findAccountById,
+  type MockAccount,
+} from "./users";
 
 type AuthenticatedInfo = {
   request: Request;
@@ -91,6 +101,29 @@ export const handlers = [
       user: account.user,
     };
     return HttpResponse.json(session);
+  }),
+
+  http.post(api(API_ENDPOINTS.auth.register), async ({ request }) => {
+    const credentials = registerCredentialsSchema.safeParse(await readJson(request));
+    if (!credentials.success) {
+      return errorResponse(
+        400,
+        "VALIDATION_ERROR",
+        "Informe um código de acesso válido e uma senha de 6 a 72 caracteres.",
+      );
+    }
+
+    const { accessCode, password } = credentials.data;
+    if (!claimMockLogin(accessCode, password)) {
+      return errorResponse(
+        404,
+        "NOT_FOUND",
+        "Este código de acesso não está disponível. Se você já criou sua senha, entre com ela.",
+      );
+    }
+
+    const result: RegisterResult = { accessCode };
+    return HttpResponse.json(result);
   }),
 
   http.post(
