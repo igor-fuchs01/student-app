@@ -77,7 +77,6 @@ export const StyledEmptyState = styled(Card)`
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
-  border: 1px solid ${({ theme }) => theme.colors.divider};
 
   h2 {
     font-size: 17px;
