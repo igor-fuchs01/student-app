@@ -64,7 +64,7 @@ export function ExercisesPage() {
   }
 
   return (
-    <PageLayout active="exercicios">
+    <PageLayout active="exercicios" fitViewport>
       <StyledHiddenTitle>Exercícios</StyledHiddenTitle>
 
       {exercisesQuery.isLoading && <StatusMessage message="Carregando exercícios…" />}

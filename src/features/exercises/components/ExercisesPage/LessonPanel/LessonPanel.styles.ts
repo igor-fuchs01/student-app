@@ -1,9 +1,13 @@
-import styled from "styled-components";
+import styled, { type DefaultTheme } from "styled-components";
+
+const fitViewport = ({ theme }: { theme: DefaultTheme }) =>
+  `(min-width: ${theme.breakpoints.md}) and (min-height: 560px)`;
 
 export const StyledPanel = styled.section`
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   padding: 24px 28px 28px;
   background: ${({ theme }) => theme.colors.surface};
   border-radius: ${({ theme }) => theme.radii.lg};
@@ -91,6 +95,12 @@ export const StyledTab = styled.button<{ $active: boolean }>`
 
 export const StyledTabPanel = styled.div`
   margin-top: 20px;
+
+  @media ${fitViewport} {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
 `;
 
 export const StyledExerciseGrid = styled.ul`

@@ -1,5 +1,8 @@
-import styled from "styled-components";
+import styled, { type DefaultTheme } from "styled-components";
 import type { LessonStatus } from "@features/exercises/groupExercises";
+
+const fitViewport = ({ theme }: { theme: DefaultTheme }) =>
+  `(min-width: ${theme.breakpoints.md}) and (min-height: 560px)`;
 
 export const StyledNav = styled.nav`
   background: ${({ theme }) => theme.colors.surface};
@@ -15,6 +18,11 @@ export const StyledNav = styled.nav`
   max-height: calc(100vh - 100px);
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    position: static;
+    max-height: none;
+  }
+
+  @media ${fitViewport} {
     position: static;
     max-height: none;
   }
