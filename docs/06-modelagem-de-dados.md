@@ -25,8 +25,7 @@ pasta `supabase/`:
 |---|---|
 | [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório) e `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
-| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado, 1 tentativa enviada e os códigos de primeiro acesso `novo0001`, `novo0002` e `novo0003`, ainda disponíveis. |
-| [`supabase/scripts/add-available-logins.sql`](../supabase/scripts/add-available-logins.sql) | Script de operador (temporário): gera códigos de acesso aleatórios (30 por padrão, com 10 caracteres de um alfabeto de 32 sem `i`, `l`, `0` e `1`), grava em `available_logins` e devolve a lista para distribuir aos alunos no primeiro acesso. Veja [`POST /auth/register`](04-contratos-de-api.md#post-authregister). |
+| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
 
 ### Rodando o banco localmente
@@ -115,7 +114,8 @@ chamar a API sem passar pelo app, então a segurança fica em camadas:
   reservado, nunca recebe mensagem). `students` não tem nome nem e-mail: o nome que o app mostra é
   digitado pelo aluno e fica só no navegador.
 - **Primeiro acesso (temporário).** Enquanto a instituição não cria as contas já com senha, o
-  operador cadastra códigos aleatórios em `available_logins` e o aluno cria a própria senha pela
+  operador insere à mão, no SQL editor, códigos aleatórios em `available_logins` (nem os códigos
+  nem o script de inserção ficam no repositório) e o aluno cria a própria senha pela
   edge function `register-student`, a única sem JWT. A tabela tem RLS sem política e nenhum
   privilégio para `anon` e `authenticated`, então um código ainda disponível nunca sai pela API.
   Como quem digita um código disponível primeiro fica com a conta, os códigos precisam ser longos

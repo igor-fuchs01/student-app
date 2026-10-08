@@ -239,8 +239,8 @@ independentemente de esta requisição ter sucesso ou falhar.
 
 **Temporário.** Primeiro acesso de um aluno cujo código de acesso já foi distribuído, mas ainda
 não tem conta: o aluno escolhe a própria senha. Os códigos disponíveis são cadastrados à mão pelo
-operador na tabela `available_logins`, com o script `supabase/scripts/add-available-logins.sql`,
-que gera códigos aleatórios e devolve a lista para distribuir
+operador na tabela `available_logins`, com um `INSERT` rodado no SQL editor; nem os códigos nem o
+script de inserção ficam no repositório
 (veja [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md)). Cada código pode ser usado uma
 única vez. O endpoint existe até a instituição passar a criar as contas já com senha; para
 removê-lo, apague a edge function `register-student`, a entrada dela em `supabase/config.toml`,
