@@ -519,7 +519,9 @@ A lista vem ordenada por disciplina, número da aula e título; listas sem quest
 - A aba "Exercícios" (`/exercicios`) pede `GET /exercises` sem filtro (cache
   `["exercises", "all"]`) e mostra uma disciplina por vez, em lista e detalhe, sem título visível:
   - **Lista de aulas** (à esquerda): a disciplina selecionada em destaque (seletor grande, com
-    "{n} aulas · {feitas} de {total} listas feitas" logo abaixo), busca pelo nome ou número da aula
+    "{n} aulas · {feitas} de {total} listas feitas" logo abaixo; ao abrir, cada disciplina aparece
+    com o nome inteiro, quebrando linha se preciso, e "{feitas}/{total}"; dá para navegar com as
+    setas, Home/End, Enter e Esc), busca pelo nome ou número da aula
     (sem diferenciar maiúsculas nem acentos), filtro Todas / Pendentes / Feitas e uma linha por
     aula com "Aula {topicNumber} · {topicName}", a situação (✓ todas feitas, ◐ em andamento,
     ○ não iniciada) e "{feitas}/{total}". Uma lista conta como feita quando `attemptsCount > 0`.
