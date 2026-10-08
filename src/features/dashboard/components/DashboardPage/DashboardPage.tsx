@@ -15,7 +15,6 @@ import { DashboardFilters } from "./DashboardFilters";
 import { KpiCard } from "./KpiCard";
 import { PreparationChart } from "./PreparationChart";
 import { Sparkline } from "./Sparkline";
-import { StudyFocusCard } from "./StudyFocusCard";
 import {
   StyledDashboard,
   StyledHead,
@@ -24,7 +23,6 @@ import {
   StyledGrid,
   StyledKpis,
   StyledCharts,
-  StyledFocusArea,
   StyledEmptyState,
 } from "./DashboardPage.styles";
 
@@ -165,10 +163,6 @@ export function DashboardPage() {
                   )}
                 </ChartCard>
               </StyledCharts>
-
-              <StyledFocusArea>
-                <StudyFocusCard studyFocus={data.studyFocus} />
-              </StyledFocusArea>
             </StyledGrid>
           )}
         </StyledDashboard>

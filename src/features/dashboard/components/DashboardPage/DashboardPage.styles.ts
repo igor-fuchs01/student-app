@@ -47,7 +47,6 @@ export const StyledGrid = styled.div`
   @media ${fitViewport} {
     flex: 1;
     min-height: 0;
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
   }
 `;
@@ -70,21 +69,6 @@ export const StyledCharts = styled.div`
   @media ${fitViewport} {
     min-height: 0;
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  }
-`;
-
-export const StyledFocusArea = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-
-  > * {
-    flex: 1;
-  }
-
-  @media ${fitViewport} {
-    grid-column: 2;
-    grid-row: 1 / span 2;
   }
 `;
 
