@@ -197,7 +197,8 @@ Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (poi
   no ✕ ou com Esc. Ao trocar de questão a página volta ao topo.
 - **Exercícios em lista e detalhe.** Em `ExercisesPage`, a lista de aulas e a aula escolhida ficam
   lado a lado; até `md` só uma delas aparece (a aula, quando há `?aula=` na URL), com "← Aulas"
-  para voltar.
+  para voltar. Acima de `md` (com pelo menos 560 px de altura) a tela usa `PageLayout` com
+  `fitViewport`: a página não rola, e a lista de aulas e o conteúdo da aba aberta rolam por dentro.
 - **Lista de simulados em cards.** A mesma tabela de `QuizzesPage` é reorganizada por CSS: cada
   linha vira um card e o cabeçalho fica visível só para leitores de tela.
 - **Revisão da prova (resultado).** A grade de questões vem antes da questão, para trocar de
