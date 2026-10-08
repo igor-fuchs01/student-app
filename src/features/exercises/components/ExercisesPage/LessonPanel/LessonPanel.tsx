@@ -1,6 +1,6 @@
-import { useId, useState } from "react";
+import { useId, useState, type KeyboardEvent } from "react";
+import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
-import { ProgressBar } from "@components/ui/ProgressBar";
 import { countDone, isExerciseDone, type LessonGroup } from "@features/exercises/groupExercises";
 import type { ExerciseSummary } from "@models/quizzes";
 import type { SubjectTopic } from "@models/subjects";
@@ -8,25 +8,26 @@ import { formatCount } from "@utils/formatCount";
 import {
   StyledPanel,
   StyledBackButton,
-  StyledEyebrow,
+  StyledHeader,
   StyledLessonName,
   StyledProgress,
-  StyledProgressLabel,
-  StyledSection,
-  StyledSectionTitle,
-  StyledSummary,
-  StyledMuted,
-  StyledKeyPointsToggle,
-  StyledKeyPoints,
-  StyledExerciseList,
-  StyledExerciseRow,
-  StyledExerciseInfo,
+  StyledTabList,
+  StyledTab,
+  StyledTabPanel,
+  StyledExerciseGrid,
+  StyledExerciseCard,
+  StyledExerciseTop,
   StyledExerciseTitle,
   StyledExerciseMeta,
+  StyledSummary,
+  StyledMuted,
+  StyledKeyPointsTitle,
+  StyledKeyPoints,
 } from "./LessonPanel.styles";
 
+type Tab = "lists" | "summary";
+
 type LessonPanelProps = {
-  subjectName: string;
   lesson: LessonGroup;
   // The lesson's content from GET /subjects/:id; undefined while it loads or when it failed.
   content: SubjectTopic | undefined;
@@ -35,19 +36,44 @@ type LessonPanelProps = {
   onBack: () => void;
 };
 
-export function LessonPanel({
-  subjectName,
-  lesson,
-  content,
-  contentStatus,
-  onStart,
-  onBack,
-}: LessonPanelProps) {
-  const [keyPointsOpen, setKeyPointsOpen] = useState(false);
-  const keyPointsId = useId();
+export function LessonPanel({ lesson, content, contentStatus, onStart, onBack }: LessonPanelProps) {
+  const [tab, setTab] = useState<Tab>("lists");
+  const tabsId = useId();
   const done = countDone(lesson);
   const total = lesson.exercises.length;
   const keyPoints = content?.subtopics.flatMap((subtopic) => subtopic.keyPoints) ?? [];
+  // Only the next list to do gets the filled button, so the panel has a single main action.
+  const nextExercise = lesson.exercises.find((exercise) => !isExerciseDone(exercise));
+
+  // With only two tabs, both arrow keys move to the other one, as in the WAI-ARIA tabs pattern.
+  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    const nextTab: Tab = tab === "lists" ? "summary" : "lists";
+    setTab(nextTab);
+    document.getElementById(`${tabsId}-${nextTab}-tab`)?.focus();
+  }
+
+  function tabProps(value: Tab) {
+    return {
+      id: `${tabsId}-${value}-tab`,
+      type: "button" as const,
+      role: "tab",
+      "aria-selected": tab === value,
+      "aria-controls": `${tabsId}-${value}-panel`,
+      tabIndex: tab === value ? 0 : -1,
+      $active: tab === value,
+      onClick: () => setTab(value),
+    };
+  }
+
+  function tabPanelProps(value: Tab) {
+    return {
+      id: `${tabsId}-${value}-panel`,
+      role: "tabpanel",
+      "aria-labelledby": `${tabsId}-${value}-tab`,
+      hidden: tab !== value,
+    };
+  }
 
   return (
     <StyledPanel aria-labelledby={`lesson-${lesson.topicId}`}>
@@ -55,27 +81,53 @@ export function LessonPanel({
         ← Aulas
       </StyledBackButton>
 
-      <StyledEyebrow>
-        Aula {lesson.topicNumber} · {subjectName}
-      </StyledEyebrow>
-      <StyledLessonName id={`lesson-${lesson.topicId}`}>{lesson.topicName}</StyledLessonName>
+      <StyledHeader>
+        <StyledLessonName id={`lesson-${lesson.topicId}`}>
+          Aula {lesson.topicNumber} · {lesson.topicName}
+        </StyledLessonName>
+        <StyledProgress>
+          <strong>{done}</strong> de {formatCount(total, "lista feita", "listas feitas")}
+        </StyledProgress>
+      </StyledHeader>
 
-      <StyledProgress>
-        <ProgressBar
-          value={(done / total) * 100}
-          label={`Listas feitas da Aula ${lesson.topicNumber}`}
-        />
-        <StyledProgressLabel>
-          {done} de {formatCount(total, "lista feita", "listas feitas")}
-        </StyledProgressLabel>
-      </StyledProgress>
+      <StyledTabList role="tablist" aria-label="Conteúdo da aula" onKeyDown={handleTabKeyDown}>
+        <StyledTab {...tabProps("lists")}>
+          Listas <span>({total})</span>
+        </StyledTab>
+        <StyledTab {...tabProps("summary")}>Resumo da aula</StyledTab>
+      </StyledTabList>
 
-      <StyledSection>
-        <StyledSectionTitle>Resumo da aula</StyledSectionTitle>
+      <StyledTabPanel {...tabPanelProps("lists")}>
+        <StyledExerciseGrid>
+          {lesson.exercises.map((exercise) => (
+            <StyledExerciseCard key={exercise.id}>
+              <StyledExerciseTop>
+                <StyledExerciseTitle>{exercise.title}</StyledExerciseTitle>
+                {isExerciseDone(exercise) ? (
+                  <Badge tone="accent">✓ Feita {exercise.attemptsCount}×</Badge>
+                ) : (
+                  <Badge>Não feita</Badge>
+                )}
+              </StyledExerciseTop>
+              <StyledExerciseMeta>
+                {formatCount(exercise.questionCount, "questão", "questões")}
+              </StyledExerciseMeta>
+              <Button
+                variant={exercise === nextExercise ? "primary" : "secondary"}
+                onClick={() => onStart(exercise)}
+              >
+                {isExerciseDone(exercise) ? "Refazer" : "Iniciar"}
+              </Button>
+            </StyledExerciseCard>
+          ))}
+        </StyledExerciseGrid>
+      </StyledTabPanel>
+
+      <StyledTabPanel {...tabPanelProps("summary")}>
         {contentStatus === "pending" && <StyledMuted>Carregando o resumo…</StyledMuted>}
         {contentStatus === "error" && (
           <StyledMuted>
-            Não foi possível carregar o resumo agora. As listas continuam abaixo.
+            Não foi possível carregar o resumo agora. As listas continuam na outra aba.
           </StyledMuted>
         )}
         {content && <StyledSummary>{content.description}</StyledSummary>}
@@ -84,42 +136,15 @@ export function LessonPanel({
         )}
         {keyPoints.length > 0 && (
           <>
-            <StyledKeyPointsToggle
-              type="button"
-              aria-expanded={keyPointsOpen}
-              aria-controls={keyPointsId}
-              onClick={() => setKeyPointsOpen((open) => !open)}
-            >
-              {keyPointsOpen ? "▾ Ocultar" : "▸ Ver"} pontos-chave ({keyPoints.length})
-            </StyledKeyPointsToggle>
-            <StyledKeyPoints id={keyPointsId} hidden={!keyPointsOpen}>
+            <StyledKeyPointsTitle>Pontos-chave</StyledKeyPointsTitle>
+            <StyledKeyPoints>
               {keyPoints.map((keyPoint) => (
                 <li key={keyPoint}>{keyPoint}</li>
               ))}
             </StyledKeyPoints>
           </>
         )}
-      </StyledSection>
-
-      <StyledSection>
-        <StyledSectionTitle>Listas de exercícios</StyledSectionTitle>
-        <StyledExerciseList>
-          {lesson.exercises.map((exercise) => (
-            <StyledExerciseRow key={exercise.id}>
-              <StyledExerciseInfo>
-                <StyledExerciseTitle>{exercise.title}</StyledExerciseTitle>
-                <StyledExerciseMeta>
-                  {formatCount(exercise.questionCount, "questão", "questões")} ·{" "}
-                  {isExerciseDone(exercise) ? `✓ Feita ${exercise.attemptsCount}×` : "Não feita"}
-                </StyledExerciseMeta>
-              </StyledExerciseInfo>
-              <Button variant="secondary" onClick={() => onStart(exercise)}>
-                {isExerciseDone(exercise) ? "Refazer" : "Iniciar"}
-              </Button>
-            </StyledExerciseRow>
-          ))}
-        </StyledExerciseList>
-      </StyledSection>
+      </StyledTabPanel>
     </StyledPanel>
   );
 }

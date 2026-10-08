@@ -100,7 +100,6 @@ export function ExercisesPage() {
           />
           <LessonPanel
             key={lesson.topicId}
-            subjectName={subject.subjectName}
             lesson={lesson}
             content={lessonContent}
             contentStatus={subjectQuery.status}
