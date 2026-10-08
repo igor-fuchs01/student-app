@@ -20,39 +20,6 @@ export const StyledNav = styled.nav`
   }
 `;
 
-export const StyledSubjectLabel = styled.label`
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.colors.muted};
-  margin-bottom: -4px;
-`;
-
-// The chosen subject is the context of everything below, so it stands out as the heaviest element.
-export const StyledSubjectSelect = styled.select`
-  appearance: none;
-  width: 100%;
-  min-height: 48px;
-  padding: 10px 40px 10px 14px;
-  border: 1.5px solid ${({ theme }) => theme.colors.accent};
-  border-radius: ${({ theme }) => theme.radii.md};
-  background-color: ${({ theme }) => theme.colors.accent100};
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23888' stroke-width='2'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  color: ${({ theme }) => theme.colors.accent600};
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.colors.accent};
-    outline-offset: 2px;
-  }
-`;
-
 export const StyledSubjectMeta = styled.p`
   margin: -2px 0 4px;
   font-size: 12px;

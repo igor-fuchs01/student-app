@@ -3,14 +3,13 @@ import { formatCount } from "@utils/formatCount";
 import {
   countDone,
   lessonStatus,
+  subjectProgress,
   type LessonGroup,
   type LessonStatus,
   type SubjectGroup,
 } from "@features/exercises/groupExercises";
 import {
   StyledNav,
-  StyledSubjectLabel,
-  StyledSubjectSelect,
   StyledSubjectMeta,
   StyledSearch,
   StyledVisuallyHidden,
@@ -23,6 +22,7 @@ import {
   StyledLessonCount,
   StyledEmpty,
 } from "./LessonNav.styles";
+import { SubjectPicker } from "./SubjectPicker";
 
 type StatusFilter = "all" | "pending" | "done";
 
@@ -66,10 +66,8 @@ export function LessonNav({
   onSubjectChange,
   onLessonSelect,
 }: LessonNavProps) {
-  const subjectSelectId = useId();
   const searchId = useId();
-  const doneCount = subject.lessons.reduce((sum, lesson) => sum + countDone(lesson), 0);
-  const totalCount = subject.lessons.reduce((sum, lesson) => sum + lesson.exercises.length, 0);
+  const { done: doneCount, total: totalCount } = subjectProgress(subject);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
@@ -79,18 +77,7 @@ export function LessonNav({
 
   return (
     <StyledNav aria-label="Aulas">
-      <StyledSubjectLabel htmlFor={subjectSelectId}>Disciplina</StyledSubjectLabel>
-      <StyledSubjectSelect
-        id={subjectSelectId}
-        value={subject.subjectId}
-        onChange={(event) => onSubjectChange(event.target.value)}
-      >
-        {subjects.map((item) => (
-          <option key={item.subjectId} value={item.subjectId}>
-            {item.subjectName}
-          </option>
-        ))}
-      </StyledSubjectSelect>
+      <SubjectPicker subjects={subjects} value={subject.subjectId} onChange={onSubjectChange} />
       <StyledSubjectMeta>
         {formatCount(subject.lessons.length, "aula", "aulas")} · {doneCount} de{" "}
         {formatCount(totalCount, "lista feita", "listas feitas")}

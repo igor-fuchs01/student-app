@@ -49,6 +49,13 @@ export function countDone(lesson: LessonGroup): number {
   return lesson.exercises.filter(isExerciseDone).length;
 }
 
+export function subjectProgress(subject: SubjectGroup): { done: number; total: number } {
+  return {
+    done: subject.lessons.reduce((sum, lesson) => sum + countDone(lesson), 0),
+    total: subject.lessons.reduce((sum, lesson) => sum + lesson.exercises.length, 0),
+  };
+}
+
 export function lessonStatus(lesson: LessonGroup): LessonStatus {
   const done = countDone(lesson);
   if (done === lesson.exercises.length) return "done";
