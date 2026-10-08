@@ -41,6 +41,7 @@ função nenhuma exposta: as edge functions leem as tabelas e views e montam o J
 |---|---|
 | `POST /auth/login` | `supabase.auth.signInWithPassword()` com o e-mail `<accessCode>@alunos.student-app.invalid`, depois `GET get-current-student` |
 | `POST /auth/logout` | `supabase.auth.signOut()` |
+| `POST /auth/register` | `POST register-student`, com o corpo `{ accessCode, password }` (temporário, sem JWT) |
 | `GET /dashboard` | `GET get-dashboard?period=&subjectId=` |
 | `GET /subjects` | `GET list-subjects` |
 | `GET /subjects/:id` | `GET get-subject?id=:id` |
@@ -65,7 +66,8 @@ O que elas compartilham está em `supabase/functions/_shared/`:
 
 - `http.ts` — `serveEndpoint(method, handler)`: responde o preflight, recusa outro método, valida
   o JWT (`auth.getClaims`), acha o aluno em `students` e transforma um `ApiError` no corpo de erro
-  do contrato; qualquer outra falha vira `500` com código `UNKNOWN_ERROR`;
+  do contrato; qualquer outra falha vira `500` com código `UNKNOWN_ERROR`. `servePublicEndpoint`
+  faz o mesmo sem exigir JWT e é usado só pela função temporária `register-student`;
 - `db.ts` — conexão direta com o Postgres (`SUPABASE_DB_URL`, driver `npm:postgres`), que alcança
   as views do schema `private` e permite transação. Ela ignora o RLS, então toda consulta filtra
   pelo aluno do token;
@@ -140,6 +142,7 @@ O que existe são tetos de tamanho no envio de simulado. No modo mock não há l
 |---|---|---|---|---|
 | `POST` | `/auth/login` | Não | `200` [`AuthSession`](#32-authsession) | `authApi.login` |
 | `POST` | `/auth/logout` | Sim | `204` (sem corpo) | `authApi.logout` |
+| `POST` | `/auth/register` | Não | `200` [`RegisterResult`](#32b-registerresult) | `authApi.register` |
 | `GET` | `/dashboard` | Sim | `200` [`DashboardData`](#34-dashboarddata) | `dashboardApi.getDashboard` |
 | `GET` | `/subjects` | Sim | `200` [`Subject`](#39-subject)`[]` | `subjectsApi.getSubjects` |
 | `GET` | `/subjects/:id` | Sim | `200` [`SubjectDetail`](#316-subjectdetail) | `subjectsApi.getSubject` |
@@ -229,6 +232,68 @@ Encerra a sessão atual no servidor.
 
 **Comportamento no cliente:** a sessão local é limpa e o aluno é deslogado
 independentemente de esta requisição ter sucesso ou falhar.
+
+---
+
+### `POST /auth/register`
+
+**Temporário.** Primeiro acesso de um aluno cujo código de acesso já foi distribuído, mas ainda
+não tem conta: o aluno escolhe a própria senha. Os códigos disponíveis são cadastrados à mão pelo
+operador na tabela `available_logins`, com o script `supabase/scripts/add-available-logins.sql`,
+que gera códigos aleatórios e devolve a lista para distribuir
+(veja [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md)). Cada código pode ser usado uma
+única vez. O endpoint existe até a instituição passar a criar as contas já com senha; para
+removê-lo, apague a edge function `register-student`, a entrada dela em `supabase/config.toml`,
+`authApi.register` com a rota do mock e o modo "Primeiro acesso" da `LoginPage`, e crie uma
+migration que remove `available_logins`.
+
+**Autenticação:** não exigida. É a única edge function sem JWT (`servePublicEndpoint` em
+`supabase/functions/_shared/http.ts`), porque a conta ainda não existe.
+
+**Corpo da requisição** — `RegisterCredentials`
+
+| Campo | Tipo | Regras | Descrição |
+|---|---|---|---|
+| `accessCode` | string | Obrigatório. Sofre trim e vira minúsculas; 6 a 32 letras ou dígitos. | Código de acesso disponível. |
+| `password` | string | Obrigatório. 6 a 72 caracteres. | Senha escolhida pelo aluno. 72 é o máximo que o bcrypt lê. |
+
+```json
+{
+  "accessCode": "novo0001",
+  "password": "minhasenha"
+}
+```
+
+**Respostas**
+
+| Status | Corpo | Quando |
+|---|---|---|
+| `200` | [`RegisterResult`](#32b-registerresult) | A conta foi criada e o código deixou de estar disponível. |
+| `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido, código malformado, senha fora do tamanho ou recusada pelas regras de senha do Supabase Auth. |
+| `404` | Erro, código `NOT_FOUND` | O código não está na lista, já foi usado ou já tem conta. A mesma resposta para os três casos, para não revelar quais códigos existem. |
+
+```json
+{
+  "accessCode": "novo0001"
+}
+```
+
+**No servidor:** numa única transação, a edge function marca o código como usado
+(`claimed_at`), cria a conta no Supabase Auth com a API de administração (e-mail
+`<accessCode>@alunos.student-app.invalid`, já confirmado, funcionando mesmo com o cadastro
+público desligado) e grava a linha de `students`, ligando o código à conta criada (`available_logins.auth_user_id`). Dois pedidos com o mesmo código ao mesmo tempo
+geram uma conta só: o segundo espera o bloqueio da linha e encontra o código já usado. Qualquer
+falha devolve o código à lista.
+
+**Comportamento no cliente**
+
+- A `LoginPage` tem o modo "Primeiro acesso" ("Primeiro acesso? Crie sua senha"), com os campos
+  do login mais "Confirme a senha". Ao enviar, chama `authApi.register` e, em seguida, faz o login
+  normal com o mesmo código e senha.
+- O CAPTCHA só é conferido no login, então uma falha no cadastro não gasta o token do widget. Se o
+  cadastro der certo e o login falhar, a tela volta ao modo de login, já que a conta existe.
+- O endpoint não tem CAPTCHA nem rate limit próprio: a proteção contra quem tenta adivinhar
+  códigos é usar códigos aleatórios e longos.
 
 ---
 
@@ -695,6 +760,12 @@ ranking) é o que o aluno digitou no login, guardado só no `localStorage` pelo
 | `token` | string | Não vazio. Token Bearer opaco. |
 | `user` | [`StudentUser`](#31-studentuser) | Obrigatório. |
 
+### 3.2b `RegisterResult`
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `accessCode` | string | Não vazio. O código da conta criada, já normalizado (trim e minúsculas). |
+
 ### 3.3 Texto de exibição
 
 Campos como `title`, `name` e `description` são **textos prontos para exibição, em
@@ -1006,6 +1077,9 @@ Particularidades do mock:
 - **Latência:** toda resposta é atrasada por `VITE_MOCK_DELAY_MS` (padrão `500` ms).
 - **Conta de demonstração:** código de acesso `demo0001` (sem diferenciar maiúsculas/minúsculas),
   senha `123456`.
+- **Primeiro acesso:** os códigos `novo0001`, `novo0002` e `novo0003` estão disponíveis para
+  `POST /auth/register`. A conta criada fica só em memória, junto com a de demonstração, e a lista
+  volta ao início quando a página é recarregada.
 - **Formato do token:** um JWT (`header.payload.signature`, assinado com HMAC-SHA256), com o
   `id` do aluno no claim `sub` e expiração (`exp`) 3 dias após o login. Um token expirado, ou com
   assinatura inválida, é tratado como ausente e recebe `401 UNAUTHORIZED`. A assinatura usa um

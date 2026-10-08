@@ -23,9 +23,10 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) e `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório) e `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
-| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
+| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado, 1 tentativa enviada e os códigos de primeiro acesso `novo0001`, `novo0002` e `novo0003`, ainda disponíveis. |
+| [`supabase/scripts/add-available-logins.sql`](../supabase/scripts/add-available-logins.sql) | Script de operador (temporário): gera códigos de acesso aleatórios (30 por padrão, com 10 caracteres de um alfabeto de 32 sem `i`, `l`, `0` e `1`), grava em `available_logins` e devolve a lista para distribuir aos alunos no primeiro acesso. Veja [`POST /auth/register`](04-contratos-de-api.md#post-authregister). |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
 
 ### Rodando o banco localmente
@@ -83,6 +84,7 @@ direta com o Postgres e monta o JSON em TypeScript. O banco não gera nem guarda
 | `POST /quizzes/:id/attempts` | `submit-quiz-attempt` |
 | `GET /ranking` | `get-ranking` |
 | `GET /ranking/activity` | `get-activity-calendar?month=` |
+| `POST /auth/register` | `register-student` (temporário, sem JWT) |
 
 A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
 chamar a API sem passar pelo app, então a segurança fica em camadas:
@@ -112,6 +114,14 @@ chamar a API sem passar pelo app, então a segurança fica em camadas:
   Auth, que guarda o código como o e-mail `<código>@alunos.student-app.invalid` (domínio
   reservado, nunca recebe mensagem). `students` não tem nome nem e-mail: o nome que o app mostra é
   digitado pelo aluno e fica só no navegador.
+- **Primeiro acesso (temporário).** Enquanto a instituição não cria as contas já com senha, o
+  operador cadastra códigos aleatórios em `available_logins` e o aluno cria a própria senha pela
+  edge function `register-student`, a única sem JWT. A tabela tem RLS sem política e nenhum
+  privilégio para `anon` e `authenticated`, então um código ainda disponível nunca sai pela API.
+  Como quem digita um código disponível primeiro fica com a conta, os códigos precisam ser longos
+  e aleatórios. Depois de usado, o código aponta para a conta criada (`auth_user_id`, a mesma de
+  `students.auth_user_id`); apagar a conta deixa o campo nulo, mas o código continua usado e nunca
+  vai para outro aluno.
 - **Ainda em aberto.** `get-quiz` devolve o gabarito junto com as questões, porque o contrato atual
   do `QuizDetail` inclui essas respostas ([`05-melhorias-futuras.md`](05-melhorias-futuras.md),
   item 2).
@@ -239,6 +249,7 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Tentativa | `quiz_attempts` |
 | Resposta | `quiz_attempt_answers`, com os valores múltiplos em `quiz_attempt_answer_options`, `quiz_attempt_answer_blanks` e `quiz_attempt_answer_slots` |
 | Dia de estudo | `student_activity_days` |
+| Código de acesso disponível (temporário) | `available_logins` |
 
 Nomes de tabelas e colunas em inglês, seguindo a convenção de código do projeto.
 
@@ -332,6 +343,15 @@ erDiagram
     quiz_attempt_answers ||--o{ quiz_attempt_answer_slots : ""
     question_slots ||--o{ quiz_attempt_answer_slots : ""
     question_terms ||--o{ quiz_attempt_answer_slots : ""
+
+    auth_users |o--o| available_logins : ""
+
+    available_logins {
+        text access_code PK
+        timestamptz created_at
+        timestamptz claimed_at "nulo enquanto disponível"
+        uuid auth_user_id UK, FK "conta criada"
+    }
 
     auth_users {
         uuid id PK
