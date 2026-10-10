@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { AdminRoute } from "@app/routes/AdminRoute";
 import { ProtectedRoute } from "@app/routes/ProtectedRoute";
 import { PublicOnlyRoute } from "@app/routes/PublicOnlyRoute";
 import { RouteErrorPage } from "@app/routes/RouteErrorPage";
@@ -128,6 +129,79 @@ export const router = createBrowserRouter([
           import("@features/ranking/components/RankingPage").then(({ RankingPage }) => ({
             Component: RankingPage,
           })),
+      },
+    ],
+  },
+  // The admin area has its own login and its own guard, and shares nothing with the student
+  // session; its screens are separate chunks, loaded only by who opens /admin.
+  {
+    path: "/admin/login",
+    errorElement: <RouteErrorPage />,
+    lazy: () =>
+      import("@features/admin/components/AdminLoginPage").then(({ AdminLoginPage }) => ({
+        Component: AdminLoginPage,
+      })),
+  },
+  {
+    element: <AdminRoute />,
+    errorElement: <RouteErrorPage />,
+    children: [
+      { path: "/admin", element: <Navigate to="/admin/conteudo" replace /> },
+      {
+        path: "/admin/conteudo",
+        lazy: () =>
+          import("@features/admin/components/AdminContentPage").then(({ AdminContentPage }) => ({
+            Component: AdminContentPage,
+          })),
+      },
+      {
+        path: "/admin/questoes",
+        lazy: () =>
+          import("@features/admin/components/AdminQuestionsPage").then(
+            ({ AdminQuestionsPage }) => ({ Component: AdminQuestionsPage }),
+          ),
+      },
+      {
+        path: "/admin/questoes/nova",
+        lazy: () =>
+          import("@features/admin/components/AdminQuestionEditorPage").then(
+            ({ AdminQuestionEditorPage }) => ({ Component: AdminQuestionEditorPage }),
+          ),
+      },
+      {
+        path: "/admin/questoes/:questionId",
+        lazy: () =>
+          import("@features/admin/components/AdminQuestionEditorPage").then(
+            ({ AdminQuestionEditorPage }) => ({ Component: AdminQuestionEditorPage }),
+          ),
+      },
+      {
+        path: "/admin/simulados",
+        lazy: () =>
+          import("@features/admin/components/AdminQuizzesPage").then(({ AdminQuizzesPage }) => ({
+            Component: AdminQuizzesPage,
+          })),
+      },
+      {
+        path: "/admin/simulados/novo",
+        lazy: () =>
+          import("@features/admin/components/AdminQuizEditorPage").then(
+            ({ AdminQuizEditorPage }) => ({ Component: AdminQuizEditorPage }),
+          ),
+      },
+      {
+        path: "/admin/simulados/importar",
+        lazy: () =>
+          import("@features/admin/components/AdminQuizImportPage").then(
+            ({ AdminQuizImportPage }) => ({ Component: AdminQuizImportPage }),
+          ),
+      },
+      {
+        path: "/admin/simulados/:quizId",
+        lazy: () =>
+          import("@features/admin/components/AdminQuizEditorPage").then(
+            ({ AdminQuizEditorPage }) => ({ Component: AdminQuizEditorPage }),
+          ),
       },
     ],
   },
