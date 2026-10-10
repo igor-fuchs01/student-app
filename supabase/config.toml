@@ -463,6 +463,21 @@ verify_jwt = false
 [functions.admin-delete-question]
 verify_jwt = false
 
+[functions.admin-list-quizzes]
+verify_jwt = false
+
+[functions.admin-get-quiz]
+verify_jwt = false
+
+[functions.admin-save-quiz]
+verify_jwt = false
+
+[functions.admin-delete-quiz]
+verify_jwt = false
+
+[functions.admin-import-quiz]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
