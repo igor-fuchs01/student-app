@@ -23,9 +23,9 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório) e `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório), `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha) e `admins` (as contas de administrador e o log de auditoria do que elas escrevem). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
-| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
+| [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 conta de administrador (código `admin001`, senha `admin-local-123456`, só para o ambiente local), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
 
 ### Rodando o banco localmente
@@ -84,6 +84,7 @@ direta com o Postgres e monta o JSON em TypeScript. O banco não gera nem guarda
 | `GET /ranking` | `get-ranking` |
 | `GET /ranking/activity` | `get-activity-calendar?month=` |
 | `POST /auth/register` | `register-student` (temporário, sem JWT) |
+| `/admin/...` | Uma função `admin-*` por endpoint, só para administradores |
 
 A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
 chamar a API sem passar pelo app, então a segurança fica em camadas:
@@ -122,6 +123,18 @@ chamar a API sem passar pelo app, então a segurança fica em camadas:
   e aleatórios. Depois de usado, o código aponta para a conta criada (`auth_user_id`, a mesma de
   `students.auth_user_id`); apagar a conta deixa o campo nulo, mas o código continua usado e nunca
   vai para outro aluno.
+- **Administração.** As funções `admin-*` são as únicas que escrevem conteúdo, e só atendem
+  contas listadas em `admins`. O papel fica nessa tabela, nunca no token nem em metadados do
+  usuário: `serveAdminEndpoint` consulta a tabela a cada requisição, então apagar a linha revoga o
+  acesso na hora. A conta é criada à mão, com o e-mail `<código>@admin.student-app.invalid` —
+  outro domínio, para que o login do aluno nunca autentique um administrador — e não é um
+  aluno. `admins` e `admin_audit_log` têm RLS sem política e nenhum privilégio para `anon` e
+  `authenticated`: a Data API não mostra quem são os administradores nem deixa alguém se
+  incluir. Cada escrita grava uma linha em `admin_audit_log` na mesma transação. As chaves
+  estrangeiras `ON DELETE RESTRICT` valem também para o administrador: ele não consegue apagar
+  uma questão já respondida nem um simulado com tentativas, ou seja, não apaga histórico de
+  aluno. O endereço de um material só é aceito com `https://`, porque vira um link na tela do
+  aluno.
 - **Ainda em aberto.** `get-quiz` devolve o gabarito junto com as questões, porque o contrato atual
   do `QuizDetail` inclui essas respostas ([`05-melhorias-futuras.md`](05-melhorias-futuras.md),
   item 2).
@@ -154,6 +167,7 @@ da equipe, inclusive quem não programa.
 | **Tentativa** | Envio de um simulado por um aluno. |
 | **Resposta** | O que o aluno respondeu em uma questão de uma tentativa, com o resultado da correção. |
 | **Dia de estudo** | Dia em que o aluno teve atividade. É a base do streak. |
+| **Administrador** | Conta que cadastra e edita o conteúdo pela área `/admin`. Não é um aluno: não tem tentativas nem aparece no ranking. |
 
 ### 1.2 Relacionamentos
 
@@ -250,6 +264,7 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Resposta | `quiz_attempt_answers`, com os valores múltiplos em `quiz_attempt_answer_options`, `quiz_attempt_answer_blanks` e `quiz_attempt_answer_slots` |
 | Dia de estudo | `student_activity_days` |
 | Código de acesso disponível (temporário) | `available_logins` |
+| Administrador | `admins`, com o registro do que cada um escreveu em `admin_audit_log` |
 
 Nomes de tabelas e colunas em inglês, seguindo a convenção de código do projeto.
 
@@ -345,12 +360,28 @@ erDiagram
     question_terms ||--o{ quiz_attempt_answer_slots : ""
 
     auth_users |o--o| available_logins : ""
+    auth_users ||--o| admins : ""
 
     available_logins {
         text access_code PK
         timestamptz created_at
         timestamptz claimed_at "nulo enquanto disponível"
         uuid auth_user_id UK, FK "conta criada"
+    }
+
+    admins {
+        int id PK
+        uuid auth_user_id UK, FK
+        timestamptz created_at
+    }
+
+    admin_audit_log {
+        int id PK
+        uuid admin_auth_user_id "sem FK: sobrevive ao admin"
+        text action "create, update, delete, import"
+        text entity "tabela escrita"
+        int entity_id
+        timestamptz created_at
     }
 
     auth_users {
@@ -550,6 +581,6 @@ funcionalidades complexas apenas porque foram mencionadas como possibilidades fu
 | Contadores e nota gravados na tentativa | Derivados das respostas (seção 1.4). | — |
 | Tabela `student_stats` | Contadores derivados; a meta semanal virou coluna de `students`. | Se o ranking ficar lento, depois de medir ([`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md)) |
 | Início da tentativa (`started_at`) e horário de cada resposta | O contrato atual só cria a tentativa no envio, e o cronômetro fica no cliente no MVP. | Item 1 de [`05-melhorias-futuras.md`](05-melhorias-futuras.md) |
-| Colunas de auditoria (`created_at`) | Nenhum contrato ou critério usa. Sessões e expiração de login ficam com o Supabase Auth. | Painel administrativo (Fase 7) |
+| Colunas de auditoria (`created_at`) nas tabelas de conteúdo | Nenhum contrato ou critério usa. Sessões e expiração de login ficam com o Supabase Auth, e o que o administrador escreve fica em `admin_audit_log`. | Quando um contrato precisar delas |
 | Tabela `auth_tokens` e coluna `students.password_hash` | O Supabase Auth guarda senhas e sessões. | — |
 | Nome e e-mail do aluno (`students.name`, `students.email`) | LGPD: o login é um código de acesso guardado no Supabase Auth e o nome fica só no navegador. | — |
