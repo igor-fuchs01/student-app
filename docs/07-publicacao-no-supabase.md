@@ -1,7 +1,7 @@
 # Publicação no Supabase pela CLI
 
 Como levar as alterações do repositório para o projeto **hospedado** no Supabase: banco
-(migrations), edge functions, CORS e o CAPTCHA do login. Para rodar o Supabase no seu computador,
+(migrations), edge functions, CORS, o CAPTCHA do login e a conta de administrador. Para rodar o Supabase no seu computador,
 veja [`PRIMEIROS-PASSOS.md`](PRIMEIROS-PASSOS.md#banco-de-dados-opcional); para o que cada parte faz,
 [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md) e
 [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors).
@@ -14,8 +14,9 @@ veja [`PRIMEIROS-PASSOS.md`](PRIMEIROS-PASSOS.md#banco-de-dados-opcional); para 
 4. [Mudar o CORS](#4-mudar-o-cors)
 5. [Ativar o CAPTCHA do login](#5-ativar-o-captcha-do-login)
 6. [Publicar mudanças no banco](#6-publicar-mudanças-no-banco)
-7. [Conferir e resolver problemas](#7-conferir-e-resolver-problemas)
-8. [Resumo dos comandos](#8-resumo-dos-comandos)
+7. [Criar uma conta de administrador](#7-criar-uma-conta-de-administrador)
+8. [Conferir e resolver problemas](#8-conferir-e-resolver-problemas)
+9. [Resumo dos comandos](#9-resumo-dos-comandos)
 
 ## 1. O que instalar
 
@@ -183,7 +184,52 @@ O `db push` não roda o `supabase/seed.sql`: os dados de exemplo são só do amb
 Se a mudança no banco for usada por uma edge function, publique o banco **antes** da função, para
 ela nunca consultar uma coluna ou view que ainda não existe.
 
-## 7. Conferir e resolver problemas
+## 7. Criar uma conta de administrador
+
+A área `/admin` do app ([`04-contratos-de-api.md`](04-contratos-de-api.md#administração)) só abre
+para contas listadas na tabela `admins`. Não existe tela nem endpoint que crie um administrador:
+é sempre um passo manual, feito por quem tem acesso ao painel do projeto.
+
+Antes, publique o banco e depois **todas** as funções (o código de `_shared/` mudou):
+
+```bash
+npx supabase db push
+npx supabase functions deploy
+```
+
+Depois:
+
+1. Escolha um código de acesso (6 a 32 letras minúsculas ou dígitos) e gere, num gerenciador de
+   senhas, uma **senha aleatória de pelo menos 16 caracteres**. O mínimo do Supabase Auth é 6, por
+   causa dos alunos, e nada no código impede uma senha fraca aqui: essa conta escreve em todo o
+   conteúdo, então a senha forte é responsabilidade de quem a cria.
+2. No painel, em **Authentication → Users → Add user → Create new user**, use o e-mail
+   `<código>@admin.student-app.invalid`, a senha e marque **Auto Confirm User**. O domínio é
+   diferente do dos alunos (`@alunos…`) de propósito: é o que impede a tela de login do aluno de
+   autenticar um administrador.
+3. No **SQL Editor**, marque a conta como administrador:
+
+   ```sql
+   insert into admins (auth_user_id)
+   select id from auth.users where email = '<código>@admin.student-app.invalid';
+   ```
+
+4. Entre em `https://<endereço do app>/admin/login` com o código e a senha.
+
+Cuidados:
+
+- **Nunca** coloque em `admins` a conta de um aluno, nem crie um aluno (`students`) para a conta
+  de administrador.
+- **Revogar o acesso:** `delete from admins where auth_user_id = '<id>';`. Vale na próxima
+  requisição, mesmo que o administrador ainda esteja com a sessão aberta. Depois apague o usuário
+  em **Authentication → Users**.
+- **Trocar a senha:** pelo painel, em **Authentication → Users**.
+- **Ver o que foi alterado:**
+  `select * from admin_audit_log order by created_at desc limit 50;`
+- O CAPTCHA da [seção 5](#5-ativar-o-captcha-do-login) e o limite de tentativas do Supabase Auth
+  valem também para `/admin/login`.
+
+## 8. Conferir e resolver problemas
 
 Depois de publicar, abra o app ligado ao projeto hospedado e navegue pelas telas. Os logs de cada
 função ficam no painel, em **Edge Functions → <função> → Logs**.
@@ -195,10 +241,11 @@ função ficam no painel, em **Edge Functions → <função> → Logs**.
 | "Ocorreu um erro inesperado" (`500`) | Erro dentro da função: veja os logs no painel. Se a mensagem citar coluna ou tabela inexistente, falta o `db push`. |
 | "Não foi possível confirmar que você não é um robô" em todo login | O CAPTCHA está ativado no Supabase, mas o front foi publicado sem `VITE_TURNSTILE_SITE_KEY`, ou a secret key colada no Supabase não é a do mesmo widget. Veja a [seção 5](#5-ativar-o-captcha-do-login). |
 | O widget do CAPTCHA mostra erro de domínio | O hostname do app não está cadastrado no widget da Cloudflare. |
+| `/admin/login` responde "Código de acesso ou senha inválidos" com a senha certa | A conta não está em `admins`, ou foi criada com o domínio dos alunos. Veja a [seção 7](#7-criar-uma-conta-de-administrador). |
 | `Cannot find project ref. Have you run supabase link?` | Rode o `npx supabase link` da [seção 2](#2-entrar-e-ligar-o-repositório-ao-projeto). |
 | O deploy reclama do Docker | Abra o Docker Desktop ou use `--use-api`. |
 
-## 8. Resumo dos comandos
+## 9. Resumo dos comandos
 
 ```bash
 # uma vez por computador

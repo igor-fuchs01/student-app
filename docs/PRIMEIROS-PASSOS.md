@@ -173,6 +173,12 @@ arquivos, embora o app compile normalmente. Para checar os tipos pelo terminal:
 
 A conta de teste é a mesma do mock: código de acesso `demo0001` (ou `demo0002`), senha `123456`.
 
+Para cadastrar e editar conteúdo pela interface, abra http://localhost:5173/admin/login com a
+conta de administrador do ambiente local: código `admin001`, senha `admin-local-123456`. Ela só
+existe no `seed.sql`; no projeto hospedado a conta é criada à mão
+([`07-publicacao-no-supabase.md`](07-publicacao-no-supabase.md#7-criar-uma-conta-de-administrador)).
+A área de administração não existe no modo mock.
+
 Para criar um aluno de verdade, gere um código de acesso (6 a 32 letras minúsculas ou dígitos),
 crie o usuário no painel em **Authentication → Users → Add user** com o e-mail
 `<código>@alunos.student-app.invalid` e uma senha, e ligue-o a um aluno:
