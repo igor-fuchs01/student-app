@@ -23,7 +23,11 @@ identificação de dificuldades · recomendações · plano de estudo · modo Se
 streak · metas · badges · ranking de consistência
 
 ### Fase 7 — Evolução futura *(fora do MVP)*
-painel administrativo · upload de PDFs · processamento automático · OCR · geração automática de questões · IA como tutor · base de conhecimento
+gestão de contas de alunos pelo painel administrativo · upload de PDFs · processamento automático · OCR · geração automática de questões · IA como tutor · base de conhecimento
+
+O painel administrativo de conteúdo já existe: a área `/admin` cria, edita e exclui disciplinas,
+assuntos, subassuntos, materiais, questões, simulados e listas de exercícios
+([`04-contratos-de-api.md`](04-contratos-de-api.md#administração)).
 
 ---
 

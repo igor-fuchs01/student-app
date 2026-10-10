@@ -24,7 +24,6 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 13 | [Simulados criados pelo próprio aluno](#13-simulados-criados-pelo-próprio-aluno) | Produto | 6 |
 | 14 | [Gráficos escolhidos pelo aluno](#14-gráficos-escolhidos-pelo-aluno) | Produto | 8 |
 | 15 | [Histórico de provas realizadas](#15-histórico-de-provas-realizadas) | Produto | — |
-| 16 | [Endpoints de administração do conteúdo](#16-endpoints-de-administração-do-conteúdo) | Produto | Backend |
 | 17 | [Resetar o preparo de um simulado](#17-resetar-o-preparo-de-um-simulado) | Produto | — |
 
 ---
@@ -484,51 +483,6 @@ produto: este item fecha essa lacuna.
    revisão que já existem.
 5. **Cuidado com o crescimento.** A lista é paginada, porque um aluno pode acumular muitas
    tentativas ao longo do curso.
-
----
-
-## 16. Endpoints de administração do conteúdo
-
-**Situação atual.** Disciplinas, assuntos, subassuntos, materiais, questões e simulados só entram no
-banco por migration, pelo `supabase/seed.sql` ou pelo script de operador
-`supabase/scripts/import-quiz.sql`, executado à mão no SQL editor. Toda edge function atende só
-alunos: `serveEndpoint` (`supabase/functions/_shared/http.ts`) busca o `auth_user_id` do JWT em
-`students` e devolve `401` para qualquer outra conta. Não existe o papel de administrador.
-
-**Objetivo.** Endpoints de administração para cadastrar e editar o conteúdo (questões, assuntos,
-disciplinas etc.) sem escrever SQL.
-
-**Por que fica para depois do MVP.** [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md)
-coloca o painel administrativo na Fase 7. Enquanto uma única pessoa cura o conteúdo, o
-`import-quiz.sql` basta e não abre nenhuma superfície nova na API.
-
-**Proposta.**
-
-1. **Papel de administrador.** Marcar quem é admin por uma tabela `admins` (`auth_user_id`) em uma
-   migration nova, ou por um claim em `app_metadata` do Supabase Auth, que só o service role altera.
-   As contas de admin são criadas à mão, como as dos alunos, porque o cadastro público continua
-   desligado.
-2. **Autorização centralizada.** Um helper irmão de `serveEndpoint` em `_shared/http.ts` confere o
-   papel e devolve `403` para quem não é admin. As edge functions conectam com a role `postgres`,
-   que ignora o RLS, então essa conferência é a única barreira: ela fica num lugar só, nunca
-   repetida em cada endpoint.
-3. **Endpoints.** Uma edge function por endpoint, como as atuais (por exemplo `admin-create-question`,
-   `admin-create-topic`, `admin-update-subject`), com o corpo validado por zod e a escrita em uma
-   transação, no padrão de `submit-quiz-attempt`. Edição e remoção exigem que `serveEndpoint` aceite
-   outros métodos além de `GET` e `POST`, ou que tudo use `POST`.
-4. **Regras de validação.** Reaproveitar as do `import-quiz.sql`: validar o payload inteiro antes de
-   gravar e não criar disciplina ou assunto implicitamente a partir de uma questão, para um erro de
-   digitação não gerar duplicatas.
-5. **Contrato** (aditivo, [`04-contratos-de-api.md`](04-contratos-de-api.md), seção 1.4): as rotas
-   novas ficam sob um prefixo próprio (`/admin/...`) e não mudam nenhuma rota do aluno. O RLS e as
-   grants continuam iguais ([`06-modelagem-de-dados.md`](06-modelagem-de-dados.md)): o cliente segue
-   sem escrever direto em tabela nenhuma.
-6. **UI (opcional).** Uma feature `src/features/admin/`, com rotas protegidas pelo papel no
-   `router.tsx` (hoje `ProtectedRoute` só confere se há sessão) e o papel exposto no `useAuthStore`.
-   Sem telas, os endpoints já podem ser usados por ferramentas como curl ou Postman.
-7. **Documentação.** Ao implementar, atualizar [`03-arquitetura-tecnica.md`](03-arquitetura-tecnica.md),
-   [`04-contratos-de-api.md`](04-contratos-de-api.md), [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md)
-   e [`99-criterios-de-aceite-mvp.md`](99-criterios-de-aceite-mvp.md), e remover este item daqui.
 
 ---
 
