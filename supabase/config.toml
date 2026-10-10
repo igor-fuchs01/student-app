@@ -430,6 +430,27 @@ verify_jwt = false
 [functions.admin-get-current]
 verify_jwt = false
 
+[functions.admin-get-content]
+verify_jwt = false
+
+[functions.admin-save-subject]
+verify_jwt = false
+
+[functions.admin-delete-subject]
+verify_jwt = false
+
+[functions.admin-save-topic]
+verify_jwt = false
+
+[functions.admin-delete-topic]
+verify_jwt = false
+
+[functions.admin-save-subtopic]
+verify_jwt = false
+
+[functions.admin-delete-subtopic]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
