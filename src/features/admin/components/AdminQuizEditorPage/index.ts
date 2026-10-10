@@ -1,0 +1,1 @@
+export { AdminQuizEditorPage } from "./AdminQuizEditorPage";
