@@ -909,7 +909,7 @@ export function getMockSubjectDetail(subjectId: string): SubjectDetail | undefin
   const subject = MOCK_SUBJECTS.find((item) => item.id === subjectId);
   if (!subject) return undefined;
 
-  return { ...subject, topics: [...subject.topics].sort((a, b) => a.number - b.number) };
+  return { ...subject, topics: [...subject.topics].sort((a, b) => b.number - a.number) };
 }
 
 export function hasMockTopic(topicId: string): boolean {

@@ -1,8 +1,8 @@
 // GET get-subject?id=: SubjectDetail (docs/04-contratos-de-api.md §3.16, GET /subjects/:id).
 //
-// Assuntos come by number, the label the student reads (§3.17); subassuntos, key points and
-// materials by the study order the team defined, which for materials is the order they were
-// inserted in.
+// Assuntos come from the most recent lesson to the oldest, by the number the student reads
+// (§3.17); subassuntos, key points and materials by the study order the team defined, which for
+// materials is the order they were inserted in.
 import { sql } from "../_shared/db.ts";
 import { ApiError, serveEndpoint } from "../_shared/http.ts";
 import { loadSubjectSummaries } from "../_shared/subjects.ts";
@@ -24,7 +24,7 @@ serveEndpoint("GET", async ({ url, studentId }) => {
       select id, number, name, description
       from topics
       where subject_id = ${subjectId}
-      order by number
+      order by number desc
     `,
     sql<SubtopicRow[]>`
       select st.id, st.topic_id, st.name, st.summary
