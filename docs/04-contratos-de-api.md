@@ -470,15 +470,15 @@ de cada subassunto. É o que a tela `/disciplinas/:subjectId` exibe.
 
 **Comportamento no cliente**
 
-- Os assuntos já vêm ordenados por `number`, que é a ordem alfabética do rótulo lido pelo aluno
-  ("Aula 1 - …", "Aula 2 - …") e continua correta a partir da décima aula. A posição no array nunca
-  é usada para numerar.
+- Os assuntos já vêm ordenados por `number` decrescente, da aula mais recente para a menos recente
+  ("Aula 10 - …", "Aula 9 - …"), para o aluno encontrar primeiro o conteúdo que acabou de ver. A
+  posição no array nunca é usada para numerar.
 - A lista lateral monta o rótulo do assunto como `Aula {number} - {name}`; o cabeçalho da direita
   mostra "Aula {number}" e o nome em linhas separadas.
 - Os subassuntos, os pontos-chave e os materiais seguem a ordem do array, que é a ordem de estudo
   definida pela equipe — não é alfabética.
-- A lista lateral agrupa os subassuntos por assunto. O primeiro subassunto do primeiro assunto já
-  vem selecionado, e escolher outro troca as duas seções da direita sem nova requisição.
+- A lista lateral agrupa os subassuntos por assunto. O primeiro subassunto do primeiro assunto do
+  array (a aula mais recente) já vem selecionado, e escolher outro troca as duas seções da direita sem nova requisição.
 - Uma disciplina sem assuntos, ou cujos assuntos não têm subassuntos, exibe um aviso no lugar da
   lista.
 - `summary`, `keyPoints` e `description` são texto simples, sem HTML ou Markdown, para não exigir um
@@ -950,7 +950,7 @@ Todos os campos de [`Subject`](#39-subject), mais:
 
 | Campo | Tipo | Regras |
 |---|---|---|
-| `topics` | [`SubjectTopic`](#317-subjecttopic)`[]` | Assuntos da disciplina, na ordem de exibição. Pode ser vazio. |
+| `topics` | [`SubjectTopic`](#317-subjecttopic)`[]` | Assuntos da disciplina, na ordem de exibição: `number` decrescente, da aula mais recente para a menos recente. Pode ser vazio. |
 
 ### 3.17 `SubjectTopic`
 
@@ -1088,7 +1088,7 @@ Particularidades do mock:
 - **Rotas desconhecidas** sob `/api` retornam `404` com código `NOT_FOUND`. Pedidos fora de `/api`
   (arquivos da página, Vite) não são interceptados.
 - **Disciplinas:** todas as disciplinas da lista têm detalhe, os assuntos saem ordenados por
-  `number`, `materialsCount` é a soma dos materiais dos subassuntos, e os `fileUrl` apontam para
+  `number` decrescente, `materialsCount` é a soma dos materiais dos subassuntos, e os `fileUrl` apontam para
   arquivos que não existem no projeto. Além dos assuntos curados, cada disciplina ganha aulas extras
   (`EXTRA_LESSONS`), cada uma com um subassunto "Visão geral", pontos-chave e nenhum material, para
   as telas mostrarem um semestre cheio.
