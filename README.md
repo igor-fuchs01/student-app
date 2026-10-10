@@ -60,6 +60,7 @@ Abra **http://localhost:5173** e entre com o código de acesso `demo0001` / senh
 - Igor Fuchs Pereira
 - Enzo Fuchs Bento
 - Fabricio Lima
+- Fernando Mateus
 
 <div align="center">
 
