@@ -425,6 +425,11 @@ verify_jwt = false
 [functions.register-student]
 verify_jwt = false
 
+# Admin area: serveAdminEndpoint (supabase/functions/_shared/http.ts) checks the
+# JWT and then looks the account up in the admins table on every request.
+[functions.admin-get-current]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
