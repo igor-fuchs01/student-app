@@ -6,7 +6,7 @@ A fonte da verdade é o código; atualize este documento sempre que algo abaixo 
 | O quê | Onde |
 |---|---|
 | Caminhos dos endpoints | `src/services/api/endpoints.ts` |
-| Formato de request/response (schemas zod) | `src/types/auth.ts`, `src/types/dashboard.ts`, `src/types/subjects.ts`, `src/types/quizzes.ts`, `src/types/ranking.ts` |
+| Formato de request/response (schemas zod) | `src/types/auth.ts`, `src/types/dashboard.ts`, `src/types/subjects.ts`, `src/types/quizzes.ts`, `src/types/ranking.ts`, `src/types/admin.ts` |
 | Códigos de erro e corpo do erro | `src/services/api/errors.ts` |
 | Transporte e tratamento de erro no modo mock | `src/services/api/httpClient.ts` |
 | Transporte e tratamento de erro no Supabase | `src/services/api/supabase/` |
@@ -51,6 +51,7 @@ função nenhuma exposta: as edge functions leem as tabelas e views e montam o J
 | `POST /quizzes/:id/attempts` | `POST submit-quiz-attempt`, com o corpo `{ quizId, answers }` |
 | `GET /ranking` | `GET get-ranking` |
 | `GET /ranking/activity` | `GET get-activity-calendar?month=` |
+| `/admin/...` | Uma edge function `admin-*` por endpoint (veja [Administração](#administração)); não existe no modo mock |
 
 Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https://`) e
 `VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
@@ -67,7 +68,13 @@ O que elas compartilham está em `supabase/functions/_shared/`:
 - `http.ts` — `serveEndpoint(method, handler)`: responde o preflight, recusa outro método, valida
   o JWT (`auth.getClaims`), acha o aluno em `students` e transforma um `ApiError` no corpo de erro
   do contrato; qualquer outra falha vira `500` com código `UNKNOWN_ERROR`. `servePublicEndpoint`
-  faz o mesmo sem exigir JWT e é usado só pela função temporária `register-student`;
+  faz o mesmo sem exigir JWT e é usado só pela função temporária `register-student`.
+  `serveAdminEndpoint` é o dos endpoints de administração: depois de validar o JWT, procura a
+  conta na tabela `admins` e responde `403` (`FORBIDDEN`) quando ela não está lá; uma escrita
+  recusada pelo banco por chave estrangeira ou valor repetido vira `409` (`CONFLICT`);
+- `admin.ts`, `adminQuestions.ts` e `adminQuizzes.ts` — o que os endpoints de administração
+  compartilham: leitura do corpo validado, log de auditoria, o endpoint de exclusão, as regras
+  de uma questão e as de um simulado;
 - `db.ts` — conexão direta com o Postgres (`SUPABASE_DB_URL`, driver `npm:postgres`), que alcança
   as views do schema `private` e permite transação. Ela ignora o RLS, então toda consulta filtra
   pelo aluno do token;
@@ -152,6 +159,9 @@ O que existe são tetos de tamanho no envio de simulado. No modo mock não há l
 | `POST` | `/quizzes/:id/attempts` | Sim | `200` [`QuizResult`](#314-quizresult) | `quizzesApi.submitQuizAttempt` |
 | `GET` | `/ranking` | Sim | `200` [`RankingData`](#315-rankingdata) | `rankingApi.getRanking` |
 | `GET` | `/ranking/activity` | Sim | `200` [`ActivityCalendar`](#321-activitycalendar) | `rankingApi.getActivityCalendar` |
+
+Os endpoints de administração exigem uma conta de administrador e estão em
+[Administração](#administração).
 
 ---
 
@@ -742,6 +752,150 @@ tela enquanto o próximo carrega.
 
 ---
 
+### Administração
+
+Endpoints da área `/admin` do app, usados para criar, editar e excluir o conteúdo sem escrever SQL.
+Só existem no Supabase: **não há implementação no modo mock**, e `npm run mock` mostra a área como
+indisponível. Por isso não têm entrada em `endpoints.ts`; o cliente os chama por `adminApi`
+(`src/services/api/adminApi.ts`).
+
+**Autenticação e autorização**
+
+- A conta de administrador é uma conta do Supabase Auth com o e-mail
+  `<código>@admin.student-app.invalid`, listada na tabela `admins`. É criada à mão (veja
+  [`07-publicacao-no-supabase.md`](07-publicacao-no-supabase.md#7-criar-uma-conta-de-administrador)) e
+  nunca é um aluno. Como o domínio do e-mail é outro, a tela `/login` não autentica um
+  administrador e `/admin/login` não autentica um aluno.
+- Todo endpoint usa `serveAdminEndpoint`: sem token válido responde `401` (`UNAUTHORIZED`); com o
+  token de uma conta que não está em `admins` responde `403` (`FORBIDDEN`). O papel é lido do
+  banco **a cada requisição**, nunca do token, então apagar a linha de `admins` tira o acesso na
+  hora. As edge functions conectam com a role `postgres`, que ignora o RLS: essa conferência é a
+  única barreira, e por isso fica num lugar só.
+- Um administrador não acessa os endpoints do aluno (não está em `students`, recebe `401`), e um
+  aluno recebe `403` em todos os de administração.
+- Toda escrita grava uma linha em `admin_audit_log` (quem, ação, tabela e id), na mesma transação.
+
+**Endpoints.** As leituras são `GET`; toda escrita é `POST` com corpo JSON, porque o CORS das
+funções só libera esses dois métodos. Ids trafegam como texto numérico.
+
+| Endpoint | Edge function | Corpo ou query | Resposta `200` | Método no cliente |
+|---|---|---|---|---|
+| `GET /admin/me` | `admin-get-current` | — | `AdminUser` | `adminApi.getCurrentAdmin` |
+| `GET /admin/content` | `admin-get-content` | — | `AdminSubject[]` | `adminApi.getContent` |
+| `POST /admin/subjects` | `admin-save-subject` | `{ id?, name, shortLabel }` | `AdminSaved` | `adminApi.saveSubject` |
+| `POST /admin/subjects/delete` | `admin-delete-subject` | `{ id }` | `AdminSaved` | `adminApi.deleteSubject` |
+| `POST /admin/topics` | `admin-save-topic` | `{ id?, subjectId, number, name, description }` | `AdminSaved` | `adminApi.saveTopic` |
+| `POST /admin/topics/delete` | `admin-delete-topic` | `{ id }` | `AdminSaved` | `adminApi.deleteTopic` |
+| `POST /admin/subtopics` | `admin-save-subtopic` | `{ id?, topicId, name, summary, keyPoints, materials }` | `AdminSaved` | `adminApi.saveSubtopic` |
+| `POST /admin/subtopics/delete` | `admin-delete-subtopic` | `{ id }` | `AdminSaved` | `adminApi.deleteSubtopic` |
+| `GET /admin/questions` | `admin-list-questions` | `?subjectId=&topicId=` (opcionais) | `AdminQuestionSummary[]` | `adminApi.getQuestions` |
+| `GET /admin/questions/:id` | `admin-get-question` | `?id=` | `AdminQuestion` | `adminApi.getQuestion` |
+| `POST /admin/questions` | `admin-save-question` | `{ id?, topicId, ...AdminQuestionInput }` | `AdminSaved` | `adminApi.saveQuestion` |
+| `POST /admin/questions/delete` | `admin-delete-question` | `{ id }` | `AdminSaved` | `adminApi.deleteQuestion` |
+| `GET /admin/quizzes` | `admin-list-quizzes` | — | `AdminQuizSummary[]` | `adminApi.getQuizzes` |
+| `GET /admin/quizzes/:id` | `admin-get-quiz` | `?id=` | `AdminQuizDetail` | `adminApi.getQuiz` |
+| `POST /admin/quizzes` | `admin-save-quiz` | `{ id?, title, kind, subjectId, topicId?, durationMinutes?, difficulty, questionIds }` | `AdminSaved` | `adminApi.saveQuiz` |
+| `POST /admin/quizzes/delete` | `admin-delete-quiz` | `{ id }` | `AdminSaved` | `adminApi.deleteQuiz` |
+| `POST /admin/quizzes/import` | `admin-import-quiz` | Documento de importação (abaixo) | `AdminSaved` | `adminApi.importQuiz` |
+
+Um endpoint de salvar **cria** quando o corpo não tem `id` e **atualiza** quando tem. Os modelos
+estão em [3.22](#322-modelos-de-administração).
+
+**Respostas de erro comuns a todos**
+
+| Status | Código | Quando |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | Corpo ausente ou inválido. A `message` traz uma linha por problema, com o campo na frente (ex.: `questions.2.options: Marque exatamente uma alternativa correta.`). |
+| `401` | `UNAUTHORIZED` | Token ausente, inválido ou expirado. |
+| `403` | `FORBIDDEN` | A conta do token não é de administrador. |
+| `404` | `NOT_FOUND` | O `id` do corpo ou da query não existe (ou não é numérico). |
+| `409` | `CONFLICT` | Nome, número ou título repetido, ou o item ainda está em uso (veja as regras). |
+
+**Regras de escrita**
+
+- **Histórico do aluno é intocável.** As chaves estrangeiras `ON DELETE RESTRICT` decidem o que
+  pode ser excluído: uma questão que está em um simulado ou já foi respondida, um simulado com
+  tentativa enviada e uma disciplina ou assunto com questões ou simulados respondem `409` e nada é
+  apagado. Excluir uma disciplina ou um assunto sem esses vínculos leva junto os assuntos,
+  subassuntos, pontos-chave e materiais.
+- **Disciplina:** `name` (até 120) é único, porque a importação acha a disciplina pelo nome;
+  `shortLabel` tem até 12 caracteres.
+- **Assunto:** `number` de 1 a 999 e `name` (até 160) são únicos na disciplina; `description` até
+  500. Um assunto não muda de disciplina.
+- **Subassunto:** o corpo é o subassunto inteiro. `keyPoints` (até 30 textos de até 500)
+  substitui a lista anterior; `materials` (até 30 itens `{ id?, title, fileUrl }`) cria os sem
+  `id`, atualiza os com `id` e apaga os que ficaram de fora. `fileUrl` precisa ser uma URL
+  `https://`: a tela do aluno a coloca em um link, e um `javascript:` gravado ali executaria no
+  navegador dele.
+- **Questão:** o corpo é um `AdminQuestionInput` (mesmas regras da importação) mais `topicId`. Na
+  atualização o tipo não muda, e o assunto só muda se a questão não estiver em nenhum simulado ou
+  lista. Alternativas e termos são casados com os existentes pela posição, e lacunas pela chave,
+  atualizando as linhas no lugar: corrigir um texto funciona mesmo em questão já respondida, mas
+  remover uma alternativa, lacuna ou termo que algum aluno usou na resposta responde `409`.
+- **Simulado e lista:** `title` (até 200) é único. `kind: "exam"` exige `durationMinutes` (1 a
+  600) e não aceita `topicId`; `kind: "exercise"` exige `topicId` (um assunto da disciplina) e
+  não aceita `durationMinutes`. `questionIds` (1 a 200, sem repetição) é a lista inteira, na ordem
+  de exibição, e substitui a anterior; toda questão precisa ser da disciplina do simulado e, numa
+  lista, do assunto dela.
+
+**Documento de importação** (`POST /admin/quizzes/import`). É o mesmo JSON do script
+`supabase/scripts/import-quiz.sql`, com as mesmas regras: tudo é validado antes e nada é gravado se
+houver um problema; a disciplina e os assuntos são achados pelo nome e **nunca criados** (um erro
+de digitação não gera duplicata); as questões são sempre linhas novas.
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `title` | string | Obrigatório, único. |
+| `kind` | enum | `"exam"` (padrão) ou `"exercise"`. |
+| `subject` | string | Nome exato de uma disciplina existente. |
+| `topic` | string | Só em `"exercise"`: nome de um assunto da disciplina. |
+| `durationMinutes` | integer | Só em `"exam"`, obrigatório. |
+| `difficulty` | enum | `"easy"`, `"medium"` ou `"hard"`. |
+| `questions` | array | 1 a 200 itens `AdminQuestionInput`, cada um com `topic` (nome do assunto). Numa lista de exercícios o `topic` da questão pode ser omitido. |
+
+```json
+{
+  "title": "Banco de Dados — Simulado 2",
+  "subject": "Banco de Dados",
+  "durationMinutes": 20,
+  "difficulty": "medium",
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "topic": "Modelagem ER",
+      "prompt": "O que a cardinalidade de um relacionamento indica?",
+      "explanation": "Quantas ocorrências de uma entidade se ligam a ocorrências da outra.",
+      "options": [
+        { "text": "Quantas ocorrências se relacionam", "isCorrect": true },
+        { "text": "Quantos atributos a entidade possui", "isCorrect": false }
+      ]
+    },
+    {
+      "type": "drag_and_drop",
+      "topic": "Normalização",
+      "template": "Valores atômicos são exigidos pela {{s1}}.",
+      "explanation": "A 1FN exige valores atômicos.",
+      "terms": ["1FN", "2FN", "3FN"],
+      "slots": [{ "key": "s1", "correctTerm": "1FN" }]
+    }
+  ]
+}
+```
+
+**Comportamento no cliente**
+
+- `/admin/login` pede código de acesso e senha (com o mesmo CAPTCHA do login do aluno, quando
+  configurado). Código desconhecido, senha errada e conta que não é de administrador recebem a
+  mesma mensagem. O navegador guarda uma sessão do Supabase só, então entrar como administrador
+  encerra a sessão de aluno daquele navegador, e vice-versa.
+- O papel não é guardado no navegador: `AdminRoute` chama `GET /admin/me` ao abrir a área e
+  redireciona para `/admin/login` em `401` ou `403`. Um `401` ou `403` em qualquer outra chamada
+  refaz essa conferência. Esses erros não mexem na sessão do aluno.
+- As telas ficam em `src/features/admin/`, em chunks carregados só por quem abre `/admin`; não há
+  link para elas na área do aluno.
+
+---
+
 ### 3.1 `StudentUser`
 
 | Campo | Tipo | Regras |
@@ -1010,6 +1164,65 @@ Um assunto (aula) da disciplina, como em [`02-regras-de-negocio.md`](02-regras-d
 Um dia com os dois contadores em `0` foi um dia de estudo sem envio registrado; a tela o mostra só
 como dia ativo.
 
+### 3.22 Modelos de administração
+
+Schemas em `src/types/admin.ts`.
+
+**`AdminUser`** e **`AdminSaved`** — `{ id }`: o administrador da sessão e, nas escritas, o id da
+linha criada, atualizada ou excluída.
+
+**`AdminSubject`** — a árvore de conteúdo.
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id`, `name`, `shortLabel` | string | Não vazios. |
+| `topics[]` | objeto | `id`, `number` (`> 0`), `name`, `description`, em ordem de `number`. |
+| `topics[].subtopics[]` | objeto | `id`, `name`, `summary`, `keyPoints` (`string[]`) e `materials` (`{ id, title, fileUrl }[]`). |
+
+**`AdminQuestionInput`** — a questão como o administrador a escreve. O gabarito vai dentro de cada
+alternativa, lacuna e slot, em vez dos ids que a [`Question`](#312-question) do aluno traz.
+
+| `type` | Campos |
+|---|---|
+| `multiple_choice` | `prompt`, `explanation`, `options` (2 a 12 itens `{ text, isCorrect }`, exatamente uma correta) |
+| `multiple_answer` | `prompt`, `explanation`, `options` (pelo menos uma correta) |
+| `single_choice` | `template`, `explanation`, `blanks` (1 a 20 itens `{ key, options }`, uma correta por lacuna) |
+| `drag_and_drop` | `template`, `explanation`, `terms` (2 a 20 textos únicos), `slots` (1 a 20 itens `{ key, correctTerm }`, com `correctTerm` presente em `terms`) |
+| `essay` | `prompt`, `maxLength` (1 a 20000), `referenceAnswer` |
+| `essay_blanks` | `prompt`, `template`, `blanks` (1 a 20 itens `{ key, referenceAnswer }`) |
+
+Enunciados, explicações e respostas de referência têm até 5000 caracteres. Uma `key` tem de 1 a
+32 letras, dígitos ou `_`, e as marcações `{{key}}` do `template` precisam corresponder uma a uma
+às chaves declaradas.
+
+**`AdminQuestion`** — `AdminQuestionInput` mais `id`, `topicId`, `subjectId` e `answered`
+(`true` quando algum aluno já respondeu a questão).
+
+**`AdminQuestionSummary`**
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id`, `type` | string, enum | Tipo da questão. |
+| `statement` | string | O enunciado, ou o texto com lacunas quando não há enunciado. |
+| `topicId`, `topicNumber`, `topicName` | string, integer, string | Assunto da questão. |
+| `subjectId`, `subjectName` | string | Disciplina do assunto. |
+| `quizCount` | integer | `>= 0`. Em quantos simulados e listas a questão está. |
+| `answered` | boolean | Se algum aluno já a respondeu. |
+
+**`AdminQuizSummary`** e **`AdminQuizDetail`**
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id`, `title` | string | Não vazios. |
+| `kind` | enum | `"exam"` (simulado) ou `"exercise"` (lista de exercícios). |
+| `subjectId`, `subjectName` | string | Disciplina. |
+| `topicId`, `topicName` | string | Só em `"exercise"`. |
+| `durationMinutes` | integer | Só em `"exam"`. |
+| `difficulty` | enum | `"easy"`, `"medium"` ou `"hard"`. |
+| `questionCount` | integer | `>= 0`: diferente da lista do aluno, inclui quem ainda não tem questão. |
+| `attemptsCount` | integer | `>= 0`. Tentativas de todos os alunos. |
+| `questions` | `AdminQuestionSummary[]` | Só no `AdminQuizDetail`, na ordem de exibição. |
+
 ---
 
 ## 4. Erros
@@ -1040,7 +1253,9 @@ O cliente expõe toda falha como um `ApiError` com `status`, `code` e `message`.
 | `INVALID_CREDENTIALS` | `401` | Servidor | Falha no login: código de acesso desconhecido ou senha errada. |
 | `CAPTCHA_FAILED` | `400` | Servidor | Falha no login: o Supabase Auth recusou o token do CAPTCHA (ausente, expirado ou já usado). |
 | `UNAUTHORIZED` | `401` | Servidor | Endpoint autenticado chamado sem um token válido. |
+| `FORBIDDEN` | `403` | Servidor | Endpoint de administração chamado por uma conta que não é de administrador. |
 | `NOT_FOUND` | `404` | Servidor | A rota ou o recurso não existe. |
+| `CONFLICT` | `409` | Servidor | Só na administração: valor repetido, ou item ainda em uso por questões, simulados ou respostas de alunos. |
 | `NETWORK_ERROR` | `0` | Cliente | Nenhuma resposta foi recebida (offline, falha de DNS, CORS, servidor fora do ar). |
 | `INVALID_RESPONSE` | Status da resposta | Cliente | Um corpo `2xx` não correspondeu ao schema esperado. |
 | `UNKNOWN_ERROR` | Status da resposta | Cliente | Uma resposta não-`2xx` cujo corpo não é um corpo de erro válido, ou cujo `code` não está nesta tabela. |
@@ -1056,6 +1271,8 @@ para serem tratados de forma distinta.
   o aluno, e redireciona para `/login`.
 - **Fim de sessão (logout ou `401`):** o cache de dados do servidor (TanStack Query) é
   descartado, para que dados de um aluno não apareçam para o próximo.
+- **`401` ou `403` em um endpoint de administração:** não toca na sessão do aluno; a área
+  `/admin` confere a sessão de novo e volta para `/admin/login`.
 - **Requisições canceladas** rejeitam com um `AbortError` padrão, não um `ApiError`, e
   não são exibidas como erro.
 - **Corpos vazios** só são válidos para endpoints documentados como sem corpo de resposta (`204`).
@@ -1071,6 +1288,8 @@ Service Worker (`public/mockServiceWorker.js`) antes de o app renderizar, e as r
 worker intercepta essas chamadas, que aparecem na aba Rede do navegador como requisições reais.
 Particularidades do mock:
 
+- **Administração:** não existe no mock. `/admin` e `/admin/login` mostram um aviso de
+  indisponível.
 - **URL base:** `/api`, na mesma origem do app — por exemplo, `POST /auth/login` vira
   `POST /api/auth/login`. O prefixo evita confusão com rotas de tela de mesmo nome, como
   `/ranking`.
@@ -1135,7 +1354,9 @@ Particularidades do mock:
    montando o JSON em TypeScript; registre-a em `supabase/config.toml` com `verify_jwt = false` e
    chame-a no adaptador em `src/services/api/supabase/` com `callFunction`. Se precisar de tabela
    ou view nova, crie uma migration (`npx supabase migration new <nome>`), sem JSON no SQL. Siga as
-   regras de acesso de [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md).
+   regras de acesso de [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md). Um endpoint de
+   administração usa `serveAdminEndpoint` e os helpers de `_shared/admin.ts`, grava o log de
+   auditoria na mesma transação da escrita e não tem rota no mock (passos 1 e 4).
 6. Atualize este documento.
 
 Prefira mudanças aditivas (novos campos opcionais, novos endpoints). Trate qualquer coisa
