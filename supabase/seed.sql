@@ -6,6 +6,10 @@
 -- <code>@alunos.student-app.invalid: demo0001 and demo0002. No name is stored;
 -- the student types one in the app and it stays in the browser.
 --
+-- It also creates the admin account admin001 (password admin-local-123456),
+-- stored as admin001@admin.student-app.invalid and listed in admins: it signs in
+-- at /admin/login and is not a student.
+--
 -- Covers one full round trip: a subject with two assuntos, their subassuntos and
 -- one material, one question of each of the six types, a quiz with all of them,
 -- an exercise list per assunto with its questions, and one submitted attempt whose answers exercise every review status (correct,
@@ -28,7 +32,7 @@ SELECT
   'authenticated',
   'authenticated',
   account.email,
-  extensions.crypt('123456', extensions.gen_salt('bf')),
+  extensions.crypt(account.password, extensions.gen_salt('bf')),
   now(),
   '{"provider": "email", "providers": ["email"]}',
   '{}',
@@ -36,9 +40,10 @@ SELECT
   now(),
   '', '', '', ''
 FROM (VALUES
-  ('demo0001@alunos.student-app.invalid'),
-  ('demo0002@alunos.student-app.invalid')
-) AS account(email);
+  ('demo0001@alunos.student-app.invalid', '123456'),
+  ('demo0002@alunos.student-app.invalid', '123456'),
+  ('admin001@admin.student-app.invalid', 'admin-local-123456')
+) AS account(email, password);
 
 INSERT INTO auth.identities (
   id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
@@ -52,13 +57,15 @@ SELECT
   now(),
   now(),
   now()
-FROM auth.users u
-WHERE u.email IN ('demo0001@alunos.student-app.invalid', 'demo0002@alunos.student-app.invalid');
+FROM auth.users u;
 
 INSERT INTO students (course, auth_user_id)
 SELECT 'Análise e Desenvolvimento de Sistemas', u.id
 FROM auth.users u
 WHERE u.email IN ('demo0001@alunos.student-app.invalid', 'demo0002@alunos.student-app.invalid');
+
+INSERT INTO admins (auth_user_id)
+SELECT u.id FROM auth.users u WHERE u.email = 'admin001@admin.student-app.invalid';
 
 INSERT INTO subjects (name, short_label) VALUES ('Banco de Dados', 'BD');
 
