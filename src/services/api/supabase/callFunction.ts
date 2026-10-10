@@ -9,13 +9,15 @@ type FunctionOptions = {
   query?: Record<string, string>;
   body?: Record<string, unknown>;
   signal?: AbortSignal;
+  // False for the admin endpoints: a 401 or 403 there must not end the student's session.
+  studentSession?: boolean;
 };
 
 // Calls one of the edge functions in supabase/functions/, which answer with the contract's JSON.
 export async function callFunction<T>(
   functionName: string,
   schema: ZodType<T>,
-  { method = "GET", query, body, signal }: FunctionOptions = {},
+  { method = "GET", query, body, signal, studentSession = true }: FunctionOptions = {},
 ): Promise<T> {
   const path = query ? `${functionName}?${new URLSearchParams(query)}` : functionName;
   const { data, error } = await getSupabase().functions.invoke(path, { method, body, signal });
@@ -26,9 +28,9 @@ export async function callFunction<T>(
   // reached the function (offline, CORS).
   if (error instanceof FunctionsHttpError || error instanceof FunctionsRelayError) {
     const response: Response = error.context;
-    throw toApiError(response.status, await response.json().catch(() => null), true);
+    throw toApiError(response.status, await response.json().catch(() => null), studentSession);
   }
-  if (error) throw toApiError(0, null, true);
+  if (error) throw toApiError(0, null, studentSession);
 
   const result = schema.safeParse(data);
   if (!result.success) {
