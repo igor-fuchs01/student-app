@@ -16,8 +16,8 @@ import {
   StyledTabPanel,
   StyledExerciseGrid,
   StyledExerciseCard,
-  StyledExerciseTop,
   StyledExerciseTitle,
+  StyledExerciseInfo,
   StyledExerciseMeta,
   StyledSummary,
   StyledMuted,
@@ -101,17 +101,17 @@ export function LessonPanel({ lesson, content, contentStatus, onStart, onBack }:
         <StyledExerciseGrid>
           {lesson.exercises.map((exercise) => (
             <StyledExerciseCard key={exercise.id}>
-              <StyledExerciseTop>
-                <StyledExerciseTitle>{exercise.title}</StyledExerciseTitle>
+              <StyledExerciseTitle>{exercise.title}</StyledExerciseTitle>
+              <StyledExerciseInfo>
+                <StyledExerciseMeta>
+                  {formatCount(exercise.questionCount, "questão", "questões")}
+                </StyledExerciseMeta>
                 {isExerciseDone(exercise) ? (
                   <Badge tone="accent">✓ Feita {exercise.attemptsCount}×</Badge>
                 ) : (
                   <Badge>Não feita</Badge>
                 )}
-              </StyledExerciseTop>
-              <StyledExerciseMeta>
-                {formatCount(exercise.questionCount, "questão", "questões")}
-              </StyledExerciseMeta>
+              </StyledExerciseInfo>
               <Button
                 variant={exercise === nextExercise ? "primary" : "secondary"}
                 onClick={() => onStart(exercise)}

@@ -126,19 +126,18 @@ export const StyledExerciseCard = styled.li`
   }
 `;
 
-export const StyledExerciseTop = styled.div`
+export const StyledExerciseTitle = styled.p`
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+`;
+
+export const StyledExerciseInfo = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-`;
-
-export const StyledExerciseTitle = styled.p`
-  min-width: 0;
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
 `;
 
 export const StyledExerciseMeta = styled.p`
