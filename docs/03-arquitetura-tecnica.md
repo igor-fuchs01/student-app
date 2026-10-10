@@ -13,13 +13,14 @@ Organização por *feature*, não por tipo de arquivo. Estrutura atual:
 src/
 ├── app/
 │   ├── providers/     # QueryProvider (TanStack Query)
-│   ├── routes/        # ProtectedRoute, PublicOnlyRoute, RouteErrorPage
+│   ├── routes/        # ProtectedRoute, PublicOnlyRoute, AdminRoute, RouteErrorPage
 │   └── router.tsx     # definição das rotas (data router)
 ├── assets/            # imagens importadas pelos componentes (ex.: logo-mark.png)
 ├── components/
 │   ├── layout/        # AppHeader, Brand (logo), PageLayout (header + conteúdo da página)
 │   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, FilterBar, Modal, ...)
 ├── features/
+│   ├── admin/         # área /admin: login próprio, conteúdo, questões e simulados
 │   ├── auth/          # login, store de sessão (Zustand), useLogout
 │   ├── dashboard/
 │   ├── exercises/     # lista de exercícios por assunto (a tentativa reaproveita quizzes/)
@@ -60,6 +61,14 @@ O risco natural deste produto é que **toda a lógica acabe concentrada na featu
 - `ProtectedRoute` e `PublicOnlyRoute` são rotas de layout: decidem, pelo `status` da store de
   autenticação, se renderizam as rotas filhas (`<Outlet />`) ou redirecionam.
 - Cada página é carregada sob demanda (`lazy`), gerando um chunk por rota.
+- A área de administração fica em `/admin/...`, fora de `ProtectedRoute`: `/admin/login` é a
+  tela de entrada e `AdminRoute` é a rota de layout das demais. Ela não lê a store de
+  autenticação do aluno nem guarda o papel no navegador: pergunta ao servidor
+  (`adminApi.getCurrentAdmin`, por TanStack Query) se a sessão é de um administrador e
+  redireciona para `/admin/login` quando não é. O guard é só conveniência de tela; quem protege
+  os dados é a edge function, que confere o papel a cada chamada
+  ([`04-contratos-de-api.md`](04-contratos-de-api.md#administração)). Não há link para `/admin`
+  na área do aluno, e com `VITE_USE_MOCKS=true` a área aparece como indisponível.
 - Erros de renderização ou de carregamento de uma rota exibem `RouteErrorPage`.
 - `/exercicios/:quizId` (com `revisao`) e `/exercicios/:quizId/resultado` usam as mesmas telas de
   `/simulados/...`. A rota leva `handle: { attemptKind: "exercise" }`, e `useAttemptKind()`
@@ -123,6 +132,8 @@ Se o dado veio do servidor, ele vive no cache do TanStack Query. Copiá-lo para 
   (`supabase/functions/`, Deno + TypeScript + zod), uma por endpoint. Elas leem o banco por uma
   conexão direta e montam o JSON do contrato; o que é comum a todas (CORS, autenticação, conexão e
   consultas reaproveitadas) fica em `_shared/`;
+- `services/api/adminApi.ts` — os endpoints de administração. Só tem a implementação do
+  Supabase, sem mock, e não encerra a sessão do aluno quando recebe `401` ou `403`;
 - `services/api/mocks/` — servidor mock feito com [MSW](https://mswjs.io/) (Mock Service Worker):
   `handlers.ts` responde às rotas da API e `mockServer.ts` registra o Service Worker
   (`public/mockServiceWorker.js`) quando `VITE_USE_MOCKS=true`. O `httpClient` não sabe que existe
