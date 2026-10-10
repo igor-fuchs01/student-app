@@ -1,0 +1,61 @@
+import styled from "styled-components";
+import { Button } from "@components/ui/Button";
+import { Brand } from "@components/layout/Brand";
+
+export const StyledPage = styled.div`
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: ${({ theme }) => theme.colors.bg};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding: 16px;
+  }
+`;
+
+export const StyledFormCard = styled.form`
+  width: 100%;
+  max-width: 380px;
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.radii.lg};
+  padding: 36px;
+  box-shadow: ${({ theme }) => theme.shadows.md};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding: 28px 20px;
+  }
+`;
+
+export const StyledBrand = styled(Brand)`
+  margin-bottom: 28px;
+`;
+
+export const StyledTitle = styled.h1`
+  font-weight: 700;
+  font-size: 20px;
+  margin: 0 0 22px;
+`;
+
+export const StyledSubmitButton = styled(Button)`
+  width: 100%;
+  display: block;
+  margin-top: 20px;
+`;
+
+export const StyledFormError = styled.p`
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: ${({ theme }) => theme.colors.danger600};
+  background: ${({ theme }) => theme.colors.danger100};
+  border-radius: ${({ theme }) => theme.radii.md};
+  padding: 10px 12px;
+`;
+
+export const StyledHint = styled.p`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 11.5px;
+  margin: 22px 0 0;
+  line-height: 1.5;
+`;
