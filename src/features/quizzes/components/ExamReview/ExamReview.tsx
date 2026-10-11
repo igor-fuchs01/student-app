@@ -17,10 +17,11 @@ type ExamReviewProps = {
   quiz: QuizDetail;
   answers: QuizAnswer[];
   result: QuizResult;
+  initialIndex?: number;
 };
 
-export function ExamReview({ quiz, answers, result }: ExamReviewProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+export function ExamReview({ quiz, answers, result, initialIndex = 0 }: ExamReviewProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const statuses = getQuestionReviewStatuses(quiz.questions, answers, result);
 
   const question = quiz.questions[currentIndex];

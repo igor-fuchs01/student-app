@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
   StyledAnswerComparison,
   StyledAnswerLabel,
@@ -8,14 +7,9 @@ import {
 type AnswerComparisonProps = {
   studentAnswer: string;
   referenceAnswer: string;
-  children?: ReactNode;
 };
 
-export function AnswerComparison({
-  studentAnswer,
-  referenceAnswer,
-  children,
-}: AnswerComparisonProps) {
+export function AnswerComparison({ studentAnswer, referenceAnswer }: AnswerComparisonProps) {
   return (
     <StyledAnswerComparison>
       <div>
@@ -26,7 +20,6 @@ export function AnswerComparison({
         <StyledAnswerLabel>Resposta esperada</StyledAnswerLabel>
         <StyledAnswerText>{referenceAnswer}</StyledAnswerText>
       </div>
-      {children}
     </StyledAnswerComparison>
   );
 }

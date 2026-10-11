@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { Card } from "@components/ui/Card";
 
 export const StyledHeaderRow = styled.div`
   display: flex;
@@ -82,68 +81,6 @@ export const StyledPerformanceHeader = styled.div`
   span:last-child {
     font-weight: 700;
   }
-`;
-
-export const StyledReviewList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 440px;
-  overflow-y: auto;
-  padding: 4px 8px 4px 4px;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    max-height: none;
-    overflow-y: visible;
-    padding: 0;
-  }
-`;
-
-export const StyledReviewCard = styled(Card)`
-  padding: 16px;
-`;
-
-export const StyledReviewSubject = styled.span<{ $tone: "danger" | "accent2" }>`
-  color: ${({ theme, $tone }) =>
-    $tone === "danger" ? theme.colors.danger600 : theme.colors.accent2600};
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-`;
-
-export const StyledReviewExcerpt = styled.p`
-  font-size: 13px;
-  margin: 6px 0 10px;
-  color: ${({ theme }) => theme.colors.muted};
-`;
-
-export const StyledReviewToggle = styled.button`
-  background: transparent;
-  border: none;
-  color: ${({ theme }) => theme.colors.accent600};
-  font: inherit;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 0;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    min-height: 44px;
-  }
-`;
-
-export const StyledReviewExplanation = styled.p`
-  font-size: 13px;
-  margin: 8px 0 0;
-  padding-top: 8px;
-  border-top: 1px solid ${({ theme }) => theme.colors.divider};
-`;
-
-export const StyledMutedLabel = styled.span`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 12.5px;
-  font-weight: 600;
 `;
 
 export const StyledPageActions = styled.div`

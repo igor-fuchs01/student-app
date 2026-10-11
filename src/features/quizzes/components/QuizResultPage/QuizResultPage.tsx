@@ -6,10 +6,13 @@ import { ProgressBar } from "@components/ui/ProgressBar";
 import { StatusMessage } from "@components/ui/StatusMessage";
 import { PageLayout } from "@components/layout/PageLayout";
 import { useAuthStore } from "@features/auth/store/useAuthStore";
-import { AnswerComparison } from "@features/quizzes/components/AnswerComparison";
 import { ExamReview } from "@features/quizzes/components/ExamReview";
+import { QuestionGrid } from "@features/quizzes/components/QuestionGrid";
 import { useAttemptKind } from "@features/quizzes/hooks/useAttemptKind";
-import { toggleSetItem } from "@features/quizzes/toggleSetItem";
+import {
+  QUESTION_STATUS_LEGEND,
+  getQuestionReviewStatuses,
+} from "@features/quizzes/questionReviewStatus";
 import { quizAttemptStorage } from "@services/storage/quizAttemptStorage";
 import { formatCount } from "@utils/formatCount";
 import {
@@ -25,13 +28,6 @@ import {
   StyledColumnTitle,
   StyledPerformanceList,
   StyledPerformanceHeader,
-  StyledReviewList,
-  StyledReviewCard,
-  StyledReviewSubject,
-  StyledReviewExcerpt,
-  StyledReviewToggle,
-  StyledReviewExplanation,
-  StyledMutedLabel,
 } from "./QuizResultPage.styles";
 
 type ResultView = "performance" | "review";
@@ -49,8 +45,8 @@ export function QuizResultPage() {
   const userId = useAuthStore((state) => state.user?.id);
   const attemptKind = useAttemptKind();
   const [attempt] = useState(() => (userId ? quizAttemptStorage.load(userId, quizId) : null));
-  const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [view, setView] = useState<ResultView>("performance");
+  const [reviewStartIndex, setReviewStartIndex] = useState(0);
 
   if (!attempt) {
     return (
@@ -69,8 +65,11 @@ export function QuizResultPage() {
   const { quiz, answers, result } = attempt;
   const gradedTotal = result.correctCount + result.incorrectCount + result.unansweredCount;
 
-  function toggleReveal(questionId: string) {
-    setRevealed((current) => toggleSetItem(current, questionId));
+  const statuses = getQuestionReviewStatuses(quiz.questions, answers, result);
+
+  function openReview(index: number) {
+    setReviewStartIndex(index);
+    setView("review");
   }
 
   return (
@@ -91,7 +90,7 @@ export function QuizResultPage() {
       </StyledHeaderRow>
 
       {view === "review" ? (
-        <ExamReview quiz={quiz} answers={answers} result={result} />
+        <ExamReview quiz={quiz} answers={answers} result={result} initialIndex={reviewStartIndex} />
       ) : (
         <>
           <StyledBadgeRow>
@@ -126,47 +125,15 @@ export function QuizResultPage() {
 
             <div>
               <StyledColumnTitle>Questões para revisar</StyledColumnTitle>
-              {result.reviewItems.length === 0 ? (
-                <StyledMutedLabel>Nenhuma questão pendente de revisão. 🎉</StyledMutedLabel>
-              ) : (
-                <StyledReviewList>
-                  {result.reviewItems.map((item) => (
-                    <StyledReviewCard key={item.questionId} tone="surface">
-                      <StyledReviewSubject
-                        $tone={item.status === "self_review" ? "accent2" : "danger"}
-                      >
-                        {item.subjectName}
-                      </StyledReviewSubject>
-                      <StyledReviewExcerpt>"{item.promptExcerpt}"</StyledReviewExcerpt>
-                      {item.status === "self_review" ? (
-                        <AnswerComparison
-                          studentAnswer={item.studentAnswer ?? ""}
-                          referenceAnswer={item.referenceAnswer ?? ""}
-                        >
-                          <StyledMutedLabel>
-                            Compare as duas respostas e avalie se a sua está de acordo.
-                          </StyledMutedLabel>
-                        </AnswerComparison>
-                      ) : (
-                        <>
-                          <StyledReviewToggle
-                            type="button"
-                            aria-expanded={revealed.has(item.questionId)}
-                            onClick={() => toggleReveal(item.questionId)}
-                          >
-                            {revealed.has(item.questionId)
-                              ? "Ocultar gabarito comentado"
-                              : "Ver gabarito comentado →"}
-                          </StyledReviewToggle>
-                          {revealed.has(item.questionId) && item.explanation && (
-                            <StyledReviewExplanation>{item.explanation}</StyledReviewExplanation>
-                          )}
-                        </>
-                      )}
-                    </StyledReviewCard>
-                  ))}
-                </StyledReviewList>
-              )}
+              <QuestionGrid
+                variant="wide"
+                tiles={quiz.questions.map((question, index) => ({
+                  id: question.id,
+                  tone: statuses[index],
+                }))}
+                legend={QUESTION_STATUS_LEGEND}
+                onSelect={openReview}
+              />
             </div>
           </StyledColumns>
         </>
@@ -178,7 +145,7 @@ export function QuizResultPage() {
         </Button>
         <Button
           variant="primary"
-          onClick={() => setView(view === "performance" ? "review" : "performance")}
+          onClick={() => (view === "performance" ? openReview(0) : setView("performance"))}
         >
           {view === "performance" ? attemptKind.reviewLabel : "Mostrar desempenho"}
         </Button>
