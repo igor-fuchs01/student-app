@@ -33,21 +33,27 @@ function OptionsReview({
   options,
   correctIds,
   selectedIds,
+  flagMissed = false,
 }: {
   options: QuestionOption[];
   correctIds: Set<string>;
   selectedIds: Set<string>;
+  flagMissed?: boolean;
 }) {
   return (
     <StyledReviewOptionList>
       {options.map((option) => {
         const isCorrect = correctIds.has(option.id);
         const isSelected = selectedIds.has(option.id);
-        const tone: ReviewTone = isCorrect ? "correct" : isSelected ? "wrong" : "neutral";
+        const isMissed = flagMissed && isCorrect && !isSelected;
+        const tone: ReviewTone =
+          isCorrect && !isMissed ? "correct" : isSelected || isMissed ? "wrong" : "neutral";
         const tag = isCorrect
           ? isSelected
             ? "✓ Sua resposta"
-            : "✓ Resposta correta"
+            : isMissed
+              ? "✗ Não selecionada"
+              : "✓ Resposta correta"
           : isSelected
             ? "✗ Sua resposta"
             : null;
@@ -109,6 +115,7 @@ function QuestionBody({
             options={question.options}
             correctIds={new Set(question.correctOptionIds)}
             selectedIds={new Set(answer?.optionIds ?? [])}
+            flagMissed
           />
           <StyledReviewExplanation>{question.explanation}</StyledReviewExplanation>
         </>
