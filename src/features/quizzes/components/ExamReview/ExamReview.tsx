@@ -1,14 +1,10 @@
 import { useState } from "react";
 import type { QuizAnswer, QuizDetail, QuizResult } from "@models/quizzes";
 import { AnswerReview } from "@features/quizzes/components/AnswerReview";
+import { QuestionGrid } from "@features/quizzes/components/QuestionGrid";
 import {
-  QuestionGrid,
-  type QuestionGridLegendItem,
-} from "@features/quizzes/components/QuestionGrid";
-import {
-  QUESTION_STATUS_LABEL,
-  getQuestionReviewStatus,
-  type QuestionReviewStatus,
+  QUESTION_STATUS_LEGEND,
+  getQuestionReviewStatuses,
 } from "@features/quizzes/questionReviewStatus";
 import {
   StyledExamLayout,
@@ -23,19 +19,9 @@ type ExamReviewProps = {
   result: QuizResult;
 };
 
-const LEGEND_ORDER: QuestionReviewStatus[] = ["correct", "incorrect", "self_review", "unanswered"];
-
-const LEGEND: QuestionGridLegendItem[] = LEGEND_ORDER.map((status) => ({
-  label: QUESTION_STATUS_LABEL[status],
-  tone: status,
-}));
-
 export function ExamReview({ quiz, answers, result }: ExamReviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer]));
-  const statuses = quiz.questions.map((question) =>
-    getQuestionReviewStatus(question, answerByQuestionId.get(question.id), result),
-  );
+  const statuses = getQuestionReviewStatuses(quiz.questions, answers, result);
 
   const question = quiz.questions[currentIndex];
 
@@ -45,7 +31,7 @@ export function ExamReview({ quiz, answers, result }: ExamReviewProps) {
         <AnswerReview
           index={currentIndex}
           question={question}
-          answer={answerByQuestionId.get(question.id)}
+          answer={answers.find((answer) => answer.questionId === question.id)}
           status={statuses[currentIndex]}
         />
       </StyledExamMain>
@@ -58,7 +44,7 @@ export function ExamReview({ quiz, answers, result }: ExamReviewProps) {
             tone: statuses[index],
             current: index === currentIndex,
           }))}
-          legend={LEGEND}
+          legend={QUESTION_STATUS_LEGEND}
           onSelect={setCurrentIndex}
         />
       </StyledExamSidebar>
