@@ -91,7 +91,7 @@ export function ExercisesPage() {
       {subject && lesson && (!requestedLessonId || subjectOfLesson) && (
         <StyledLayout $showLesson={Boolean(chosenLesson)}>
           <LessonNav
-            key={subject.subjectId}
+            key={`subject-${subject.subjectId}`}
             subjects={subjects}
             subject={subject}
             selectedLessonId={lesson.topicId}
@@ -99,7 +99,7 @@ export function ExercisesPage() {
             onLessonSelect={selectLesson}
           />
           <LessonPanel
-            key={lesson.topicId}
+            key={`lesson-${lesson.topicId}`}
             lesson={lesson}
             content={lessonContent}
             contentStatus={subjectQuery.status}
