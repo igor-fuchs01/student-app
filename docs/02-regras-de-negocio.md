@@ -284,7 +284,7 @@ Ranking de consistência
 - qualquer desempenho acadêmico privado.
 
 O ranking também não mostra o nome dos outros alunos (LGPD): o banco não guarda nome, então cada
-colega aparece como "Estudante {posição}" e só a linha do próprio aluno usa o nome que ele digitou
+colega aparece como "Estudante {id}" e só a linha do próprio aluno usa o nome que ele digitou
 no login, guardado no navegador.
 
 ### Calendário de estudos

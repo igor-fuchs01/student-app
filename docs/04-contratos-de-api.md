@@ -693,9 +693,9 @@ Retorna o perfil de consistência do aluno e o ranking de consistência da turma
 | `200` | [`RankingData`](#315-rankingdata) | Sempre, para um aluno autenticado. |
 | `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
 
-**Comportamento no cliente:** as três primeiras posições recebem medalha e a linha com
-`isCurrentUser: true` é destacada. O ranking nunca exibe nota ou desempenho acadêmico
-(ver [`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11).
+**Comportamento no cliente:** as três primeiras posições recebem medalha e a linha cujo
+`studentId` é o `id` do aluno autenticado é destacada. O ranking nunca exibe nota ou desempenho
+acadêmico (ver [`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 11).
 
 ---
 
@@ -937,12 +937,12 @@ como "Não respondida" caso contrário.
 | Campo | Tipo | Regras |
 |---|---|---|
 | `position` | integer | `> 0`. |
-| `studentId` | string | Não vazio. Único na lista. |
+| `studentId` | string | Não vazio. Único na lista. Igual ao `id` de [`StudentUser`](#31-studentuser) na linha do aluno autenticado. |
 | `streakDays` | integer | `>= 0`. |
-| `isCurrentUser` | boolean | `true` apenas na linha do aluno autenticado. |
 
-Não há nome de aluno na lista. A tela mostra o nome local na linha do aluno autenticado e
-"Estudante {position}" nas demais; empatados em sequência dividem a mesma posição.
+Não há nome de aluno na lista. A tela mostra o nome local na linha do aluno autenticado (a que
+tem `studentId` igual ao `id` dele) e "Estudante {studentId}" nas demais; empatados em sequência
+dividem a mesma posição, mas cada um mantém o próprio rótulo.
 
 ### 3.16 `SubjectDetail`
 
