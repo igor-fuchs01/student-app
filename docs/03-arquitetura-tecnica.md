@@ -205,7 +205,9 @@ Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (poi
   questão sem rolar a página.
 - **Ações em pilha.** Pares de botões de rodapé e de modais ficam empilhados, em largura total,
   com a ação principal em cima.
-- Listas com rolagem interna (como "Questões para revisar") passam a rolar com a página.
+- **Questões para revisar (resultado).** A grade com todas as questões da prova, colorida pelo
+  resultado de cada uma, passa de 10 para 5 colunas; tocar em uma questão abre a revisão da prova
+  nela.
 - **Textos longos sem espaço** (caminhos, linhas como `username:x:UID:GID:...`) quebram em
   qualquer ponto em vez de alargar a página: o `GlobalStyle` aplica `overflow-wrap: anywhere` ao
   `body`, herdado por toda a aplicação. Isso vale para todas as larguras, não só no celular.

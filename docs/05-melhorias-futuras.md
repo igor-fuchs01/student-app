@@ -187,7 +187,7 @@ precisa estudar?"*
      listar os assuntos com barra de progresso e a contagem ("1 de 3 acertos").
    - Destacar os assuntos com menor desempenho em um bloco "O que revisar primeiro", com link
      para os materiais do assunto quando a feature de materiais existir.
-   - Mostrar o assunto nos cards de "Questões para revisar" e na revisão da prova.
+   - Mostrar o assunto na revisão da prova.
 6. **Dashboard e recomendações.** Com várias questões por assunto, as recomendações
    (`studyFocus` em `GET /dashboard`, hoje fora da tela) passam a refletir o desempenho real de
    cada assunto, seguindo as recomendações da seção 9 de [`02-regras-de-negocio.md`](02-regras-de-negocio.md).
