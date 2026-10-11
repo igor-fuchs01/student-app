@@ -44,7 +44,6 @@ serveEndpoint("GET", async ({ studentId }) => {
       position: entry.position,
       studentId: String(entry.student_id),
       streakDays: entry.streak_days,
-      isCurrentUser: entry.student_id === studentId,
     })),
   };
 });

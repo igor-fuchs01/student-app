@@ -4,10 +4,10 @@ import type { RankingData } from "@models/ranking";
 const CURRENT_USER_STREAK_DAYS = 7;
 
 const OTHER_STUDENTS = [
-  { studentId: "u_demo0002", streakDays: 21 },
-  { studentId: "u_demo0003", streakDays: 18 },
-  { studentId: "u_demo0004", streakDays: 15 },
-  { studentId: "u_demo0005", streakDays: 6 },
+  { studentId: "2", streakDays: 21 },
+  { studentId: "3", streakDays: 18 },
+  { studentId: "4", streakDays: 15 },
+  { studentId: "5", streakDays: 6 },
 ];
 
 export function buildMockRanking(currentUser: StudentUser): RankingData {
@@ -24,10 +24,6 @@ export function buildMockRanking(currentUser: StudentUser): RankingData {
       questionsAnswered: 312,
       quizzesCompleted: 14,
     },
-    entries: students.map((student, index) => ({
-      ...student,
-      position: index + 1,
-      isCurrentUser: student.studentId === currentUser.id,
-    })),
+    entries: students.map((student, index) => ({ ...student, position: index + 1 })),
   };
 }

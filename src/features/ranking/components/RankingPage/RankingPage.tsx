@@ -108,21 +108,24 @@ export function RankingPage() {
           <div>
             <StyledRankingTitle>Ranking de consistência</StyledRankingTitle>
             <StyledRankingList tone="surface">
-              {rankingQuery.data.entries.map((entry) => (
-                <StyledRankingRow key={entry.studentId} $current={entry.isCurrentUser}>
-                  <span>
-                    <StyledPosition>
-                      {MEDALS[entry.position] ? `${MEDALS[entry.position]} ` : ""}
-                      {entry.position}.
-                    </StyledPosition>
-                    {entry.isCurrentUser ? displayName : `Estudante ${entry.position}`}
-                    {entry.isCurrentUser && <StyledYouBadge>Você</StyledYouBadge>}
-                  </span>
-                  <StyledStreakDays $current={entry.isCurrentUser}>
-                    {formatCount(entry.streakDays, "dia", "dias")}
-                  </StyledStreakDays>
-                </StyledRankingRow>
-              ))}
+              {rankingQuery.data.entries.map((entry) => {
+                const isCurrentUser = entry.studentId === user.id;
+                return (
+                  <StyledRankingRow key={entry.studentId} $current={isCurrentUser}>
+                    <span>
+                      <StyledPosition>
+                        {MEDALS[entry.position] ? `${MEDALS[entry.position]} ` : ""}
+                        {entry.position}.
+                      </StyledPosition>
+                      {isCurrentUser ? displayName : `Estudante ${entry.studentId}`}
+                      {isCurrentUser && <StyledYouBadge>Você</StyledYouBadge>}
+                    </span>
+                    <StyledStreakDays $current={isCurrentUser}>
+                      {formatCount(entry.streakDays, "dia", "dias")}
+                    </StyledStreakDays>
+                  </StyledRankingRow>
+                );
+              })}
             </StyledRankingList>
             <StyledPrivacyNote>
               O ranking considera apenas consistência de estudo. Notas e desempenho acadêmico são

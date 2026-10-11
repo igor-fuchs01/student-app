@@ -4,7 +4,6 @@ const rankingEntrySchema = z.object({
   position: z.number().int().positive(),
   studentId: z.string().min(1),
   streakDays: z.number().int().nonnegative(),
-  isCurrentUser: z.boolean(),
 });
 
 export type RankingEntry = z.infer<typeof rankingEntrySchema>;
