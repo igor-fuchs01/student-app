@@ -1,0 +1,1176 @@
+-- Student App — imports one quiz (simulado or, with "kind": "exercise", an
+-- exercise list of one topic) described in JSON straight into the
+-- database. It is an operator tool, not part of the API: the app never calls it
+-- and it leaves nothing behind that the Data API could reach.
+--
+-- How to use it: replace the JSON between the $json$ markers below with the
+-- quiz to import, then run this whole file — in the Supabase Studio SQL editor
+-- (http://127.0.0.1:54323 locally), or with psql:
+--
+--   psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+--     -f supabase/scripts/import-quiz.sql
+--
+-- The JSON format is documented in docs/07-importacao-de-simulados.md.
+--
+-- Every quiz belongs to one "subject"; there is no integrated simulado, so
+-- "subjectScope" is no longer part of the format (an old payload with
+-- "subjectScope": "single" is still accepted, "all" is refused). A question may
+-- omit "subject", and any it gives must be the quiz's own.
+--
+-- An exercise list uses the same format with "kind": "exercise" and its
+-- "topic", and no "durationMinutes". Its questions may omit "topic", and any
+-- they give must be the list's own:
+--
+--   { "kind": "exercise", "title": "Normalização — Exercícios 2",
+--     "subject": "Banco de Dados", "topic": "Normalização",
+--     "difficulty": "easy", "questions": [ ... ] }
+--
+-- How it works:
+--   * everything runs inside one transaction: the whole payload is validated
+--     first and, when anything is wrong, every problem is reported at once and
+--     no row is written;
+--   * subjects and topics are never created here. A question naming one that
+--     does not exist is an error, so a typo cannot silently create a duplicate
+--     subject beside the real one;
+--   * questions are always new rows; the bank is never searched for an
+--     equivalent question to reuse;
+--   * the validation helpers are created in pg_temp, so they vanish with the
+--     session instead of becoming permanent surface in the database, and they
+--     are replaced on every run, because the SQL editor reuses its connection;
+--   * messages are in English, like the rest of the code: this is developer
+--     tooling, not something a student ever reads.
+
+BEGIN;
+
+-- =============================================================================
+-- The quiz to import — this is the only part meant to be edited.
+--
+-- $json$ quoting keeps the JSON exactly as it is: no escaping, not even for the
+-- single quotes of words like "d'água".
+-- =============================================================================
+
+CREATE TEMP TABLE quiz_import_payload ON COMMIT DROP AS
+SELECT $json$
+{
+  "title": "Arquitetura Computacional — Simulado Sprint 1",
+  "subject": "Arquitetura Computacional",
+  "durationMinutes": 40,
+  "difficulty": "medium",
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "Em um datacenter, a temperatura sobe e trilhas vizinhas chaveiam a 3 GHz. Por que um processador binário continua lendo os bits corretamente nessas condições?",
+      "explanation": "Com dois níveis, a margem é de 3,3 V ÷ 2 = 1,65 V. Os ruídos somados chegam a décimos de volt, e seria preciso um ruído absurdo para confundir 0 com 1.",
+      "options": [
+        {
+          "text": "Porque o ruído térmico só existe em circuitos que operam na base 10.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque a margem de 1,65 V entre os dois níveis absorve esses ruídos.",
+          "isCorrect": true
+        },
+        {
+          "text": "Porque o clock corrige cada bit que foi alterado pela interferência.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque o firmware refaz a leitura sempre que a tensão oscila um pouco.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque o limiar do transistor não muda com o calor nem com a tensão.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "O byte 01001000 é lido de uma posição de memória. O que determina se ele será tratado como o número 72, o caractere H ou uma instrução?",
+      "explanation": "O bit não sabe o que ele é. Os mesmos oito bits podem ser número, caractere, instrução ou intensidade de pixel: o significado vem de onde a CPU está lendo.",
+      "options": [
+        {
+          "text": "O valor do bit mais significativo, que indica o tipo do conteúdo.",
+          "isCorrect": false
+        },
+        {
+          "text": "O endereço par ou ímpar em que o byte foi gravado na memória.",
+          "isCorrect": false
+        },
+        {
+          "text": "O firmware, que marca cada byte como dado ou instrução no boot.",
+          "isCorrect": false
+        },
+        {
+          "text": "O contexto de leitura: quem está lendo e o que espera encontrar.",
+          "isCorrect": true
+        },
+        {
+          "text": "O barramento usado, pois dado e instrução trafegam separados.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_answer",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "Assinale todas as corretas sobre a ideia de programa armazenado.",
+      "explanation": "No ENIAC, trocar o programa exigia reconectar cabos e girar chaves. Com o programa armazenado, instrução e dado ficam na mesma memória, e trocar de tarefa é escrever números diferentes nela.",
+      "options": [
+        {
+          "text": "Trocar o programa passou a ser escrever outros números na memória.",
+          "isCorrect": true
+        },
+        {
+          "text": "No ENIAC, o programa já ficava na memória, junto com os dados.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ela torna o computador programável, e não uma máquina de função fixa.",
+          "isCorrect": true
+        },
+        {
+          "text": "Ela exige uma memória para as instruções e outra só para os dados.",
+          "isCorrect": false
+        },
+        {
+          "text": "Ela foi abandonada nos celulares, que são máquinas de função fixa.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "Por que o hexadecimal venceu o octal como forma de escrever bytes?",
+      "explanation": "Um byte tem 8 bits: 8 ÷ 4 = 2, então dois dígitos hexadecimais descrevem um byte exato. Em octal, 8 ÷ 3 = 2,67, e sobra bit. Vence a base que divide direitinho a unidade de armazenamento.",
+      "options": [
+        {
+          "text": "Porque 8 bits são dois grupos de 4, e dois dígitos hexa fecham um byte.",
+          "isCorrect": true
+        },
+        {
+          "text": "Porque o octal só representa valores até 7, e um byte chega a 255.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque a máquina opera em base 16, e o hexadecimal dispensa conversão.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque o octal exige divisões sucessivas, e o hexa é só um recorte.",
+          "isCorrect": false
+        },
+        {
+          "text": "Porque cada dígito octal ocupa 4 bits, e três não cabem em um byte.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "single_choice",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "template": "No comando chmod 755, cada dígito octal representa {{b1}} bits de permissão. O 7 (111) dá ao dono as permissões {{b2}}, e o 5 (101) dá ao grupo e aos outros as permissões {{b3}}.",
+      "explanation": "As permissões rwx são 3 bits, ou seja, exatamente um dígito octal: 7 = 111 = rwx para o dono e 5 = 101 = r-x para o grupo e para os outros.",
+      "blanks": [
+        {
+          "key": "b1",
+          "options": [
+            {
+              "text": "4",
+              "isCorrect": false
+            },
+            {
+              "text": "3",
+              "isCorrect": true
+            },
+            {
+              "text": "8",
+              "isCorrect": false
+            }
+          ]
+        },
+        {
+          "key": "b2",
+          "options": [
+            {
+              "text": "r-x",
+              "isCorrect": false
+            },
+            {
+              "text": "rw-",
+              "isCorrect": false
+            },
+            {
+              "text": "rwx",
+              "isCorrect": true
+            }
+          ]
+        },
+        {
+          "key": "b3",
+          "options": [
+            {
+              "text": "r-x",
+              "isCorrect": true
+            },
+            {
+              "text": "rwx",
+              "isCorrect": false
+            },
+            {
+              "text": "-wx",
+              "isCorrect": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "Um computador liga, passa pelo POST, mas exibe a mensagem de que nenhum dispositivo de boot foi encontrado. Em qual etapa do firmware o processo parou?",
+      "explanation": "Depois do POST e da inicialização, o firmware procura o dispositivo de boot na ordem configurada. Só depois de achá-lo é que carrega o bootloader para a RAM e entrega o controle.",
+      "options": [
+        {
+          "text": "No teste e na enumeração do hardware presente.",
+          "isCorrect": false
+        },
+        {
+          "text": "Na inicialização de memória e de controladores.",
+          "isCorrect": false
+        },
+        {
+          "text": "Na carga do bootloader do disco para a RAM.",
+          "isCorrect": false
+        },
+        {
+          "text": "Na entrega do controle ao sistema operacional.",
+          "isCorrect": false
+        },
+        {
+          "text": "Na procura do dispositivo na ordem configurada.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "type": "drag_and_drop",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "template": "Sequência do firmware: primeiro o {{s1}} testa e enumera o hardware; depois o firmware inicializa memória e barramentos, procura o {{s2}} na ordem configurada, carrega o {{s3}} para a RAM e entrega o controle ao {{s4}}.",
+      "explanation": "O firmware faz o POST, inicializa memória, barramentos e controladores, procura o dispositivo de boot, carrega o bootloader do disco para a RAM e sai de cena: a partir daí manda o sistema operacional.",
+      "terms": [
+        "bootloader",
+        "reset vector",
+        "sistema operacional",
+        "POST",
+        "Secure Boot",
+        "dispositivo de boot"
+      ],
+      "slots": [
+        {
+          "key": "s1",
+          "correctTerm": "POST"
+        },
+        {
+          "key": "s2",
+          "correctTerm": "dispositivo de boot"
+        },
+        {
+          "key": "s3",
+          "correctTerm": "bootloader"
+        },
+        {
+          "key": "s4",
+          "correctTerm": "sistema operacional"
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "Um colega afirma que firmware, BIOS e UEFI são sinônimos. Qual correção é adequada?",
+      "explanation": "Firmware é a categoria: software gravado em hardware não volátil. BIOS e UEFI são implementações dela. UEFI é firmware, mas nem todo firmware é UEFI.",
+      "options": [
+        {
+          "text": "BIOS é a categoria, e firmware e UEFI são implementações dela.",
+          "isCorrect": false
+        },
+        {
+          "text": "UEFI é a categoria, e firmware e BIOS são implementações dela.",
+          "isCorrect": false
+        },
+        {
+          "text": "Firmware é a categoria, e BIOS e UEFI são implementações dela.",
+          "isCorrect": true
+        },
+        {
+          "text": "Firmware e BIOS são sinônimos, e UEFI é um sistema operacional.",
+          "isCorrect": false
+        },
+        {
+          "text": "Firmware fica na RAM, enquanto BIOS e UEFI ficam em chip fixo.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_answer",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "Assinale todas as corretas sobre o clock de um processador.",
+      "explanation": "O clock é sinal de sincronismo: diz quando o valor é válido e autoriza o avanço, mas não garante que houve avanço nem acelera nada sozinho. Dobrar o clock quadruplica o calor.",
+      "options": [
+        {
+          "text": "Um clock de 3 GHz garante 3 bilhões de instruções concluídas por segundo.",
+          "isCorrect": false
+        },
+        {
+          "text": "Cada borda do clock é uma permissão de avanço, e não a garantia dele.",
+          "isCorrect": true
+        },
+        {
+          "text": "O clock acelera o processador sozinho, pois é a medida da velocidade.",
+          "isCorrect": false
+        },
+        {
+          "text": "O clock diz quando o valor na saída de um circuito já pode ser lido.",
+          "isCorrect": true
+        },
+        {
+          "text": "Dobrar o clock de um processador reduz à metade o calor que ele gera.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "essay_blanks",
+      "topic": "Características Técnicas de um Sistema Computacional",
+      "prompt": "Complete a frase sobre o momento em que o computador é ligado.",
+      "template": "A memória {{b1}} é volátil e acorda vazia; por isso a primeira instrução vem do {{b2}}, software gravado em hardware não volátil.",
+      "blanks": [
+        {
+          "key": "b1",
+          "referenceAnswer": "RAM"
+        },
+        {
+          "key": "b2",
+          "referenceAnswer": "firmware"
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Qual é a representação binária, em 8 bits, do número decimal 47?",
+      "explanation": "47 = 32 + 8 + 4 + 2 + 1, o que liga os bits de 2⁵, 2³, 2², 2¹ e 2⁰: 00101111.",
+      "options": [
+        {
+          "text": "00101101",
+          "isCorrect": false
+        },
+        {
+          "text": "00101111",
+          "isCorrect": true
+        },
+        {
+          "text": "00111011",
+          "isCorrect": false
+        },
+        {
+          "text": "00110111",
+          "isCorrect": false
+        },
+        {
+          "text": "01001111",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Um sensor envia o byte 10110101. Qual é o valor desse byte em decimal?",
+      "explanation": "10110101 = 128 + 32 + 16 + 4 + 1 = 181.",
+      "options": [
+        {
+          "text": "165",
+          "isCorrect": false
+        },
+        {
+          "text": "173",
+          "isCorrect": false
+        },
+        {
+          "text": "179",
+          "isCorrect": false
+        },
+        {
+          "text": "213",
+          "isCorrect": false
+        },
+        {
+          "text": "181",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Um programador precisa escrever em binário, com 8 bits, a máscara hexadecimal 7F. Qual é a sequência correta?",
+      "explanation": "Cada dígito hexadecimal vira 4 bits: 7 = 0111 e F = 1111, logo 7F = 01111111.",
+      "options": [
+        {
+          "text": "01110111",
+          "isCorrect": false
+        },
+        {
+          "text": "11110111",
+          "isCorrect": false
+        },
+        {
+          "text": "01111111",
+          "isCorrect": true
+        },
+        {
+          "text": "01101111",
+          "isCorrect": false
+        },
+        {
+          "text": "11111110",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Um arquivo tem 2000 bytes. Como um editor hexadecimal mostra esse tamanho?",
+      "explanation": "2000 ÷ 16 = 125, resto 0; 125 ÷ 16 = 7, resto 13 (D). Lendo do último para o primeiro: 7D0.",
+      "options": [
+        {
+          "text": "7C0",
+          "isCorrect": false
+        },
+        {
+          "text": "7E0",
+          "isCorrect": false
+        },
+        {
+          "text": "8D0",
+          "isCorrect": false
+        },
+        {
+          "text": "7D0",
+          "isCorrect": true
+        },
+        {
+          "text": "6D0",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_choice",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Um equipamento antigo só aceita valores em octal. Como o decimal 185 deve ser informado?",
+      "explanation": "185 ÷ 8 = 23, resto 1; 23 ÷ 8 = 2, resto 7. Lendo do último para o primeiro: 271 (2 x 64 + 7 x 8 + 1 = 185).",
+      "options": [
+        {
+          "text": "271",
+          "isCorrect": true
+        },
+        {
+          "text": "261",
+          "isCorrect": false
+        },
+        {
+          "text": "371",
+          "isCorrect": false
+        },
+        {
+          "text": "217",
+          "isCorrect": false
+        },
+        {
+          "text": "272",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "multiple_answer",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Assinale todas as corretas sobre as conversões abaixo.",
+      "explanation": "477 em octal = 100 111 111; 10011 = 0001 0011 = 13 em hexadecimal; 4096 = 16³ = 1000 em hexadecimal. Já 1011 é 13 em octal, e 84 em hexadecimal é 10000100.",
+      "options": [
+        {
+          "text": "O octal 477 equivale ao binário 100111111.",
+          "isCorrect": true
+        },
+        {
+          "text": "O binário 1011 equivale ao octal 31.",
+          "isCorrect": false
+        },
+        {
+          "text": "O hexadecimal 84 equivale ao binário 10000010.",
+          "isCorrect": false
+        },
+        {
+          "text": "O binário 10011 equivale ao hexadecimal 13.",
+          "isCorrect": true
+        },
+        {
+          "text": "O decimal 4096 equivale ao hexadecimal 1000.",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "type": "single_choice",
+      "topic": "Sistemas de Numeração na Computação",
+      "template": "No sistema decimal, o número 594 é decomposto como 5 x {{b1}} + 9 x {{b2}} + 4 x {{b3}}, o que mostra que o sistema é {{b4}}.",
+      "explanation": "594 = 5 x 10² + 9 x 10¹ + 4 x 10⁰. O decimal é um sistema posicional: cada algarismo muda de valor conforme a posição que ocupa.",
+      "blanks": [
+        {
+          "key": "b1",
+          "options": [
+            {
+              "text": "10",
+              "isCorrect": false
+            },
+            {
+              "text": "1000",
+              "isCorrect": false
+            },
+            {
+              "text": "100",
+              "isCorrect": true
+            }
+          ]
+        },
+        {
+          "key": "b2",
+          "options": [
+            {
+              "text": "10",
+              "isCorrect": true
+            },
+            {
+              "text": "1",
+              "isCorrect": false
+            },
+            {
+              "text": "100",
+              "isCorrect": false
+            }
+          ]
+        },
+        {
+          "key": "b3",
+          "options": [
+            {
+              "text": "10",
+              "isCorrect": false
+            },
+            {
+              "text": "1",
+              "isCorrect": true
+            },
+            {
+              "text": "100",
+              "isCorrect": false
+            }
+          ]
+        },
+        {
+          "key": "b4",
+          "options": [
+            {
+              "text": "binário",
+              "isCorrect": false
+            },
+            {
+              "text": "posicional",
+              "isCorrect": true
+            },
+            {
+              "text": "octal",
+              "isCorrect": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "drag_and_drop",
+      "topic": "Sistemas de Numeração na Computação",
+      "template": "O binário 111000 vale {{s1}} em decimal; o decimal 254 vale {{s2}} em hexadecimal; o octal 702 vale {{s3}} em decimal; e o hexadecimal FF vale {{s4}} em binário.",
+      "explanation": "111000 = 32 + 16 + 8 = 56; 254 = 15 x 16 + 14 = FE; 702 em octal = 7 x 64 + 2 = 450; e FF = 1111 1111.",
+      "terms": [
+        "FE",
+        "58",
+        "11111111",
+        "450",
+        "EF",
+        "56",
+        "1111111"
+      ],
+      "slots": [
+        {
+          "key": "s1",
+          "correctTerm": "56"
+        },
+        {
+          "key": "s2",
+          "correctTerm": "FE"
+        },
+        {
+          "key": "s3",
+          "correctTerm": "450"
+        },
+        {
+          "key": "s4",
+          "correctTerm": "11111111"
+        }
+      ]
+    },
+    {
+      "type": "multiple_answer",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Assinale todas as corretas sobre a relação entre as bases 2, 8 e 16.",
+      "explanation": "O binário é a base fundamental; o octal agrupa 3 bits por dígito e o hexadecimal, 4 bits (com as letras de A a F). Por isso as conversões entre elas são diretas.",
+      "options": [
+        {
+          "text": "O octal agrupa 4 bits em cada dígito, e o hexadecimal agrupa 3.",
+          "isCorrect": false
+        },
+        {
+          "text": "O binário é a base fundamental, com apenas dois símbolos: 0 e 1.",
+          "isCorrect": true
+        },
+        {
+          "text": "A conversão entre elas é direta, sem precisar passar pelo decimal.",
+          "isCorrect": true
+        },
+        {
+          "text": "O hexadecimal usa os símbolos de 0 a 9 e as letras de A até G.",
+          "isCorrect": false
+        },
+        {
+          "text": "Para ir do octal ao binário, é preciso dividir várias vezes por 2.",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "type": "essay_blanks",
+      "topic": "Sistemas de Numeração na Computação",
+      "prompt": "Complete a frase sobre o sistema binário.",
+      "template": "Em um número binário, o bit mais à direita é o {{b1}} significativo, e cada posição vale uma {{b2}} de 2.",
+      "blanks": [
+        {
+          "key": "b1",
+          "referenceAnswer": "menos"
+        },
+        {
+          "key": "b2",
+          "referenceAnswer": "potência"
+        }
+      ]
+    }
+  ]
+}
+$json$::jsonb AS doc;
+
+-- =============================================================================
+-- Validation helpers
+-- =============================================================================
+
+-- Problems are collected instead of raised one at a time, so a single run
+-- reports everything that is wrong with the payload.
+CREATE OR REPLACE FUNCTION pg_temp.text_errors(p_object jsonb, p_key text, p_where text)
+RETURNS text[]
+LANGUAGE sql
+IMMUTABLE
+AS $fn$
+  SELECT CASE
+    WHEN jsonb_typeof(p_object -> p_key) = 'string' AND btrim(p_object ->> p_key) <> ''
+      THEN '{}'::text[]
+    ELSE ARRAY[format('%s: "%s" must be a non-empty string', p_where, p_key)]
+  END
+$fn$;
+
+-- p_max_correct NULL means "no upper bound" (multiple_answer).
+CREATE OR REPLACE FUNCTION pg_temp.option_errors(p_options jsonb, p_where text, p_min_correct integer, p_max_correct integer)
+RETURNS text[]
+LANGUAGE sql
+IMMUTABLE
+AS $fn$
+  SELECT CASE
+    WHEN jsonb_typeof(p_options) IS DISTINCT FROM 'array' OR jsonb_array_length(p_options) < 2
+      THEN ARRAY[format('%s: "options" must be an array with at least 2 options', p_where)]
+    ELSE COALESCE((
+      SELECT array_agg(message)
+      FROM (
+        SELECT format('%s: option %s needs a non-empty "text"', p_where, o.ord) AS message
+        FROM jsonb_array_elements(p_options) WITH ORDINALITY AS o(value, ord)
+        WHERE jsonb_typeof(o.value -> 'text') IS DISTINCT FROM 'string'
+           OR btrim(o.value ->> 'text') = ''
+        UNION ALL
+        SELECT format('%s: option %s needs "isCorrect" set to true or false', p_where, o.ord)
+        FROM jsonb_array_elements(p_options) WITH ORDINALITY AS o(value, ord)
+        WHERE jsonb_typeof(o.value -> 'isCorrect') IS DISTINCT FROM 'boolean'
+        UNION ALL
+        SELECT format(
+          '%s: expected %s correct option(s), found %s',
+          p_where,
+          CASE
+            WHEN p_max_correct IS NULL THEN format('at least %s', p_min_correct)
+            WHEN p_min_correct = p_max_correct THEN p_min_correct::text
+            ELSE format('%s to %s', p_min_correct, p_max_correct)
+          END,
+          counted.correct_count
+        )
+        FROM (
+          SELECT count(*) FILTER (WHERE o.value -> 'isCorrect' = 'true'::jsonb) AS correct_count
+          FROM jsonb_array_elements(p_options) AS o(value)
+        ) AS counted
+        WHERE counted.correct_count < p_min_correct
+           OR (p_max_correct IS NOT NULL AND counted.correct_count > p_max_correct)
+      ) AS found
+    ), '{}')
+  END
+$fn$;
+
+-- Blanks and slots are both arrays of objects identified by a unique "key",
+-- which becomes question_blanks.blank_key / question_slots.slot_key.
+CREATE OR REPLACE FUNCTION pg_temp.entry_errors(p_entries jsonb, p_where text, p_label text)
+RETURNS text[]
+LANGUAGE sql
+IMMUTABLE
+AS $fn$
+  SELECT CASE
+    WHEN jsonb_typeof(p_entries) IS DISTINCT FROM 'array' OR jsonb_array_length(p_entries) = 0
+      THEN ARRAY[format('%s: "%s" must be a non-empty array', p_where, p_label)]
+    ELSE COALESCE((
+      SELECT array_agg(message)
+      FROM (
+        SELECT format('%s: %s %s needs a non-empty "key"', p_where, p_label, e.ord) AS message
+        FROM jsonb_array_elements(p_entries) WITH ORDINALITY AS e(value, ord)
+        WHERE jsonb_typeof(e.value -> 'key') IS DISTINCT FROM 'string'
+           OR btrim(e.value ->> 'key') = ''
+        UNION ALL
+        SELECT format('%s: "%s" repeats the key %L', p_where, p_label, e.value ->> 'key')
+        FROM jsonb_array_elements(p_entries) AS e(value)
+        WHERE jsonb_typeof(e.value -> 'key') = 'string'
+        GROUP BY e.value ->> 'key'
+        HAVING count(*) > 1
+      ) AS found
+    ), '{}')
+  END
+$fn$;
+
+-- The {{key}} placeholders of a template and the keys the question declares must
+-- match one to one, or the student would see a blank nothing answers.
+CREATE OR REPLACE FUNCTION pg_temp.placeholder_errors(p_template text, p_keys text[], p_where text, p_label text)
+RETURNS text[]
+LANGUAGE sql
+IMMUTABLE
+AS $fn$
+  WITH declared AS (
+    SELECT unnest(p_keys) AS key
+  ),
+  used AS (
+    SELECT DISTINCT m[1] AS key
+    FROM regexp_matches(COALESCE(p_template, ''), '\{\{([^{}]+)\}\}', 'g') AS m
+  )
+  SELECT COALESCE((
+    SELECT array_agg(message)
+    FROM (
+      SELECT format('%s: the template has no {{%s}} placeholder for this %s', p_where, d.key, p_label) AS message
+      FROM declared d
+      WHERE NOT EXISTS (SELECT 1 FROM used u WHERE u.key = d.key)
+      UNION ALL
+      SELECT format('%s: the template has a {{%s}} placeholder with no matching %s', p_where, u.key, p_label)
+      FROM used u
+      WHERE NOT EXISTS (SELECT 1 FROM declared d WHERE d.key = u.key)
+    ) AS found
+  ), '{}')
+$fn$;
+
+-- =============================================================================
+-- Validation and insertion
+-- =============================================================================
+
+DO $do$
+DECLARE
+  payload        jsonb;
+  problems       text[] := '{}';
+  entry_problems text[];
+  question       jsonb;
+  entry          jsonb;
+  idx            bigint;
+  entry_idx      bigint;
+  quiz_title     text;
+  quiz_subject   text;
+  quiz_kind      text;
+  quiz_topic     text;
+  subject_name   text;
+  topic_name     text;
+  q_type         text;
+  q_where        text;
+  entry_keys     text[];
+  term_texts     text[];
+  v_subject_id   integer;
+  v_topic_id     integer;
+  v_quiz_topic_id integer;
+  v_quiz_id      integer;
+  v_question_id  integer;
+  v_blank_id     integer;
+BEGIN
+  SELECT doc INTO payload FROM quiz_import_payload;
+
+  IF jsonb_typeof(payload) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION 'the payload must be a JSON object describing one quiz';
+  END IF;
+
+  -- ===========================================================================
+  -- 1. Validation — the quiz
+  -- ===========================================================================
+
+  problems := problems || pg_temp.text_errors(payload, 'title', 'quiz');
+  quiz_title := btrim(COALESCE(payload ->> 'title', ''));
+  quiz_subject := payload ->> 'subject';
+  quiz_kind := COALESCE(payload ->> 'kind', 'exam');
+  quiz_topic := payload ->> 'topic';
+
+  IF quiz_kind NOT IN ('exam', 'exercise') THEN
+    problems := problems || 'quiz: "kind" must be "exam" or "exercise"';
+  END IF;
+
+  IF quiz_title <> '' AND EXISTS (SELECT 1 FROM quizzes WHERE title = quiz_title) THEN
+    problems := problems || format('quiz: a quiz titled %L already exists', quiz_title);
+  END IF;
+
+  IF payload ? 'subjectScope' AND payload ->> 'subjectScope' IS DISTINCT FROM 'single' THEN
+    problems := problems || 'quiz: integrated quizzes no longer exist; remove "subjectScope" and give the quiz a "subject"';
+  END IF;
+
+  IF quiz_subject IS NULL OR btrim(quiz_subject) = '' THEN
+    problems := problems || 'quiz: "subject" must be a non-empty string';
+  ELSE
+    SELECT id INTO v_subject_id FROM subjects WHERE name = quiz_subject;
+    IF NOT FOUND THEN
+      problems := problems || format('quiz: subject %L was not found', quiz_subject);
+    END IF;
+  END IF;
+
+  IF payload ->> 'difficulty' IS NULL
+     OR payload ->> 'difficulty' NOT IN ('easy', 'medium', 'hard') THEN
+    problems := problems || 'quiz: "difficulty" must be "easy", "medium" or "hard"';
+  END IF;
+
+  -- An exercise list belongs to one topic of one subject and has no time limit.
+  IF quiz_kind = 'exercise' THEN
+    IF quiz_topic IS NULL OR btrim(quiz_topic) = '' THEN
+      problems := problems || 'quiz: "topic" is required when "kind" is "exercise"';
+    ELSIF v_subject_id IS NOT NULL THEN
+      SELECT id INTO v_quiz_topic_id FROM topics WHERE subject_id = v_subject_id AND name = quiz_topic;
+      IF NOT FOUND THEN
+        problems := problems || format('quiz: topic %L of subject %L was not found', quiz_topic, quiz_subject);
+      END IF;
+    END IF;
+
+    IF payload ? 'durationMinutes' THEN
+      problems := problems || 'quiz: "durationMinutes" must be omitted when "kind" is "exercise"';
+    END IF;
+  ELSE
+    IF quiz_topic IS NOT NULL THEN
+      problems := problems || 'quiz: "topic" must be omitted unless "kind" is "exercise"';
+    END IF;
+
+    IF jsonb_typeof(payload -> 'durationMinutes') IS DISTINCT FROM 'number' THEN
+      problems := problems || 'quiz: "durationMinutes" must be a positive whole number';
+    ELSIF (payload ->> 'durationMinutes')::numeric <= 0
+       OR (payload ->> 'durationMinutes')::numeric % 1 <> 0 THEN
+      problems := problems || 'quiz: "durationMinutes" must be a positive whole number';
+    END IF;
+  END IF;
+
+  IF jsonb_typeof(payload -> 'questions') IS DISTINCT FROM 'array' THEN
+    problems := problems || 'quiz: "questions" must be an array';
+  ELSIF jsonb_array_length(payload -> 'questions') = 0 THEN
+    problems := problems || 'quiz: "questions" must have at least one question';
+  END IF;
+
+  -- ===========================================================================
+  -- 2. Validation — the questions
+  -- ===========================================================================
+
+  FOR idx, question IN
+    SELECT q.ord, q.value
+    FROM jsonb_array_elements(
+      CASE WHEN jsonb_typeof(payload -> 'questions') = 'array'
+           THEN payload -> 'questions'
+           ELSE '[]'::jsonb END
+    ) WITH ORDINALITY AS q(value, ord)
+  LOOP
+    q_where := format('question %s', idx);
+    q_type := question ->> 'type';
+    -- A question may omit its subject: it is the quiz's subject.
+    subject_name := COALESCE(question ->> 'subject', quiz_subject);
+    -- In an exercise list a question may omit its topic: it is the list's topic.
+    topic_name := COALESCE(question ->> 'topic', CASE WHEN quiz_kind = 'exercise' THEN quiz_topic END);
+
+    IF subject_name IS DISTINCT FROM quiz_subject THEN
+      problems := problems || format('%s: every question must be of the quiz''s subject', q_where);
+    END IF;
+
+    IF quiz_kind = 'exercise' AND topic_name IS DISTINCT FROM quiz_topic THEN
+      problems := problems || format('%s: every question of an exercise list must be of its topic', q_where);
+    END IF;
+
+    IF q_type IS NULL
+       OR q_type NOT IN ('multiple_choice', 'multiple_answer', 'single_choice',
+                         'drag_and_drop', 'essay', 'essay_blanks') THEN
+      problems := problems || format(
+        '%s: "type" must be one of multiple_choice, multiple_answer, single_choice, drag_and_drop, essay, essay_blanks',
+        q_where
+      );
+      CONTINUE;
+    END IF;
+
+    IF topic_name IS NULL OR btrim(topic_name) = '' THEN
+      problems := problems || format('%s: "topic" must be a non-empty string', q_where);
+    ELSIF subject_name IS NULL OR btrim(subject_name) = '' THEN
+      -- The missing subject is already reported for the quiz itself.
+      NULL;
+    ELSE
+      PERFORM 1
+      FROM topics t
+      JOIN subjects s ON s.id = t.subject_id
+      WHERE s.name = subject_name AND t.name = topic_name;
+
+      IF NOT FOUND THEN
+        problems := problems || format('%s: topic %L of subject %L was not found', q_where, topic_name, subject_name);
+      END IF;
+    END IF;
+
+    CASE q_type
+      WHEN 'multiple_choice' THEN
+        problems := problems
+          || pg_temp.text_errors(question, 'prompt', q_where)
+          || pg_temp.text_errors(question, 'explanation', q_where)
+          || pg_temp.option_errors(question -> 'options', q_where, 1, 1);
+
+      WHEN 'multiple_answer' THEN
+        problems := problems
+          || pg_temp.text_errors(question, 'prompt', q_where)
+          || pg_temp.text_errors(question, 'explanation', q_where)
+          || pg_temp.option_errors(question -> 'options', q_where, 1, NULL);
+
+      WHEN 'single_choice' THEN
+        entry_problems := pg_temp.entry_errors(question -> 'blanks', q_where, 'blanks');
+        problems := problems
+          || pg_temp.text_errors(question, 'template', q_where)
+          || pg_temp.text_errors(question, 'explanation', q_where)
+          || entry_problems;
+
+        IF cardinality(entry_problems) = 0 THEN
+          SELECT array_agg(b.value ->> 'key' ORDER BY b.ord) INTO entry_keys
+          FROM jsonb_array_elements(question -> 'blanks') WITH ORDINALITY AS b(value, ord);
+
+          problems := problems
+            || pg_temp.placeholder_errors(question ->> 'template', entry_keys, q_where, 'blank');
+
+          FOR entry IN SELECT b.value FROM jsonb_array_elements(question -> 'blanks') AS b(value)
+          LOOP
+            problems := problems || pg_temp.option_errors(
+              entry -> 'options',
+              format('%s, blank %L', q_where, entry ->> 'key'),
+              1, 1
+            );
+          END LOOP;
+        END IF;
+
+      WHEN 'drag_and_drop' THEN
+        entry_problems := pg_temp.entry_errors(question -> 'slots', q_where, 'slots');
+        problems := problems
+          || pg_temp.text_errors(question, 'template', q_where)
+          || pg_temp.text_errors(question, 'explanation', q_where)
+          || entry_problems;
+
+        term_texts := '{}';
+
+        IF jsonb_typeof(question -> 'terms') IS DISTINCT FROM 'array'
+           OR jsonb_array_length(question -> 'terms') < 2 THEN
+          problems := problems || format('%s: "terms" must be an array with at least 2 terms', q_where);
+        ELSIF EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(question -> 'terms') AS t(value)
+          WHERE jsonb_typeof(t.value) IS DISTINCT FROM 'string' OR btrim(t.value #>> '{}') = ''
+        ) THEN
+          problems := problems || format('%s: every term must be a non-empty string', q_where);
+        ELSE
+          SELECT array_agg(t.value #>> '{}' ORDER BY t.ord) INTO term_texts
+          FROM jsonb_array_elements(question -> 'terms') WITH ORDINALITY AS t(value, ord);
+
+          -- The slots point at a term by its text, so two identical terms would
+          -- be ambiguous.
+          IF cardinality(term_texts) <> (SELECT count(DISTINCT x) FROM unnest(term_texts) AS x) THEN
+            problems := problems || format('%s: "terms" repeats a term; each term must be unique', q_where);
+          END IF;
+        END IF;
+
+        IF cardinality(entry_problems) = 0 THEN
+          SELECT array_agg(s.value ->> 'key' ORDER BY s.ord) INTO entry_keys
+          FROM jsonb_array_elements(question -> 'slots') WITH ORDINALITY AS s(value, ord);
+
+          problems := problems
+            || pg_temp.placeholder_errors(question ->> 'template', entry_keys, q_where, 'slot');
+
+          IF cardinality(term_texts) > 0 THEN
+            FOR entry IN SELECT s.value FROM jsonb_array_elements(question -> 'slots') AS s(value)
+            LOOP
+              IF jsonb_typeof(entry -> 'correctTerm') IS DISTINCT FROM 'string'
+                 OR NOT ((entry ->> 'correctTerm') = ANY (term_texts)) THEN
+                problems := problems || format('%s: slot %L needs a "correctTerm" listed in "terms"', q_where, entry ->> 'key');
+              END IF;
+            END LOOP;
+          END IF;
+        END IF;
+
+      WHEN 'essay' THEN
+        problems := problems
+          || pg_temp.text_errors(question, 'prompt', q_where)
+          || pg_temp.text_errors(question, 'referenceAnswer', q_where);
+
+        IF jsonb_typeof(question -> 'maxLength') IS DISTINCT FROM 'number' THEN
+          problems := problems || format('%s: "maxLength" must be a positive whole number', q_where);
+        ELSIF (question ->> 'maxLength')::numeric <= 0
+           OR (question ->> 'maxLength')::numeric % 1 <> 0 THEN
+          problems := problems || format('%s: "maxLength" must be a positive whole number', q_where);
+        END IF;
+
+      WHEN 'essay_blanks' THEN
+        entry_problems := pg_temp.entry_errors(question -> 'blanks', q_where, 'blanks');
+        problems := problems
+          || pg_temp.text_errors(question, 'prompt', q_where)
+          || pg_temp.text_errors(question, 'template', q_where)
+          || entry_problems;
+
+        IF cardinality(entry_problems) = 0 THEN
+          SELECT array_agg(b.value ->> 'key' ORDER BY b.ord) INTO entry_keys
+          FROM jsonb_array_elements(question -> 'blanks') WITH ORDINALITY AS b(value, ord);
+
+          problems := problems
+            || pg_temp.placeholder_errors(question ->> 'template', entry_keys, q_where, 'blank');
+
+          FOR entry IN SELECT b.value FROM jsonb_array_elements(question -> 'blanks') AS b(value)
+          LOOP
+            problems := problems || pg_temp.text_errors(
+              entry, 'referenceAnswer', format('%s, blank %L', q_where, entry ->> 'key')
+            );
+          END LOOP;
+        END IF;
+    END CASE;
+  END LOOP;
+
+  IF cardinality(problems) > 0 THEN
+    RAISE EXCEPTION E'the quiz JSON is invalid:\n  %', array_to_string(problems, E'\n  ');
+  END IF;
+
+  -- ===========================================================================
+  -- 3. Insert
+  -- ===========================================================================
+
+  INSERT INTO quizzes (title, kind, subject_id, topic_id, duration_minutes, difficulty)
+  VALUES (
+    quiz_title,
+    quiz_kind::quiz_kind,
+    v_subject_id,
+    v_quiz_topic_id,
+    CASE WHEN quiz_kind = 'exam' THEN (payload ->> 'durationMinutes')::integer END,
+    (payload ->> 'difficulty')::difficulty_level
+  )
+  RETURNING id INTO v_quiz_id;
+
+  FOR idx, question IN
+    SELECT q.ord, q.value
+    FROM jsonb_array_elements(payload -> 'questions') WITH ORDINALITY AS q(value, ord)
+  LOOP
+    q_type := question ->> 'type';
+    subject_name := COALESCE(question ->> 'subject', quiz_subject);
+    topic_name := COALESCE(question ->> 'topic', CASE WHEN quiz_kind = 'exercise' THEN quiz_topic END);
+
+    SELECT t.id INTO STRICT v_topic_id
+    FROM topics t
+    JOIN subjects s ON s.id = t.subject_id
+    WHERE s.name = subject_name AND t.name = topic_name;
+
+    -- Only the columns the type uses are filled; the CHECK constraints in
+    -- the questions migration reject anything else.
+    INSERT INTO questions (topic_id, type, prompt, template, explanation, max_length, reference_answer)
+    VALUES (
+      v_topic_id,
+      q_type::question_type,
+      CASE WHEN q_type IN ('multiple_choice', 'multiple_answer', 'essay', 'essay_blanks')
+           THEN question ->> 'prompt' END,
+      CASE WHEN q_type IN ('single_choice', 'drag_and_drop', 'essay_blanks')
+           THEN question ->> 'template' END,
+      CASE WHEN q_type IN ('multiple_choice', 'multiple_answer', 'single_choice', 'drag_and_drop')
+           THEN question ->> 'explanation' END,
+      CASE WHEN q_type = 'essay' THEN (question ->> 'maxLength')::integer END,
+      CASE WHEN q_type = 'essay' THEN question ->> 'referenceAnswer' END
+    )
+    RETURNING id INTO v_question_id;
+
+    IF q_type IN ('multiple_choice', 'multiple_answer') THEN
+      INSERT INTO question_options (question_id, text, is_correct, order_index)
+      SELECT v_question_id, o.value ->> 'text', (o.value ->> 'isCorrect')::boolean, o.ord
+      FROM jsonb_array_elements(question -> 'options') WITH ORDINALITY AS o(value, ord);
+
+    ELSIF q_type = 'single_choice' THEN
+      FOR entry_idx, entry IN
+        SELECT b.ord, b.value
+        FROM jsonb_array_elements(question -> 'blanks') WITH ORDINALITY AS b(value, ord)
+      LOOP
+        INSERT INTO question_blanks (question_id, blank_key, order_index)
+        VALUES (v_question_id, entry ->> 'key', entry_idx)
+        RETURNING id INTO v_blank_id;
+
+        INSERT INTO question_blank_options (blank_id, text, is_correct, order_index)
+        SELECT v_blank_id, o.value ->> 'text', (o.value ->> 'isCorrect')::boolean, o.ord
+        FROM jsonb_array_elements(entry -> 'options') WITH ORDINALITY AS o(value, ord);
+      END LOOP;
+
+    ELSIF q_type = 'drag_and_drop' THEN
+      INSERT INTO question_terms (question_id, text, order_index)
+      SELECT v_question_id, t.value #>> '{}', t.ord
+      FROM jsonb_array_elements(question -> 'terms') WITH ORDINALITY AS t(value, ord);
+
+      INSERT INTO question_slots (question_id, slot_key, correct_term_id, order_index)
+      SELECT v_question_id, s.value ->> 'key', term.id, s.ord
+      FROM jsonb_array_elements(question -> 'slots') WITH ORDINALITY AS s(value, ord)
+      JOIN question_terms term
+        ON term.question_id = v_question_id AND term.text = s.value ->> 'correctTerm';
+
+    ELSIF q_type = 'essay_blanks' THEN
+      INSERT INTO question_blanks (question_id, blank_key, reference_answer, order_index)
+      SELECT v_question_id, b.value ->> 'key', b.value ->> 'referenceAnswer', b.ord
+      FROM jsonb_array_elements(question -> 'blanks') WITH ORDINALITY AS b(value, ord);
+    END IF;
+
+    INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+    VALUES (v_quiz_id, v_question_id, idx);
+  END LOOP;
+
+  RAISE NOTICE 'imported quiz % (id %) with % question(s)',
+    quiz_title, v_quiz_id, jsonb_array_length(payload -> 'questions');
+END;
+$do$;
+
+COMMIT;
