@@ -1,0 +1,501 @@
+-- Aula 4 de Banco de Dados: Constraints + Tutorial DCL.
+-- Assumido: número da aula = 4 (do lote) e sigla BD (só usada se a disciplina não existir).
+BEGIN;
+
+-- 1. Disciplina
+INSERT INTO subjects (name, short_label)
+SELECT 'Banco de Dados', 'BD'
+WHERE NOT EXISTS (SELECT 1 FROM subjects WHERE name = 'Banco de Dados');
+
+-- 2. Assunto
+INSERT INTO topics (subject_id, number, name, description)
+SELECT s.id, 4, 'Constraints e Controle de Acesso (DCL)', 'Restrições aplicadas às colunas das tabelas (NOT NULL, UNIQUE, CHECK, DEFAULT, INDEX) e criação de usuários e permissões com DCL.'
+FROM subjects s
+WHERE s.name = 'Banco de Dados'
+ON CONFLICT DO NOTHING;
+
+-- 3. Trava: aborta se a aula não existir ou já existir com outro nome
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM topics t JOIN subjects s ON s.id = t.subject_id
+    WHERE s.name = 'Banco de Dados' AND t.number = 4 AND t.name = 'Constraints e Controle de Acesso (DCL)'
+  ) THEN
+    RAISE EXCEPTION 'A aula 4 de Banco de Dados não existe ou já está cadastrada com outro nome';
+  END IF;
+END $$;
+
+-- 4. Subassuntos
+INSERT INTO subtopics (topic_id, name, summary, order_index)
+SELECT t.id, v.name, v.summary, v.order_index
+FROM topics t JOIN subjects s ON s.id = t.subject_id
+CROSS JOIN (VALUES
+  ('Conceito de constraint', 'Constraints são restrições, ou regras, aplicadas às colunas de uma tabela. As vistas são PRIMARY KEY, FOREIGN KEY, NOT NULL, UNIQUE, CHECK, DEFAULT e INDEX.', 1),
+  ('NOT NULL e UNIQUE', 'NOT NULL impede valores nulos em uma coluna e UNIQUE impede valores repetidos nela.', 2),
+  ('CHECK', 'A constraint CHECK garante que os valores de uma coluna satisfaçam uma condição específica. Ela pode ser criada com a tabela ou adicionada e removida com ALTER TABLE.', 3),
+  ('DEFAULT e INDEX', 'DEFAULT define um valor padrão para a coluna e INDEX serve para criar e recuperar dados muito rapidamente.', 4),
+  ('Criação de usuários com CREATE USER', 'A Data Control Language (DCL) controla o acesso ao banco. O administrador entra com mysql -u root -p e cria o usuário com CREATE USER.', 5),
+  ('Permissões com GRANT e REVOKE', 'GRANT concede permissões a um usuário sobre um schema e REVOKE as retira. Em seguida executa-se FLUSH PRIVILEGES.', 6)
+) AS v(name, summary, order_index)
+WHERE s.name = 'Banco de Dados' AND t.number = 4
+ON CONFLICT DO NOTHING;
+
+-- 5. Pontos-chave
+INSERT INTO subtopic_key_points (subtopic_id, text, order_index)
+SELECT st.id, v.text, v.order_index
+FROM subtopics st
+JOIN topics t ON t.id = st.topic_id
+JOIN subjects s ON s.id = t.subject_id
+JOIN (VALUES
+  ('Conceito de constraint', 'Constraint significa restrição: são regras aplicadas nas colunas de uma tabela.', 1),
+  ('Conceito de constraint', 'As constraints vistas são PRIMARY KEY, FOREIGN KEY, NOT NULL, UNIQUE, CHECK, DEFAULT e INDEX.', 2),
+  ('NOT NULL e UNIQUE', 'NOT NULL garante que um valor nulo não pode ser armazenado em uma coluna.', 1),
+  ('NOT NULL e UNIQUE', 'UNIQUE garante que todos os valores de uma coluna são diferentes.', 2),
+  ('CHECK', 'CHECK garante que todos os valores de uma coluna satisfaçam uma condição específica.', 1),
+  ('CHECK', 'Exemplo: constraint chkStatusSensor check (statusSensor in (''ativo'', ''inativo'')).', 2),
+  ('CHECK', 'Inserir um valor fora da condição gera o erro 3819, de violação da constraint.', 3),
+  ('CHECK', 'ALTER TABLE sensor add constraint chkStatusSensor check (...); adiciona a regra.', 4),
+  ('CHECK', 'ALTER TABLE sensor drop constraint chkStatusSensor; exclui a regra.', 5),
+  ('DEFAULT e INDEX', 'DEFAULT é um conjunto de valores padrão para a coluna quando nenhum valor é inserido ou especificado.', 1),
+  ('DEFAULT e INDEX', 'INDEX é usado para criar e recuperar dados do banco de dados muito rapidamente.', 2),
+  ('Criação de usuários com CREATE USER', 'O login do administrador é feito com mysql -u root -p, a partir do diretório bin do MySQL Server.', 1),
+  ('Criação de usuários com CREATE USER', 'Sintaxe: CREATE USER ''nomedousuario''@''servidor'' IDENTIFIED BY ''senha'';', 2),
+  ('Criação de usuários com CREATE USER', 'Exemplo: CREATE USER ''app''@''localhost'' IDENTIFIED BY ''lobo595'';', 3),
+  ('Criação de usuários com CREATE USER', 'Para entrar com o novo usuário, digita-se EXIT e depois mysql -u app -p.', 4),
+  ('Permissões com GRANT e REVOKE', 'GRANT regra ON schema.tabelas TO ''usuario''@''servidor''; concede permissões.', 1),
+  ('Permissões com GRANT e REVOKE', 'GRANT ALL ON projeto.* TO ''app''@''localhost''; dá todas as permissões no schema projeto.', 2),
+  ('Permissões com GRANT e REVOKE', 'GRANT SELECT, UPDATE ON projeto.* TO ''app''@''localhost''; concede só consulta e atualização.', 3),
+  ('Permissões com GRANT e REVOKE', 'REVOKE ALL ON projeto.* FROM ''app''@''localhost''; retira as permissões do usuário.', 4),
+  ('Permissões com GRANT e REVOKE', 'FLUSH PRIVILEGES; é executado depois de GRANT e de REVOKE.', 5)
+) AS v(subtopic_name, text, order_index) ON v.subtopic_name = st.name
+WHERE s.name = 'Banco de Dados' AND t.number = 4
+ON CONFLICT DO NOTHING;
+
+-- 6. Listas de exercícios
+INSERT INTO quizzes (title, kind, subject_id, topic_id, duration_minutes, difficulty)
+SELECT v.title, 'exercise', t.subject_id, t.id, NULL, v.difficulty::difficulty_level
+FROM topics t JOIN subjects s ON s.id = t.subject_id
+CROSS JOIN (VALUES
+  ('Constraints e Controle de Acesso (DCL) — Exercícios 1: Fundamentos', 'easy'),
+  ('Constraints e Controle de Acesso (DCL) — Exercícios 2: Aplicação', 'medium'),
+  ('Constraints e Controle de Acesso (DCL) — Exercícios 3: Desafio', 'hard')
+) AS v(title, difficulty)
+WHERE s.name = 'Banco de Dados' AND t.number = 4
+  AND NOT EXISTS (SELECT 1 FROM quizzes z WHERE z.title = v.title);
+
+-- 7. Questões
+
+-- Q1 | multiple_choice | fácil | Conceito de constraint | Exercícios 1 | correta: C
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_choice', 'Em um sistema de cadastro de uma loja, a equipe de banco de dados quer que certas regras sejam aplicadas automaticamente nas colunas das tabelas. O que são constraints em SQL?', 'Constraint significa restrição: são regras aplicadas nas colunas de uma tabela para garantir a qualidade dos dados.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 1: Fundamentos'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('Comandos que apagam todos os registros de uma tabela de uma vez', false, 1),
+  ('Contas de usuário que recebem permissões sobre um banco de dados', false, 2),
+  ('Restrições, ou regras, aplicadas às colunas de uma tabela', true, 3),
+  ('Estruturas criadas apenas para acelerar a leitura dos registros', false, 4),
+  ('Tipos de dados que definem o tamanho máximo de cada coluna', false, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q2 | single_choice | fácil | NOT NULL e UNIQUE | Exercícios 1 | b1: NOT NULL, b2: UNIQUE
+WITH q AS (
+  INSERT INTO questions (topic_id, type, template, explanation)
+  SELECT t.id, 'single_choice', 'A constraint {{b1}} impede que um valor nulo seja armazenado em uma coluna, enquanto a constraint {{b2}} garante que todos os valores da coluna sejam diferentes.', 'NOT NULL impede valores nulos na coluna e UNIQUE garante que todos os valores sejam diferentes entre si.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 1: Fundamentos'
+), b AS (
+  INSERT INTO question_blanks (question_id, blank_key, order_index)
+  SELECT q.id, v.blank_key, v.order_index
+  FROM q CROSS JOIN (VALUES ('b1', 1), ('b2', 2)) AS v(blank_key, order_index)
+  RETURNING id, blank_key
+)
+INSERT INTO question_blank_options (blank_id, text, is_correct, order_index)
+SELECT b.id, o.text, o.is_correct, o.order_index
+FROM b JOIN (VALUES
+  ('b1', 'UNIQUE', false, 1), ('b1', 'NOT NULL', true, 2), ('b1', 'DEFAULT', false, 3),
+  ('b2', 'CHECK', false, 1), ('b2', 'UNIQUE', true, 2), ('b2', 'INDEX', false, 3), ('b2', 'NOT NULL', false, 4)
+) AS o(blank_key, text, is_correct, order_index) ON o.blank_key = b.blank_key;
+
+-- Q3 | multiple_choice | média | CHECK | Exercícios 1 | correta: A
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_choice', 'Uma empresa de monitoramento cadastra sensores na tabela sensor, que tem a coluna statusSensor. Para aceitar somente ''ativo'' ou ''inativo'' nessa coluna, qual constraint deve ser usada?', 'CHECK garante que os valores da coluna satisfaçam uma condição específica, como a lista de status permitidos.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 1: Fundamentos'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('CHECK, com a condição statusSensor in (''ativo'', ''inativo'')', true, 1),
+  ('UNIQUE, para que cada sensor tenha um status diferente dos demais', false, 2),
+  ('DEFAULT, definindo ''ativo'' como valor inicial do status', false, 3),
+  ('NOT NULL, para que o status nunca fique vazio no registro', false, 4),
+  ('INDEX, para que o status seja localizado mais rapidamente', false, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q4 | drag_and_drop | difícil | Criação de usuários com CREATE USER | Exercícios 2 | s1: mysql -u root -p, s2: CREATE USER, s3: GRANT ALL ON projeto.*, s4: FLUSH PRIVILEGES
+WITH q AS (
+  INSERT INTO questions (topic_id, type, template, explanation)
+  SELECT t.id, 'drag_and_drop', 'Ordene as etapas para criar o usuário app e liberar o schema projeto: 1º {{s1}}; 2º {{s2}}; 3º {{s3}}; 4º {{s4}}.', 'Primeiro entra-se como administrador (root), depois cria-se o usuário e concede-se a permissão com GRANT. Por fim, FLUSH PRIVILEGES aplica a mudança.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 2: Aplicação'
+), tm AS (
+  INSERT INTO question_terms (question_id, text, order_index)
+  SELECT q.id, v.text, v.order_index
+  FROM q CROSS JOIN (VALUES
+    ('GRANT ALL ON projeto.*', 1), ('mysql -u root -p', 2), ('REVOKE ALL ON projeto.*', 3),
+    ('FLUSH PRIVILEGES', 4), ('TRUNCATE TABLE Aluno', 5), ('CREATE USER', 6)
+  ) AS v(text, order_index)
+  RETURNING id, text
+)
+INSERT INTO question_slots (question_id, slot_key, correct_term_id, order_index)
+SELECT q.id, v.slot_key, tm.id, v.order_index
+FROM q CROSS JOIN (VALUES
+  ('s1', 'mysql -u root -p', 1), ('s2', 'CREATE USER', 2),
+  ('s3', 'GRANT ALL ON projeto.*', 3), ('s4', 'FLUSH PRIVILEGES', 4)
+) AS v(slot_key, term_text, order_index)
+JOIN tm ON tm.text = v.term_text;
+
+-- Q5 | multiple_answer | fácil | DEFAULT e INDEX | Exercícios 1 | corretas: A, D
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_answer', 'Uma equipe de banco de dados está revisando as constraints DEFAULT e INDEX em uma tabela de produtos. Assinale todas as corretas.', 'DEFAULT fornece um valor padrão quando nenhum valor é especificado e INDEX serve para criar e recuperar dados com rapidez. As demais alternativas descrevem NOT NULL, UNIQUE e CHECK.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 1: Fundamentos'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('DEFAULT define um valor padrão para a coluna quando nenhum valor é informado', true, 1),
+  ('INDEX impede que valores nulos sejam armazenados em qualquer coluna da tabela', false, 2),
+  ('DEFAULT garante que todos os valores da coluna sejam diferentes entre si', false, 3),
+  ('INDEX é usado para criar e recuperar dados do banco de dados muito rapidamente', true, 4),
+  ('DEFAULT restringe a coluna a uma lista fixa de valores que são permitidos', false, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q6 | multiple_choice | média | Permissões com GRANT e REVOKE | Exercícios 1 | correta: E
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_choice', 'Um estagiário precisa de um usuário que apenas consulte e atualize dados do schema projeto, sem outras permissões. Qual comando o administrador deve executar para o usuário ''app''@''localhost''?', 'GRANT com SELECT e UPDATE concede apenas essas permissões ao usuário no schema, usando TO. Já ALL daria acesso total.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 1: Fundamentos'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('GRANT ALL PRIVILEGES ON projeto.* TO ''app''@''localhost'';', false, 1),
+  ('REVOKE SELECT, UPDATE ON projeto.* FROM ''app''@''localhost'';', false, 2),
+  ('CREATE USER SELECT, UPDATE ON projeto.* TO ''app''@''localhost'';', false, 3),
+  ('GRANT SELECT, UPDATE ON projeto.* FROM ''app''@''localhost'';', false, 4),
+  ('GRANT SELECT, UPDATE ON projeto.* TO ''app''@''localhost'';', true, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q7 | drag_and_drop | difícil | CHECK | Exercícios 2 | s1: add, s2: drop
+WITH q AS (
+  INSERT INTO questions (topic_id, type, template, explanation)
+  SELECT t.id, 'drag_and_drop', 'Para adicionar a regra de status na tabela sensor: ALTER TABLE sensor {{s1}} constraint chkStatusSensor check (statusSensor in (''ativo'', ''inativo'', ''manutencao'')); e, para excluí-la: ALTER TABLE sensor {{s2}} constraint chkStatusSensor;', 'ALTER TABLE com add constraint cria a regra CHECK e com drop constraint a remove da tabela.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 2: Aplicação'
+), tm AS (
+  INSERT INTO question_terms (question_id, text, order_index)
+  SELECT q.id, v.text, v.order_index
+  FROM q CROSS JOIN (VALUES
+    ('modify', 1), ('add', 2), ('rename', 3), ('drop', 4)
+  ) AS v(text, order_index)
+  RETURNING id, text
+)
+INSERT INTO question_slots (question_id, slot_key, correct_term_id, order_index)
+SELECT q.id, v.slot_key, tm.id, v.order_index
+FROM q CROSS JOIN (VALUES ('s1', 'add', 1), ('s2', 'drop', 2))
+  AS v(slot_key, term_text, order_index)
+JOIN tm ON tm.text = v.term_text;
+
+-- Q8 | multiple_choice | difícil | NOT NULL e UNIQUE | Exercícios 2 | correta: B
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_choice', 'Uma clínica cria a tabela paciente e quer que a coluna email não aceite valores repetidos e que nenhum paciente seja cadastrado sem e-mail. Quais constraints devem ser combinadas nessa coluna?', 'UNIQUE garante que os valores sejam diferentes e NOT NULL impede valores nulos. Juntas, atendem às duas regras.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 2: Aplicação'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('UNIQUE, para bloquear repetições, e DEFAULT, para bloquear campos vazios', false, 1),
+  ('UNIQUE, para bloquear repetições, e NOT NULL, para bloquear campos vazios', true, 2),
+  ('INDEX, para bloquear repetições, e NOT NULL, para bloquear campos vazios', false, 3),
+  ('NOT NULL, para bloquear repetições, e UNIQUE, para bloquear campos vazios', false, 4),
+  ('DEFAULT, para bloquear repetições, e INDEX, para bloquear campos vazios', false, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q9 | single_choice | super difícil | Permissões com GRANT e REVOKE | Exercícios 3 | b1: GRANT, b2: TO, b3: REVOKE, b4: FROM
+WITH q AS (
+  INSERT INTO questions (topic_id, type, template, explanation)
+  SELECT t.id, 'single_choice', 'Para conceder somente leitura e atualização ao usuário app, usa-se: {{b1}} SELECT, UPDATE ON projeto.* {{b2}} ''app''@''localhost''; e, para retirar todas as permissões dele, usa-se: {{b3}} ALL ON projeto.* {{b4}} ''app''@''localhost'';', 'GRANT concede permissões usando TO, enquanto REVOKE as retira usando FROM.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 3: Desafio'
+), b AS (
+  INSERT INTO question_blanks (question_id, blank_key, order_index)
+  SELECT q.id, v.blank_key, v.order_index
+  FROM q CROSS JOIN (VALUES ('b1', 1), ('b2', 2), ('b3', 3), ('b4', 4)) AS v(blank_key, order_index)
+  RETURNING id, blank_key
+)
+INSERT INTO question_blank_options (blank_id, text, is_correct, order_index)
+SELECT b.id, o.text, o.is_correct, o.order_index
+FROM b JOIN (VALUES
+  ('b1', 'CREATE', false, 1), ('b1', 'GRANT', true, 2), ('b1', 'REVOKE', false, 3),
+  ('b2', 'TO', true, 1), ('b2', 'FROM', false, 2), ('b2', 'BY', false, 3),
+  ('b3', 'GRANT', false, 1), ('b3', 'DROP', false, 2), ('b3', 'REVOKE', true, 3),
+  ('b4', 'IN', false, 1), ('b4', 'TO', false, 2), ('b4', 'FROM', true, 3), ('b4', 'BY', false, 4)
+) AS o(blank_key, text, is_correct, order_index) ON o.blank_key = b.blank_key;
+
+-- Q10 | multiple_answer | super difícil | CHECK | Exercícios 3 | corretas: B, C, E
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_answer', 'Uma indústria criou a tabela sensor com a constraint chkStatusSensor check (statusSensor in (''ativo'', ''inativo'')). Um operador tentou inserir o status ''manutenção'' e, depois, a equipe decidiu aceitar também ''manutencao''. Assinale todas as corretas.', 'O CHECK rejeita valores fora da lista com erro de violação. Para ampliar a lista, remove-se a constraint com drop e cria-se outra com add, e sem ela a coluna deixa de validar os valores.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 3: Desafio'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('A inserção de ''manutenção'' é aceita, pois o CHECK só valida o primeiro registro', false, 1),
+  ('A inserção de ''manutenção'' gera erro de violação da constraint chkStatusSensor', true, 2),
+  ('Para aceitar ''manutencao'', exclui-se a constraint e recria-se com o novo valor', true, 3),
+  ('Inserir ''ativo'' ou ''inativo'' também gera erro, pois o CHECK bloqueia todo valor', false, 4),
+  ('Após o drop constraint, a coluna deixa de validar a lista de status permitidos', true, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q11 | multiple_choice | super difícil | Criação de usuários com CREATE USER | Exercícios 3 | correta: D
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_choice', 'Um administrador abriu o prompt como administrador, entrou na pasta bin do MySQL Server e executou mysql -u root -p. Qual comando cria o usuário app, restrito ao próprio servidor, com a senha lobo595?', 'A sintaxe é CREATE USER ''usuario''@''servidor'' IDENTIFIED BY ''senha''. As demais alternativas trocam a ordem, omitem IDENTIFIED BY ou usam outro comando.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 3: Desafio'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('CREATE USER ''app''@''localhost'' PASSWORD ''lobo595'';', false, 1),
+  ('CREATE USER ''app'' IDENTIFIED BY ''lobo595'' @''localhost'';', false, 2),
+  ('CREATE USER ''localhost''@''app'' IDENTIFIED BY ''lobo595'';', false, 3),
+  ('CREATE USER ''app''@''localhost'' IDENTIFIED BY ''lobo595'';', true, 4),
+  ('GRANT USER ''app''@''localhost'' IDENTIFIED BY ''lobo595'';', false, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q12 | drag_and_drop | difícil | Conceito de constraint | Exercícios 2 | s1: CHECK, s2: UNIQUE, s3: NOT NULL, s4: DEFAULT
+WITH q AS (
+  INSERT INTO questions (topic_id, type, template, explanation)
+  SELECT t.id, 'drag_and_drop', 'Na tabela pedido: a coluna status só aceita ''aberto'' ou ''fechado'' ({{s1}}); o numeroPedido não pode se repetir ({{s2}}); o campo cliente não pode ficar nulo ({{s3}}); e a dataPedido recebe um valor padrão quando não é informada ({{s4}}).', 'CHECK limita os valores a uma condição, UNIQUE evita repetições, NOT NULL impede nulos e DEFAULT define o valor padrão.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 2: Aplicação'
+), tm AS (
+  INSERT INTO question_terms (question_id, text, order_index)
+  SELECT q.id, v.text, v.order_index
+  FROM q CROSS JOIN (VALUES
+    ('INDEX', 1), ('NOT NULL', 2), ('CHECK', 3), ('REVOKE', 4), ('DEFAULT', 5), ('UNIQUE', 6)
+  ) AS v(text, order_index)
+  RETURNING id, text
+)
+INSERT INTO question_slots (question_id, slot_key, correct_term_id, order_index)
+SELECT q.id, v.slot_key, tm.id, v.order_index
+FROM q CROSS JOIN (VALUES
+  ('s1', 'CHECK', 1), ('s2', 'UNIQUE', 2), ('s3', 'NOT NULL', 3), ('s4', 'DEFAULT', 4)
+) AS v(slot_key, term_text, order_index)
+JOIN tm ON tm.text = v.term_text;
+
+-- Q13 | multiple_choice | difícil | DEFAULT e INDEX | Exercícios 2 | correta: A
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_choice', 'Uma loja virtual tem a tabela produto com milhões de registros, e as buscas pela coluna codigoBarras estão lentas. Qual recurso estudado é indicado para acelerar a recuperação desses dados?', 'INDEX é usado para criar e recuperar dados do banco de dados muito rapidamente, o que resolve a lentidão nas buscas.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 2: Aplicação'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('INDEX sobre codigoBarras, para criar e recuperar dados com rapidez', true, 1),
+  ('DEFAULT em codigoBarras, para preencher valores automaticamente', false, 2),
+  ('NOT NULL em codigoBarras, para que o banco leia menos registros', false, 3),
+  ('CHECK em codigoBarras, para filtrar os registros mais depressa', false, 4),
+  ('REVOKE SELECT sobre produto, para reduzir o volume lido nas buscas', false, 5)
+) AS o(text, is_correct, order_index);
+
+-- Q14 | drag_and_drop | super difícil | Permissões com GRANT e REVOKE | Exercícios 3 | s1: Acessar como administrador (root), s2: REVOKE ALL ON projeto.*, s3: FLUSH PRIVILEGES
+WITH q AS (
+  INSERT INTO questions (topic_id, type, template, explanation)
+  SELECT t.id, 'drag_and_drop', 'Ao encerrar o acesso do usuário app ao schema projeto, o administrador executa, nesta ordem: 1º {{s1}}; 2º {{s2}}; 3º {{s3}}.', 'É preciso estar logado como administrador para usar REVOKE, que retira as permissões. Depois, FLUSH PRIVILEGES aplica a mudança.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 3: Desafio'
+), tm AS (
+  INSERT INTO question_terms (question_id, text, order_index)
+  SELECT q.id, v.text, v.order_index
+  FROM q CROSS JOIN (VALUES
+    ('FLUSH PRIVILEGES', 1), ('GRANT ALL ON projeto.*', 2), ('Acessar como administrador (root)', 3),
+    ('TRUNCATE TABLE Aluno', 4), ('REVOKE ALL ON projeto.*', 5), ('CREATE USER', 6)
+  ) AS v(text, order_index)
+  RETURNING id, text
+)
+INSERT INTO question_slots (question_id, slot_key, correct_term_id, order_index)
+SELECT q.id, v.slot_key, tm.id, v.order_index
+FROM q CROSS JOIN (VALUES
+  ('s1', 'Acessar como administrador (root)', 1), ('s2', 'REVOKE ALL ON projeto.*', 2), ('s3', 'FLUSH PRIVILEGES', 3)
+) AS v(slot_key, term_text, order_index)
+JOIN tm ON tm.text = v.term_text;
+
+-- Q15 | multiple_answer | super difícil | Criação de usuários com CREATE USER | Exercícios 3 | corretas: A, C, D
+WITH q AS (
+  INSERT INTO questions (topic_id, type, prompt, explanation)
+  SELECT t.id, 'multiple_answer', 'Após executar CREATE USER ''app''@''localhost'' IDENTIFIED BY ''lobo595''; como administrador, a equipe quer validar o acesso do novo usuário. Assinale todas as corretas.', 'EXIT sai da sessão do administrador, mysql -u app -p abre a sessão do novo usuário e, depois do GRANT, show databases; lista o schema liberado. O CREATE USER sozinho não concede permissões.'
+  FROM topics t JOIN subjects s ON s.id = t.subject_id
+  WHERE s.name = 'Banco de Dados' AND t.number = 4
+  RETURNING id
+), l AS (
+  INSERT INTO quiz_questions (quiz_id, question_id, order_index)
+  SELECT z.id, q.id,
+    (SELECT COALESCE(MAX(qq.order_index), 0) + 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  FROM q JOIN quizzes z
+    ON z.kind = 'exercise' AND z.title = 'Constraints e Controle de Acesso (DCL) — Exercícios 3: Desafio'
+)
+INSERT INTO question_options (question_id, text, is_correct, order_index)
+SELECT q.id, o.text, o.is_correct, o.order_index
+FROM q CROSS JOIN (VALUES
+  ('Para sair da sessão do administrador, digita-se EXIT no prompt do MySQL', true, 1),
+  ('O login do usuário app é feito com mysql -u root -p, informando a senha dele', false, 2),
+  ('O login do novo usuário usa mysql -u app -p, com a senha pedida em seguida', true, 3),
+  ('Com GRANT ALL ON projeto.*, o comando show databases; lista o schema projeto', true, 4),
+  ('O CREATE USER já concede ao usuário todas as permissões sobre o schema projeto', false, 5)
+) AS o(text, is_correct, order_index);
+
+-- 8. Conferência: aborta se alguma questão ficou fora das listas ou alguma lista ficou vazia
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM questions q
+    JOIN topics t ON t.id = q.topic_id
+    JOIN subjects s ON s.id = t.subject_id
+    WHERE s.name = 'Banco de Dados' AND t.number = 4
+      AND NOT EXISTS (
+        SELECT 1 FROM quiz_questions qq JOIN quizzes z ON z.id = qq.quiz_id
+        WHERE qq.question_id = q.id AND z.kind = 'exercise'
+      )
+  ) THEN
+    RAISE EXCEPTION 'Há questão da aula 4 de Banco de Dados fora das listas de exercícios';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM quizzes z
+    JOIN topics t ON t.id = z.topic_id
+    JOIN subjects s ON s.id = t.subject_id
+    WHERE s.name = 'Banco de Dados' AND t.number = 4 AND z.kind = 'exercise'
+      AND NOT EXISTS (SELECT 1 FROM quiz_questions qq WHERE qq.quiz_id = z.id)
+  ) THEN
+    RAISE EXCEPTION 'Há lista de exercícios da aula 4 de Banco de Dados sem questões';
+  END IF;
+END $$;
+
+COMMIT;
