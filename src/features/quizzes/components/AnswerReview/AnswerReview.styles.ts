@@ -110,7 +110,7 @@ export const StyledReviewBlank = styled.span<{ $tone: ReviewTone }>`
   ${({ theme, $tone }) =>
     $tone === "neutral" &&
     css`
-      background: rgba(0, 0, 0, 0.06);
+      background: ${theme.colors.neutral100};
       color: ${theme.colors.muted};
     `}
 `;

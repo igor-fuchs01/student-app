@@ -3,11 +3,14 @@ import { RouterProvider } from "react-router-dom";
 import { QueryProvider } from "@app/providers/QueryProvider";
 import { router } from "@app/router";
 import { GlobalStyle } from "@styles/GlobalStyle";
-import { theme } from "@styles/theme";
+import { darkTheme, theme } from "@styles/theme";
+import { useThemeStore } from "@styles/useThemeStore";
 
 export function App() {
+  const mode = useThemeStore((state) => state.mode);
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={mode === "dark" ? darkTheme : theme}>
       <GlobalStyle />
       <QueryProvider>
         <RouterProvider router={router} />

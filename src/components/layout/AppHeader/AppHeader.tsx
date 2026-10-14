@@ -1,5 +1,6 @@
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
+import { ThemeToggle } from "@components/ui/ThemeToggle";
 import { useLogout } from "@features/auth/hooks/useLogout";
 import { formatCount } from "@utils/formatCount";
 import {
@@ -59,6 +60,7 @@ export function AppHeader({ active, streakDays, logoutConfirmation }: AppHeaderP
           <Button variant="secondary" onClick={handleLogout}>
             Sair
           </Button>
+          <ThemeToggle />
         </StyledHeaderActions>
       </StyledHeaderInner>
     </StyledHeader>

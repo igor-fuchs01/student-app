@@ -22,7 +22,7 @@ const tileStateStyles = css<TileStateProps>`
   ${({ theme, $tone }) =>
     $tone === "empty" &&
     css`
-      background: rgba(0, 0, 0, 0.05);
+      background: ${theme.colors.neutral100};
       color: ${theme.colors.muted};
     `}
 
