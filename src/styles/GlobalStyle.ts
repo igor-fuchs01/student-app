@@ -5,6 +5,10 @@ export const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
   }
 
+  html {
+    color-scheme: ${({ theme }) => theme.colorScheme};
+  }
+
   html,
   body,
   #root {
