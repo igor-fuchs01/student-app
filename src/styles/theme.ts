@@ -1,4 +1,5 @@
 export const theme = {
+  colorScheme: "light",
   colors: {
     bg: "oklch(98% 0.006 90)",
     surface: "oklch(99.2% 0.004 90)",
