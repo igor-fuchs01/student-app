@@ -18,7 +18,7 @@ src/
 ├── assets/            # imagens importadas pelos componentes (ex.: logo-mark.png)
 ├── components/
 │   ├── layout/        # AppHeader, Brand (logo), PageLayout (header + conteúdo da página)
-│   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, FilterBar, Modal, ...)
+│   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, FilterBar, Modal, ThemeToggle, ...)
 ├── features/
 │   ├── auth/          # login, store de sessão (Zustand), useLogout
 │   ├── companies/     # aba Empresas: lista, filtro de categoria e link de trajeto no Google Maps
@@ -30,7 +30,7 @@ src/
 ├── services/
 │   ├── api/           # httpClient, módulos *Api, endpoints, erros e mocks/
 │   └── storage/       # tokenStorage, displayNameStorage e quizAttemptStorage (localStorage)
-├── styles/            # theme e GlobalStyle
+├── styles/            # theme/darkTheme, GlobalStyle e useThemeStore (modo claro/escuro)
 ├── types/             # schemas zod e tipos inferidos (alias @models)
 ├── utils/             # utilitários genéricos, sem regra de negócio
 ├── App.tsx
@@ -102,6 +102,11 @@ da tentativa.
 ### Zustand — estado global do cliente
 
 Usado **somente quando houver necessidade real** de estado global que não venha do servidor.
+
+Exemplo: `useThemeStore` (`styles/`) guarda o modo claro/escuro escolhido no `ThemeToggle` do
+`AppHeader`, persiste em `localStorage` (`student-app:theme-mode`) e, sem escolha salva, segue
+`prefers-color-scheme`. O `App.tsx` passa `theme` ou `darkTheme` ao `ThemeProvider`, então todas as
+páginas trocam juntas.
 
 ### A regra que evita a maior dor de cabeça
 

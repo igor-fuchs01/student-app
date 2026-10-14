@@ -1,5 +1,6 @@
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
+import { ThemeToggle } from "@components/ui/ThemeToggle";
 import { Brand } from "@components/layout/Brand";
 import { useLogout } from "@features/auth/hooks/useLogout";
 import { formatCount } from "@utils/formatCount";
@@ -76,6 +77,7 @@ export function AppHeader({
           <Button variant="secondary" onClick={handleLogout}>
             Sair
           </Button>
+          <ThemeToggle />
         </StyledHeaderActions>
       </StyledHeaderInner>
     </StyledHeader>
