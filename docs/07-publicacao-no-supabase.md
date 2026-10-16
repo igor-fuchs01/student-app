@@ -98,8 +98,14 @@ Cuidados:
   `npx supabase functions delete <nome>`.
 - Antes de publicar, confira os tipos: `cd supabase/functions && npx deno check */index.ts`.
 - As funções usam `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_DB_URL`, que o Supabase já
-  fornece em todo projeto hospedado. O único secret que o projeto define é o `ALLOWED_ORIGINS`
-  (próxima seção).
+  fornece em todo projeto hospedado. O projeto define dois secrets: o `ALLOWED_ORIGINS`
+  (próxima seção) e o `DB_POOLER_URL`.
+- **`DB_POOLER_URL`** é a URL do pooler em transaction mode, que limita as conexões reais com o
+  banco. Copie-a no painel, em **Connect → Transaction pooler** (porta `6543`), troque
+  `[YOUR-PASSWORD]` pela senha do banco e rode
+  `npx supabase secrets set DB_POOLER_URL="postgresql://...:6543/postgres"`. Sem ele, as funções
+  conectam direto pelo `SUPABASE_DB_URL`. O nome não pode começar com `SUPABASE_`, prefixo que a
+  CLI reserva.
 
 ## 4. Mudar o CORS
 
@@ -197,6 +203,7 @@ função ficam no painel, em **Edge Functions → <função> → Logs**.
 | O widget do CAPTCHA mostra erro de domínio | O hostname do app não está cadastrado no widget da Cloudflare. |
 | `Cannot find project ref. Have you run supabase link?` | Rode o `npx supabase link` da [seção 2](#2-entrar-e-ligar-o-repositório-ao-projeto). |
 | O deploy reclama do Docker | Abra o Docker Desktop ou use `--use-api`. |
+| `500` com `remaining connection slots are reserved for roles with the SUPERUSER attribute` (`53300`) nos logs | O banco chegou ao limite de conexões (60). Confira se o `DB_POOLER_URL` está definido ([seção 3](#3-publicar-edge-functions)) e, durante o uso, veja quem ocupa as vagas no SQL Editor: `select usename, application_name, state, count(*) from pg_stat_activity group by 1, 2, 3 order by 4 desc;` |
 
 ## 8. Resumo dos comandos
 
@@ -215,4 +222,7 @@ npx supabase functions deploy            # todas (obrigatório se mudou _shared/
 
 # CORS
 npx supabase secrets set ALLOWED_ORIGINS=<origem1>,<origem2>
+
+# pooler do banco (uma vez)
+npx supabase secrets set DB_POOLER_URL="postgresql://...:6543/postgres"
 ```

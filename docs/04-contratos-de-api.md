@@ -70,7 +70,10 @@ O que elas compartilham está em `supabase/functions/_shared/`:
   faz o mesmo sem exigir JWT e é usado só pela função temporária `register-student`;
 - `db.ts` — conexão direta com o Postgres (`SUPABASE_DB_URL`, driver `npm:postgres`), que alcança
   as views do schema `private` e permite transação. Ela ignora o RLS, então toda consulta filtra
-  pelo aluno do token;
+  pelo aluno do token. No projeto hospedado ela passa pelo pooler em transaction mode
+  (`DB_POOLER_URL`), e cada instância de função usa no máximo uma conexão (`max: 1`, o driver
+  enfileira as consultas simultâneas nela) e a fecha após 10 s ociosa (`idle_timeout`): o banco
+  aceita só 60 conexões, e sem esses limites cada instância segurava até 10 até ser encerrada;
 - `subjects.ts` e `questions.ts` — consultas usadas por mais de um endpoint;
 - `cors.ts` — o CORS de todas elas:
 

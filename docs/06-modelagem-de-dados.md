@@ -94,8 +94,8 @@ chamar a API sem passar pelo app, então a segurança fica em camadas:
   RPC nenhuma para chamar. As views e as funções auxiliares ficam no schema `private`, que não
   entra em `[api] schemas` do `config.toml` — nem em Exposed schemas, o equivalente no painel do
   projeto hospedado. Views ignoram o RLS, e é por isso que nenhuma fica em `public`.
-- **Conexão das edge functions.** Elas usam `SUPABASE_DB_URL` com a role `postgres`, que ignora o
-  RLS; por isso o aluno sai sempre do token, nunca de um parâmetro do corpo. As consultas usam
+- **Conexão das edge functions.** Elas usam a role `postgres`, que ignora o RLS, pelo pooler
+  (`DB_POOLER_URL`) no projeto hospedado ou por `SUPABASE_DB_URL` quando esse secret não existe; por isso o aluno sai sempre do token, nunca de um parâmetro do corpo. As consultas usam
   parâmetros (`sql` do driver `postgres`), nunca SQL montado com texto.
 - **Fechado por padrão.** O Supabase concede automaticamente às roles da API tudo que `postgres`
   cria em `public`; `ALTER DEFAULT PRIVILEGES` cancela essa concessão, então uma tabela ou função

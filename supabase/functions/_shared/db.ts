@@ -7,4 +7,13 @@ import postgres from "npm:postgres@3";
 // The SQL only returns rows; the JSON of each contract DTO is built in TypeScript. Counts and
 // percentages are cast to int and float8, which the driver returns as numbers (bigint and numeric
 // would come back as strings). prepare is off because the hosted pooler runs in transaction mode.
-export const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false });
+//
+// The hosted database accepts few connections, and every instance of every function holds its own
+// client: DB_POOLER_URL (the transaction pooler, a secret set only in the hosted project) caps the
+// real connections, one connection per instance is enough because the driver pipelines concurrent
+// queries, and an idle connection is closed instead of being held until the instance shuts down.
+export const sql = postgres(Deno.env.get("DB_POOLER_URL") ?? Deno.env.get("SUPABASE_DB_URL")!, {
+  prepare: false,
+  max: 1,
+  idle_timeout: 10,
+});
