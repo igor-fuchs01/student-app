@@ -7,6 +7,7 @@
 <p><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=1000&color=3B7D2C&center=true&vCenter=true&width=560&lines=Bem-vindo%28a%29+ao+Student+App+%F0%9F%8E%93;Pratique+com+simulados+de+verdade+%F0%9F%93%9D;Descubra+o+que+ainda+precisa+estudar+%F0%9F%93%9A;Const%C3%A2ncia+vale+mais+que+nota+%F0%9F%94%A5" alt="Typing SVG" /></p>
 
 **Estude para as provas sabendo exatamente o que revisar.**
+https://student-app-ads.vercel.app/
 
 [![CI](https://github.com/igor-fuchs01/student-app/actions/workflows/ci.yml/badge.svg)](https://github.com/igor-fuchs01/student-app/actions/workflows/ci.yml)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-5DAA2A)](LICENSE)
