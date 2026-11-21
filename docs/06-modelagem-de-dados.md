@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório) `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha) e `quiz_sprints` (o semestre da disciplina em `subjects.semester` e as sprints de cada simulado em `quiz_sprints`). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório) `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha) `quiz_sprints` (o semestre da disciplina em `subjects.semester` e as sprints de cada simulado em `quiz_sprints`) e `companies` (as empresas da aba Empresas e seus escritórios). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
@@ -83,6 +83,7 @@ direta com o Postgres e monta o JSON em TypeScript. O banco não gera nem guarda
 | `POST /quizzes/:id/attempts` | `submit-quiz-attempt` |
 | `GET /ranking` | `get-ranking` |
 | `GET /ranking/activity` | `get-activity-calendar?month=` |
+| `GET /companies` | `list-companies` |
 | `POST /auth/register` | `register-student` (temporário, sem JWT) |
 
 A chave do Supabase usada pelo front é pública, porque vai no navegador. Qualquer pessoa consegue
@@ -154,6 +155,8 @@ da equipe, inclusive quem não programa.
 | **Tentativa** | Envio de um simulado por um aluno. |
 | **Resposta** | O que o aluno respondeu em uma questão de uma tentativa, com o resultado da correção. |
 | **Dia de estudo** | Dia em que o aluno teve atividade. É a base do streak. |
+| **Empresa** | Empresa que deu palestra na universidade, com categoria (consultoria, banco ou outros), modelo de trabalho (presencial, híbrido ou remoto) e uma descrição do que faz. |
+| **Escritório** | Endereço de uma empresa, com um rótulo opcional (ex.: Alphaville). O endereço da casa do aluno não é guardado. |
 
 ### 1.2 Relacionamentos
 
@@ -176,6 +179,7 @@ da equipe, inclusive quem não programa.
 | Simulado — Sprint | 1 : N | Um simulado cobre uma ou mais sprints, sem repetir; a sprint é um número de 1 a 3, não uma entidade. Lista de exercícios não tem sprint. |
 | Simulado — Questão | N : M | Um simulado tem pelo menos uma questão; uma questão pode estar em vários simulados. O relacionamento tem um atributo: a **ordem** da questão no simulado. |
 | Simulado — Tentativa | 1 : N | Sem limite: o aluno refaz o simulado quantas vezes quiser, e cada envio vira uma tentativa. |
+| Empresa — Escritório | 1 : N | Uma empresa tem um ou mais escritórios; uma empresa remota pode não ter nenhum. Regra documentada, não garantida pelo banco, porque envolve as duas tabelas. |
 | Tentativa — Questão | N : M, via **Resposta** | Resposta é uma entidade associativa: no máximo uma por questão em cada tentativa. Questões sem resposta contam como não respondidas. |
 
 ### 1.3 Diagrama conceitual
@@ -202,6 +206,8 @@ erDiagram
     SIMULADO ||--o{ TENTATIVA : "gera"
     TENTATIVA ||--o{ RESPOSTA : "contém"
     QUESTAO ||--o{ RESPOSTA : "é respondida em"
+
+    EMPRESA ||--o{ ESCRITORIO : "tem"
 ```
 
 Como ler a notação (pé de galinha): `||` = exatamente um, `|o` = zero ou um, `o{` = zero ou
@@ -252,6 +258,8 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Resposta | `quiz_attempt_answers`, com os valores múltiplos em `quiz_attempt_answer_options`, `quiz_attempt_answer_blanks` e `quiz_attempt_answer_slots` |
 | Dia de estudo | `student_activity_days` |
 | Código de acesso disponível (temporário) | `available_logins` |
+| Empresa | `companies` |
+| Escritório | `company_offices` |
 
 Nomes de tabelas e colunas em inglês, seguindo a convenção de código do projeto.
 
@@ -305,6 +313,10 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
   ([`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 5).
 - **Meta semanal** é uma coluna de `students` (`weekly_goal_target`), porque é o único dado de
   gamificação que não pode ser calculado.
+- **Empresas.** `companies` não se liga a nenhuma outra tabela: é o mesmo conteúdo para todos os
+  alunos. Os escritórios ficam em `company_offices` (`order_index` único por empresa), porque uma
+  empresa pode ter vários; `label` é nulo quando ela tem um só. Categoria e modelo de trabalho são
+  enums. O endereço do aluno nunca chega ao banco: o trajeto é aberto no Google Maps pelo navegador.
 - **Informações derivadas** (seção 1.4) viram views, listadas na seção 2.4.
 - **Índices.** Só recebe índice próprio a chave estrangeira que nenhuma restrição `UNIQUE` já
   indexa pela primeira coluna: o PostgreSQL não cria índice para o lado que referencia, e o
@@ -352,6 +364,8 @@ erDiagram
     quiz_attempt_answers ||--o{ quiz_attempt_answer_slots : ""
     question_slots ||--o{ quiz_attempt_answer_slots : ""
     question_terms ||--o{ quiz_attempt_answer_slots : ""
+
+    companies ||--o{ company_offices : ""
 
     auth_users |o--o| available_logins : ""
 
@@ -520,10 +534,27 @@ erDiagram
         int student_id PK, FK
         date activity_date PK
     }
+
+    companies {
+        int id PK
+        text name
+        company_category category
+        company_work_model work_model
+        text description
+    }
+
+    company_offices {
+        int id PK
+        int company_id FK
+        text label
+        text address
+        int order_index
+    }
 ```
 
 Enums: `question_type`, `quiz_kind` (`exam`, `exercise`), `difficulty_level` (`easy`,
-`medium`, `hard`) e `review_status` (`correct`, `incorrect`, `pending_review`).
+`medium`, `hard`), `review_status` (`correct`, `incorrect`, `pending_review`), `company_category`
+(`consulting`, `bank`, `other`) e `company_work_model` (`on_site`, `hybrid`, `remote`).
 
 ### 2.4 Views (informações derivadas)
 

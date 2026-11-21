@@ -309,3 +309,24 @@ calendário de um aluno nunca é exibido para outros.
 ### Elementos de gamificação usados
 
 Gamificação **moderada**: streaks, badges, metas semanais, número de questões, simulados concluídos, dias estudados, pequenas conquistas.
+
+---
+
+## 12. Empresas
+
+A aba "Empresas" lista as empresas que já deram palestra na universidade, para o aluno conhecer
+onde pode estagiar ou trabalhar.
+
+- Cada empresa mostra o nome, a categoria (consultoria, banco ou outros), o modelo de trabalho
+  (presencial, híbrido ou remoto), o que ela faz e os endereços dos escritórios. Uma empresa remota
+  pode não ter escritório.
+- A lista filtra por categoria.
+- O aluno pode digitar o endereço de casa e abrir, em cada escritório de uma empresa que não é
+  remota, o trajeto até lá no Google Maps, por transporte público, que mostra o caminho e o tempo.
+  O tempo aparece no Maps, não dentro do app
+  ([`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 18).
+- **Privacidade:** o endereço do aluno não é salvo em lugar nenhum, nem no banco nem no navegador.
+  Ele só sai do app quando o aluno abre um trajeto, e vai direto para o Google Maps; a tela avisa
+  isso junto do campo.
+- As empresas são cadastradas pela equipe, por script SQL
+  ([`empresas/empresas.sql`](empresas/empresas.sql)); não há cadastro pela tela.

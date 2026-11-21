@@ -21,6 +21,7 @@ src/
 │   └── ui/            # componentes base, sem regra de negócio (Badge, Button, Card, FilterBar, Modal, ...)
 ├── features/
 │   ├── auth/          # login, store de sessão (Zustand), useLogout
+│   ├── companies/     # aba Empresas: lista, filtro de categoria e link de trajeto no Google Maps
 │   ├── dashboard/
 │   ├── exercises/     # lista de exercícios por assunto (a tentativa reaproveita quizzes/)
 │   ├── quizzes/       # lista, tentativa, revisão e resultado de simulados e exercícios

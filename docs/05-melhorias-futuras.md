@@ -26,6 +26,7 @@ dos itens são estáveis, porque outros documentos os referenciam: não renumere
 | 15 | [Histórico de provas realizadas](#15-histórico-de-provas-realizadas) | Produto | — |
 | 16 | [Endpoints de administração do conteúdo](#16-endpoints-de-administração-do-conteúdo) | Produto | Backend |
 | 17 | [Resetar o preparo de um simulado](#17-resetar-o-preparo-de-um-simulado) | Produto | — |
+| 18 | [Tempo de trajeto dentro do app](#18-tempo-de-trajeto-dentro-do-app) | Produto | Backend |
 
 ---
 
@@ -566,5 +567,39 @@ resultado, e um reset só faz sentido quando o aluno tiver feito o mesmo simulad
    TanStack Query.
 5. **Mock.** `handlers.ts` ganha a rota, descartando as tentativas guardadas no mock.
 6. **Documentação.** Ao implementar, atualizar [`02-regras-de-negocio.md`](02-regras-de-negocio.md),
+   [`04-contratos-de-api.md`](04-contratos-de-api.md) e
+   [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md), e remover este item daqui.
+
+---
+
+## 18. Tempo de trajeto dentro do app
+
+**Situação atual.** Na aba Empresas, o aluno digita o endereço de casa e o link "Ver trajeto no
+Google Maps" abre o Maps em outra aba, com origem, destino e transporte público
+([`02-regras-de-negocio.md`](02-regras-de-negocio.md), seção 12). É gratuito e não precisa de
+chave de API, mas o tempo de viagem só aparece no Maps: o aluno não compara as empresas pelo tempo
+sem abrir uma aba para cada escritório.
+
+**Objetivo.** Mostrar no próprio card de cada escritório o tempo estimado de casa até lá (por
+transporte público, de carro ou a pé) e permitir ordenar as empresas por esse tempo.
+
+**Por que fica para depois do MVP.** Calcular rotas exige um serviço pago por consulta (Google
+Routes API, Distance Matrix ou similar) e uma chave que não pode ir para o navegador. A opção
+gratuita escolhida resolve a necessidade sem custo.
+
+**Proposta.**
+
+1. **Contrato** (aditivo, [`04-contratos-de-api.md`](04-contratos-de-api.md), seção 1.4):
+   `POST /companies/travel-times` com `{ origin, mode }`, devolvendo o tempo e a distância de cada
+   escritório. O endereço vai no corpo, nunca na URL, para não ficar em log de acesso.
+2. **Edge function.** Chama a API de rotas com a chave guardada em secret do Supabase, consulta
+   todos os escritórios numa chamada só (matriz origem × destinos) e nunca grava o endereço do
+   aluno. Um limite de consultas por aluno controla o custo.
+3. **Coordenadas.** Para baratear a consulta, guardar latitude e longitude de cada escritório em
+   `company_offices` (migration nova), geocodificadas uma vez no cadastro.
+4. **Privacidade (LGPD).** O endereço continua sem ser salvo; a tela passa a avisar que ele é
+   enviado ao servidor do app e ao provedor de rotas. Se o aluno quiser, o app pode lembrar o
+   endereço só no navegador, com a opção de apagar.
+5. **Documentação.** Ao implementar, atualizar [`02-regras-de-negocio.md`](02-regras-de-negocio.md),
    [`04-contratos-de-api.md`](04-contratos-de-api.md) e
    [`06-modelagem-de-dados.md`](06-modelagem-de-dados.md), e remover este item daqui.
