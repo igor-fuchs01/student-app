@@ -16,6 +16,7 @@ import {
   StyledSubtitle,
   StyledTimeUpNotice,
   StyledCountRow,
+  StyledSubmitHint,
   StyledFooter,
   StyledConfirmTitle,
   StyledConfirmBody,
@@ -31,7 +32,7 @@ const LEGEND: QuestionGridLegendItem[] = [
 
 export function QuizReviewPage() {
   const navigate = useNavigate();
-  const { listPath, submitLabel, confirmSubmitTitle } = useAttemptKind();
+  const { listPath, submitLabel, confirmSubmitTitle, backToListLabel } = useAttemptKind();
   const {
     quiz,
     answers,
@@ -48,6 +49,8 @@ export function QuizReviewPage() {
     quiz.questions.filter((q) => isQuestionAnswered(q, answers[q.id])).map((q) => q.id),
   );
   const unansweredCount = quiz.questions.length - answeredIds.size;
+  // An attempt with no answered question is refused by the server and is never sent.
+  const hasAnswers = answeredIds.size > 0;
 
   function goToQuestion(index: number) {
     setCurrentIndex(index);
@@ -62,11 +65,18 @@ export function QuizReviewPage() {
       {isTimeUp && (
         <StyledTimeUpNotice>
           <p role="status">
-            {submitError
-              ? "O tempo acabou, mas não foi possível enviar suas respostas."
-              : "O tempo acabou. Enviando suas respostas…"}
+            {!hasAnswers
+              ? "O tempo acabou sem nenhuma questão respondida, então nada foi enviado."
+              : submitError
+                ? "O tempo acabou, mas não foi possível enviar suas respostas."
+                : "O tempo acabou. Enviando suas respostas…"}
           </p>
-          {submitError && (
+          {!hasAnswers && (
+            <Button variant="primary" onClick={() => navigate(listPath)}>
+              {backToListLabel}
+            </Button>
+          )}
+          {hasAnswers && submitError && (
             <>
               <StyledErrorMessage role="alert">{submitError}</StyledErrorMessage>
               <Button variant="primary" onClick={submit} isLoading={isSubmitting}>
@@ -98,12 +108,18 @@ export function QuizReviewPage() {
         onSelect={isTimeUp ? undefined : goToQuestion}
       />
 
+      {!isTimeUp && !hasAnswers && (
+        <StyledSubmitHint role="status">
+          Responda ao menos uma questão para poder enviar.
+        </StyledSubmitHint>
+      )}
+
       {!isTimeUp && (
         <StyledFooter>
           <Button variant="secondary" onClick={() => navigate(`${listPath}/${quiz.id}`)}>
             Voltar a responder
           </Button>
-          <Button variant="primary" onClick={() => setConfirmOpen(true)}>
+          <Button variant="primary" onClick={() => setConfirmOpen(true)} disabled={!hasAnswers}>
             {submitLabel}
           </Button>
         </StyledFooter>

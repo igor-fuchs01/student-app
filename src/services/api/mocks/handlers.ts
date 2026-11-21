@@ -197,6 +197,14 @@ export const handlers = [
       const quizId = String(params.quizId);
       const result = correctMockQuizAttempt(quizId, payload.data.answers);
       if (!result) return errorResponse(404, "NOT_FOUND", "Simulado não encontrado.");
+      // Same rule as submit-quiz-attempt: an attempt with no question answered is refused.
+      if (result.correctCount + result.incorrectCount + result.selfReviewCount === 0) {
+        return errorResponse(
+          400,
+          "VALIDATION_ERROR",
+          "Responda ao menos uma questão antes de enviar.",
+        );
+      }
 
       registerMockQuizAttempt(account.user.id, quizId);
       return HttpResponse.json(result);

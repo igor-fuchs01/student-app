@@ -651,7 +651,9 @@ tentativa.
   então não atrasa quando a aba fica em segundo plano.
 - No modo com tempo limite, quando o tempo acaba as respostas são travadas e a tentativa é
   enviada automaticamente. Se o envio falhar, a tela de revisão mostra o erro e permite
-  tentar enviar de novo, sem voltar a responder.
+  tentar enviar de novo, sem voltar a responder. Se o tempo acabar sem nenhuma questão
+  respondida, nada é enviado: a tela avisa que o tempo acabou sem respostas e oferece voltar à
+  lista.
 - Sair da tentativa (navegação, fechar a aba ou "Sair") pede confirmação.
 - As respostas ficam só em memória até o envio (ver
   [`05-melhorias-futuras.md`](05-melhorias-futuras.md), item 1).
@@ -668,7 +670,7 @@ Envia as respostas de uma tentativa e retorna a correção.
 
 | Campo | Tipo | Regras |
 |---|---|---|
-| `answers` | [`QuizAnswer`](#313-quizanswer)`[]` | Obrigatório. Pode ser vazio. No máximo uma resposta por questão. Só as questões respondidas são enviadas: questões deixadas em branco, ou com lacunas incompletas, ficam de fora e contam como não respondidas. |
+| `answers` | [`QuizAnswer`](#313-quizanswer)`[]` | Obrigatório. No máximo uma resposta por questão. Só as questões respondidas são enviadas: questões deixadas em branco, ou com lacunas incompletas, ficam de fora e contam como não respondidas. Ao menos uma questão precisa estar respondida: uma lista vazia, ou só com respostas incompletas, é recusada. |
 
 ```json
 {
@@ -685,6 +687,7 @@ Envia as respostas de uma tentativa e retorna a correção.
 |---|---|---|
 | `200` | [`QuizResult`](#314-quizresult) | Respostas corrigidas. |
 | `400` | Erro, código `VALIDATION_ERROR` | Corpo ausente ou inválido. |
+| `400` | Erro, código `VALIDATION_ERROR`, mensagem "Responda ao menos uma questão antes de enviar." | Nenhuma questão respondida depois da correção (lista vazia ou só respostas incompletas). Nada é gravado: nem tentativa, nem dia de estudo. |
 | `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
 | `404` | Erro, código `NOT_FOUND` | Nenhum simulado com esse `id`. |
 
@@ -692,10 +695,12 @@ Envia as respostas de uma tentativa e retorna a correção.
 e valida o formato com zod (ids numéricos, tamanhos de [1.5](#15-limites-de-tamanho)). Depois
 confere cada resposta contra o gabarito do simulado (questão do simulado e sem repetição, opção,
 lacuna ou termo da própria questão, `maxLength` da dissertativa) e corrige em TypeScript
-(`grade.ts`). A tentativa, as respostas e o dia de estudo são gravados numa única transação, e o
+(`grade.ts`). Se nenhuma resposta sobrar depois da correção, recusa com `400` sem gravar nada. A
+tentativa, as respostas e o dia de estudo são gravados numa única transação, e o
 `QuizResult` é calculado a partir das respostas corrigidas.
 
-**Comportamento no cliente:** em caso de sucesso, `{ quiz, answers, result }` é salvo no
+**Comportamento no cliente:** sem nenhuma questão respondida, a tela de revisão desabilita o
+botão de envio e avisa o aluno. Em caso de sucesso, `{ quiz, answers, result }` é salvo no
 `localStorage` na chave `student-app:quiz-attempt:<userId>:<quizId>` e o aluno é levado para
 `/simulados/:quizId/resultado`, que lê essa chave. O resultado de um aluno nunca aparece para
 outro aluno no mesmo navegador.
@@ -1208,6 +1213,8 @@ Particularidades do mock:
 - **Calendário de estudos:** usa os dias de estudo desse mesmo histórico, então concorda com o
   dashboard. Cada dia ativo recebe uma mistura fixa de simulados e listas de exercícios, derivada
   do próprio dia; envios feitos no mock não aparecem nele.
+- **Envio em branco:** como na edge function, um envio sem nenhuma questão respondida responde
+  `400` `VALIDATION_ERROR` e não conta como tentativa.
 - **Nota e desempenho por assunto:** questões `self_review` ficam fora de `scorePercent` e de
   `subjectPerformance`; questões não respondidas entram no denominador dos dois.
 - **Bundle:** o MSW e os dados do mock são carregados por import dinâmico somente quando

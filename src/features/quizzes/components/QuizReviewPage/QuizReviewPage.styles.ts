@@ -38,6 +38,12 @@ export const StyledCountRow = styled.div`
   flex-wrap: wrap;
 `;
 
+export const StyledSubmitHint = styled.p`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 13px;
+  margin: 0 0 12px;
+`;
+
 export const StyledFooter = styled.div`
   display: flex;
   justify-content: space-between;

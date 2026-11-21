@@ -110,6 +110,12 @@ serveEndpoint("POST", async ({ request, studentId }) => {
     if (result) graded.set(question.id, result);
   }
 
+  // A blank attempt is not a study day (docs/02-regras-de-negocio.md §11). Checked after grading,
+  // because an answer left partially filled passes the schema but counts as unanswered.
+  if (graded.size === 0) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Responda ao menos uma questão antes de enviar.");
+  }
+
   const submittedAt = await sql.begin(async (tx) => {
     const [attempt] = await tx<{ id: number; submitted_at: Date }[]>`
       insert into quiz_attempts (quiz_id, student_id)
