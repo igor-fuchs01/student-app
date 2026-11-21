@@ -74,8 +74,10 @@ export const StyledTableHead = styled.thead`
   }
 `;
 
-export const StyledTableRow = styled.tr`
+export const StyledTableRow = styled.tr<{ $selected: boolean }>`
   border-top: 1px solid ${({ theme }) => theme.colors.divider};
+  cursor: pointer;
+  background: ${({ theme, $selected }) => ($selected ? theme.colors.accent100 : "transparent")};
 
   td {
     padding: 14px 18px;
@@ -109,6 +111,8 @@ export const StyledTableRow = styled.tr`
     &:hover {
       background: ${({ theme }) => theme.colors.surface};
     }
+
+    ${({ theme, $selected }) => $selected && `outline: 2px solid ${theme.colors.accent};`}
 
     td,
     td:first-child {
@@ -151,6 +155,12 @@ export const StyledQuizTitle = styled.td`
   white-space: nowrap;
   text-overflow: ellipsis;
 
+  /* The 44 px toggle inside already gives the row its height. */
+  && {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
   ${StyledTableRow}:hover & {
     font-weight: 700;
   }
@@ -160,6 +170,57 @@ export const StyledQuizTitle = styled.td`
     font-size: 15px;
     font-weight: 700;
     white-space: normal;
+  }
+`;
+
+// The simulado name is the row's disclosure button, so the keyboard can open the content summary.
+export const StyledQuizToggle = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  span:first-child {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 11px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+`;
+
+export const StyledSummaryRow = styled.tr`
+  background: ${({ theme }) => theme.colors.surface2};
+
+  td {
+    padding: 16px 18px 18px 38px;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    display: block;
+    margin-top: -4px;
+    border-radius: ${({ theme }) => theme.radii.lg};
+
+    td {
+      display: block;
+      padding: 16px;
+    }
   }
 `;
 
