@@ -414,6 +414,9 @@ verify_jwt = false
 [functions.list-quizzes]
 verify_jwt = false
 
+[functions.list-companies]
+verify_jwt = false
+
 [functions.get-quiz]
 verify_jwt = false
 

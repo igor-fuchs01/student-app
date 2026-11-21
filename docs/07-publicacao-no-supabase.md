@@ -187,7 +187,12 @@ npx supabase db push          # aplica as que faltam
 O `db push` não roda o `supabase/seed.sql`: os dados de exemplo são só do ambiente local.
 
 Se a mudança no banco for usada por uma edge function, publique o banco **antes** da função, para
-ela nunca consultar uma coluna ou view que ainda não existe.
+ela nunca consultar uma coluna ou view que ainda não existe. Pelo mesmo motivo, quando a função passa a
+devolver um campo que o schema zod do app exige, publique a função **antes** do app; senão o app
+recusa a resposta antiga com `INVALID_RESPONSE`. Dados que a migration não preenche (como as
+sprints dos simulados já cadastrados, em
+[`questoes/simulados-sprints.sql`](questoes/simulados-sprints.sql)) são inseridos depois do
+`db push`, pelo SQL Editor.
 
 ## 7. Conferir e resolver problemas
 

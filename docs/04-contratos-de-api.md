@@ -6,7 +6,7 @@ A fonte da verdade é o código; atualize este documento sempre que algo abaixo 
 | O quê | Onde |
 |---|---|
 | Caminhos dos endpoints | `src/services/api/endpoints.ts` |
-| Formato de request/response (schemas zod) | `src/types/auth.ts`, `src/types/dashboard.ts`, `src/types/subjects.ts`, `src/types/quizzes.ts`, `src/types/ranking.ts` |
+| Formato de request/response (schemas zod) | `src/types/auth.ts`, `src/types/dashboard.ts`, `src/types/subjects.ts`, `src/types/quizzes.ts`, `src/types/ranking.ts`, `src/types/companies.ts` |
 | Códigos de erro e corpo do erro | `src/services/api/errors.ts` |
 | Transporte e tratamento de erro no modo mock | `src/services/api/httpClient.ts` |
 | Transporte e tratamento de erro no Supabase | `src/services/api/supabase/` |
@@ -51,6 +51,7 @@ função nenhuma exposta: as edge functions leem as tabelas e views e montam o J
 | `POST /quizzes/:id/attempts` | `POST submit-quiz-attempt`, com o corpo `{ quizId, answers }` |
 | `GET /ranking` | `GET get-ranking` |
 | `GET /ranking/activity` | `GET get-activity-calendar?month=` |
+| `GET /companies` | `GET list-companies` |
 
 Quando os mocks estão desativados, `VITE_SUPABASE_URL` (URL `http://` ou `https://`) e
 `VITE_SUPABASE_PUBLISHABLE_KEY` são obrigatórias; sem elas a aplicação se recusa a iniciar. As
@@ -155,6 +156,7 @@ O que existe são tetos de tamanho no envio de simulado. No modo mock não há l
 | `POST` | `/quizzes/:id/attempts` | Sim | `200` [`QuizResult`](#314-quizresult) | `quizzesApi.submitQuizAttempt` |
 | `GET` | `/ranking` | Sim | `200` [`RankingData`](#315-rankingdata) | `rankingApi.getRanking` |
 | `GET` | `/ranking/activity` | Sim | `200` [`ActivityCalendar`](#321-activitycalendar) | `rankingApi.getActivityCalendar` |
+| `GET` | `/companies` | Sim | `200` [`Company`](#322-company)`[]` | `companiesApi.getCompanies` |
 
 ---
 
@@ -510,20 +512,37 @@ Lista os simulados disponíveis para o aluno. As listas de exercícios não entr
 ```json
 [
   {
-    "id": "bd-1",
-    "title": "Banco de Dados — Simulado 1",
-    "subjectName": "Banco de Dados",
-    "questionCount": 4,
-    "durationMinutes": 10,
+    "id": "so-1",
+    "title": "Sistemas Operacionais — Sprint 1 e 2",
+    "subjectName": "Sistemas Operacionais",
+    "questionCount": 30,
+    "durationMinutes": 60,
     "attemptsCount": 2,
-    "difficulty": "hard"
+    "difficulty": "hard",
+    "semester": 1,
+    "sprints": [1, 2],
+    "topics": [
+      {
+        "number": 1,
+        "name": "Processos e Threads",
+        "subtopics": ["Estados do Processo", "Escalonamento"]
+      }
+    ]
   }
 ]
 ```
 
-**Comportamento no cliente:** acima da tabela há dois filtros, aplicados na própria tela sobre a
+**Comportamento no cliente:** acima da tabela há quatro filtros, aplicados na própria tela sobre a
 lista já carregada: disciplina (as `subjectName` presentes na resposta) e dificuldade (Fácil, Média
-ou Difícil). Se nenhum simulado atende aos filtros, aparece um aviso no lugar da tabela. Não há
+ou Difícil), em seletores, e sprint (1, 2 e 3) e semestre (1º a 5º), em caixas de seleção que
+aceitam várias marcadas. Um simulado aparece no filtro de sprint quando **todas** as suas
+`sprints` estão marcadas: com só a 1 marcada, "Sprint 1 e 2" some; com a 1 e a 2, aparecem os da
+sprint 1, os da sprint 2 e ele. Um simulado sem sprint só aparece com o filtro de sprint vazio. No
+de semestre, basta o `semester` estar marcado. Nenhuma caixa marcada é o mesmo que não filtrar.
+Se nenhum simulado atende aos filtros, aparece um aviso no lugar da tabela. Clicar numa linha (ou
+no nome do simulado, que é um botão com `aria-expanded`) abre logo abaixo dela "O que este
+simulado aborda", com as aulas de `topics` e seus subassuntos; clicar de novo fecha. O "Iniciar"
+não abre nem fecha o resumo. Não há
 limite de tentativas. `attemptsCount` é exibido apenas como
 informação; o botão "Iniciar" está sempre disponível.
 
@@ -745,6 +764,47 @@ tela enquanto o próximo carrega.
 
 ---
 
+### `GET /companies`
+
+Lista as empresas que já deram palestra na universidade, por nome, cada uma com os escritórios.
+É a mesma lista para todos os alunos.
+
+**Autenticação:** exigida. **Corpo da requisição:** nenhum.
+
+**Respostas**
+
+| Status | Corpo | Quando |
+|---|---|---|
+| `200` | [`Company`](#322-company)`[]` | Sempre, para um aluno autenticado. Pode ser vazio. |
+| `401` | Erro, código `UNAUTHORIZED` | Token ausente, inválido, ou expirado. |
+
+```json
+[
+  {
+    "id": "7",
+    "name": "Avanade",
+    "category": "consulting",
+    "workModel": "hybrid",
+    "description": "Consultoria no ecossistema Microsoft (nuvem, inteligência artificial, dados e sustentabilidade).",
+    "offices": [
+      { "label": "São Paulo", "address": "Av. das Nações Unidas, 14.401 – Chácara Santo Antônio, São Paulo/SP" },
+      { "label": "Alphaville", "address": "Rua Bonnard, 980 – Barueri/SP" }
+    ]
+  }
+]
+```
+
+**Comportamento no cliente:** a aba "Empresas" mostra um card por empresa, com categoria, modelo
+de trabalho, descrição e escritórios, e um filtro de categoria (Consultoria, Banco ou Outros)
+aplicado na própria tela. Acima dos cards há o campo "Seu endereço". Cada escritório de uma empresa
+que não é remota tem o link "Ver trajeto no Google Maps", que abre em nova aba
+`https://www.google.com/maps/dir/?api=1&origin=<endereço>&destination=<escritório>&travelmode=transit`
+(sem `origin` quando o campo está vazio, e o Maps pergunta a origem). O endereço do aluno fica só
+na memória da página: não vai para o backend nem é salvo no navegador (`localStorage`), e só sai
+do app no link, para o Google Maps, que calcula o trajeto e o tempo de transporte público.
+
+---
+
 ### 3.1 `StudentUser`
 
 | Campo | Tipo | Regras |
@@ -854,6 +914,17 @@ para `dashboardApi.getDashboard` e que vira a query string de `GET /dashboard`.
 | `durationMinutes` | integer | `> 0`. Duração do modo com tempo limite. |
 | `attemptsCount` | integer | `>= 0`. Quantas tentativas deste simulado o aluno já enviou. |
 | `difficulty` | enum | `"easy"`, `"medium"`, ou `"hard"`. A UI exibe "Fácil", "Média" e "Difícil". |
+| `semester` | integer | De `1` a `5`. Semestre da disciplina do simulado. |
+| `sprints` | integer[] | Cada um de `1` a `3`, em ordem crescente e sem repetir. As sprints cujo conteúdo o simulado cobre: uma, ou mais num simulado de revisão (ex.: `[1, 2]`). Pode vir vazio para um simulado ainda sem sprint cadastrada. |
+| `topics` | `QuizTopic[]` | Os assuntos (aulas) das questões do simulado, por `number` crescente. Pode vir vazio. |
+
+`QuizTopic`:
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `number` | integer | `> 0`. Número da aula, como em [`SubjectTopic`](#317-subjecttopic). |
+| `name` | string | Não vazio. Nome do assunto. |
+| `subtopics` | string[] | Nomes dos subassuntos do assunto, na ordem de exibição. Todos os do assunto, porque a questão é do assunto, não do subassunto. Pode vir vazio. |
 
 ### 3.11 `QuizDetail`
 
@@ -1013,6 +1084,19 @@ Um assunto (aula) da disciplina, como em [`02-regras-de-negocio.md`](02-regras-d
 Um dia com os dois contadores em `0` foi um dia de estudo sem envio registrado; a tela o mostra só
 como dia ativo.
 
+### 3.22 `Company`
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `id` | string | Não vazio. |
+| `name` | string | Não vazio e único. |
+| `category` | enum | `"consulting"`, `"bank"` ou `"other"`. A UI exibe "Consultoria", "Banco" e "Outros". |
+| `workModel` | enum | `"on_site"`, `"hybrid"` ou `"remote"`. A UI exibe "Presencial", "Híbrido" e "Remoto". |
+| `description` | string | Não vazio. O que a empresa faz, em uma ou duas frases. |
+| `offices` | `CompanyOffice[]` | Na ordem de exibição. Pode ser vazio só numa empresa remota. |
+| `offices[].label` | string | Opcional; não vazio quando vem. Qual escritório é (ex.: "Alphaville"). Ausente quando a empresa tem um só. |
+| `offices[].address` | string | Não vazio. Endereço em texto livre, usado como destino no Google Maps. |
+
 ---
 
 ## 4. Erros
@@ -1096,7 +1180,10 @@ Particularidades do mock:
   (`EXTRA_LESSONS`), cada uma com um subassunto "Visão geral", pontos-chave e nenhum material, para
   as telas mostrarem um semestre cheio.
 - **Simulados:** todos os simulados da lista têm detalhe. Cada um usa as questões da sua
-  disciplina no banco do mock, e `questionCount` é calculado a partir delas. `attemptsCount` é
+  disciplina no banco do mock, e `questionCount` é calculado a partir delas. Há um simulado por
+  sprint e um de "Sprint 1 e 2", todos do 1º semestre; `topics` vem dos assuntos de
+  `mocks/subjects.ts` escolhidos para cada simulado (`topicIds`), já que as questões do mock não
+  têm assunto. `attemptsCount` é
   contado em memória e volta a zero quando a página é recarregada.
 - **Exercícios:** as listas ficam em `mocks/quizzes.ts`, cada uma com o assunto (ids de
   `mocks/subjects.ts`) e as questões do banco do mock escolhidas para ele. Alguns assuntos ficam
@@ -1107,6 +1194,8 @@ Particularidades do mock:
   (`EXTRA_LIST_COUNTS`) com as questões da disciplina, a lista sai na mesma ordem da edge function
   (disciplina, aula, título), e a conta `demo0001` começa com algumas listas já feitas, para a tela
   mostrar aulas feitas, em andamento e não iniciadas.
+- **Empresas:** quatro empresas fictícias em `mocks/companies.ts`, uma de cada categoria e de cada
+  modelo de trabalho, incluindo uma remota sem escritório.
 - **Correção:** `multiple_answer` só é correta com exatamente as alternativas corretas;
   `single_choice` e `drag_and_drop` exigem todas as lacunas corretas. Uma dissertativa (ou
   lacuna dissertativa) idêntica à referência, ignorando maiúsculas e espaços extras, é

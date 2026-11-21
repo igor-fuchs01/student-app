@@ -129,6 +129,13 @@ export const router = createBrowserRouter([
             Component: RankingPage,
           })),
       },
+      {
+        path: "/empresas",
+        lazy: () =>
+          import("@features/companies/components/CompaniesPage").then(({ CompaniesPage }) => ({
+            Component: CompaniesPage,
+          })),
+      },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },

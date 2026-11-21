@@ -41,3 +41,43 @@ export const StyledVisuallyHidden = styled.label`
   clip: rect(0 0 0 0);
   white-space: nowrap;
 `;
+
+export const StyledCheckboxGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+export const StyledCheckboxGroupLabel = styled.span`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0 2px 0 4px;
+`;
+
+export const StyledCheckboxChip = styled.label<{ $checked: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid
+    ${({ theme, $checked }) => ($checked ? theme.colors.accent : theme.colors.divider)};
+  border-radius: ${({ theme }) => theme.radii.pill};
+  background: ${({ theme, $checked }) => ($checked ? theme.colors.accent100 : theme.colors.surface)};
+  color: ${({ theme, $checked }) => ($checked ? theme.colors.accent600 : theme.colors.text)};
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+
+  input {
+    margin: 0;
+    accent-color: ${({ theme }) => theme.colors.accent};
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 1px;
+  }
+`;
