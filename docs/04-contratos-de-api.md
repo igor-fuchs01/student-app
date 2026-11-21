@@ -510,20 +510,37 @@ Lista os simulados disponíveis para o aluno. As listas de exercícios não entr
 ```json
 [
   {
-    "id": "bd-1",
-    "title": "Banco de Dados — Simulado 1",
-    "subjectName": "Banco de Dados",
-    "questionCount": 4,
-    "durationMinutes": 10,
+    "id": "so-1",
+    "title": "Sistemas Operacionais — Sprint 1 e 2",
+    "subjectName": "Sistemas Operacionais",
+    "questionCount": 30,
+    "durationMinutes": 60,
     "attemptsCount": 2,
-    "difficulty": "hard"
+    "difficulty": "hard",
+    "semester": 1,
+    "sprints": [1, 2],
+    "topics": [
+      {
+        "number": 1,
+        "name": "Processos e Threads",
+        "subtopics": ["Estados do Processo", "Escalonamento"]
+      }
+    ]
   }
 ]
 ```
 
-**Comportamento no cliente:** acima da tabela há dois filtros, aplicados na própria tela sobre a
+**Comportamento no cliente:** acima da tabela há quatro filtros, aplicados na própria tela sobre a
 lista já carregada: disciplina (as `subjectName` presentes na resposta) e dificuldade (Fácil, Média
-ou Difícil). Se nenhum simulado atende aos filtros, aparece um aviso no lugar da tabela. Não há
+ou Difícil), em seletores, e sprint (1, 2 e 3) e semestre (1º a 5º), em caixas de seleção que
+aceitam várias marcadas. Um simulado aparece no filtro de sprint quando **todas** as suas
+`sprints` estão marcadas: com só a 1 marcada, "Sprint 1 e 2" some; com a 1 e a 2, aparecem os da
+sprint 1, os da sprint 2 e ele. Um simulado sem sprint só aparece com o filtro de sprint vazio. No
+de semestre, basta o `semester` estar marcado. Nenhuma caixa marcada é o mesmo que não filtrar.
+Se nenhum simulado atende aos filtros, aparece um aviso no lugar da tabela. Clicar numa linha (ou
+no nome do simulado, que é um botão com `aria-expanded`) abre logo abaixo dela "O que este
+simulado aborda", com as aulas de `topics` e seus subassuntos; clicar de novo fecha. O "Iniciar"
+não abre nem fecha o resumo. Não há
 limite de tentativas. `attemptsCount` é exibido apenas como
 informação; o botão "Iniciar" está sempre disponível.
 
@@ -854,6 +871,17 @@ para `dashboardApi.getDashboard` e que vira a query string de `GET /dashboard`.
 | `durationMinutes` | integer | `> 0`. Duração do modo com tempo limite. |
 | `attemptsCount` | integer | `>= 0`. Quantas tentativas deste simulado o aluno já enviou. |
 | `difficulty` | enum | `"easy"`, `"medium"`, ou `"hard"`. A UI exibe "Fácil", "Média" e "Difícil". |
+| `semester` | integer | De `1` a `5`. Semestre da disciplina do simulado. |
+| `sprints` | integer[] | Cada um de `1` a `3`, em ordem crescente e sem repetir. As sprints cujo conteúdo o simulado cobre: uma, ou mais num simulado de revisão (ex.: `[1, 2]`). Pode vir vazio para um simulado ainda sem sprint cadastrada. |
+| `topics` | `QuizTopic[]` | Os assuntos (aulas) das questões do simulado, por `number` crescente. Pode vir vazio. |
+
+`QuizTopic`:
+
+| Campo | Tipo | Regras |
+|---|---|---|
+| `number` | integer | `> 0`. Número da aula, como em [`SubjectTopic`](#317-subjecttopic). |
+| `name` | string | Não vazio. Nome do assunto. |
+| `subtopics` | string[] | Nomes dos subassuntos do assunto, na ordem de exibição. Todos os do assunto, porque a questão é do assunto, não do subassunto. Pode vir vazio. |
 
 ### 3.11 `QuizDetail`
 
@@ -1096,7 +1124,10 @@ Particularidades do mock:
   (`EXTRA_LESSONS`), cada uma com um subassunto "Visão geral", pontos-chave e nenhum material, para
   as telas mostrarem um semestre cheio.
 - **Simulados:** todos os simulados da lista têm detalhe. Cada um usa as questões da sua
-  disciplina no banco do mock, e `questionCount` é calculado a partir delas. `attemptsCount` é
+  disciplina no banco do mock, e `questionCount` é calculado a partir delas. Há um simulado por
+  sprint e um de "Sprint 1 e 2", todos do 1º semestre; `topics` vem dos assuntos de
+  `mocks/subjects.ts` escolhidos para cada simulado (`topicIds`), já que as questões do mock não
+  têm assunto. `attemptsCount` é
   contado em memória e volta a zero quando a página é recarregada.
 - **Exercícios:** as listas ficam em `mocks/quizzes.ts`, cada uma com o assunto (ids de
   `mocks/subjects.ts`) e as questões do banco do mock escolhidas para ele. Alguns assuntos ficam

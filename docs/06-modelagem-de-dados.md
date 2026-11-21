@@ -23,7 +23,7 @@ pasta `supabase/`:
 
 | Arquivo | Para que serve |
 |---|---|
-| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório) e `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
+| [`supabase/migrations/`](../supabase/migrations/) | O modelo físico, uma migration por assunto, aplicadas nesta ordem: `schemas` (schema `private` e privilégios padrão), `enums`, `students`, `content` (disciplina → material), `questions`, `quizzes` (simulados), `attempts` (tentativas, respostas e dias de estudo), `views`, `row_level_security`, `grants`, `drop_old_home_data` (remove as provas agendadas e a view de desempenho por assunto que só a tela de Início antiga usava), `exercises` (`quizzes.kind` e `quizzes.topic_id` para as listas de exercícios, e `quizzesCompleted` contando só simulados) `drop_integrated_quizzes` (remove o simulado integrado: some `subject_scope` e `subject_id` passa a ser obrigatório) `available_logins` (temporária: os códigos de acesso que um aluno pode usar uma vez para criar a própria senha) e `quiz_sprints` (o semestre da disciplina em `subjects.semester` e as sprints de cada simulado em `quiz_sprints`). Cada tabela leva os próprios índices. Não há função de API nem JSON no banco: os endpoints são edge functions. Elas substituíram o baseline único e a migration de rate limit, que nunca tinham ido para produção. |
 | [`supabase/functions/`](../supabase/functions/) | Edge functions (Deno + TypeScript): `submit-quiz-attempt` e o CORS compartilhado em `_shared/cors.ts`. Veja [`04-contratos-de-api.md`](04-contratos-de-api.md#edge-functions-e-cors). |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados mínimos para testar localmente: 2 contas de aluno (códigos `demo0001` e `demo0002`, senha `123456`), 1 disciplina com 2 assuntos, 3 subassuntos, 1 material, uma questão de cada tipo, 1 simulado e 1 tentativa enviada. |
 | [`supabase/config.toml`](../supabase/config.toml) | Configuração do projeto local, com o cadastro público desligado e o runtime de edge functions ligado. |
@@ -141,7 +141,7 @@ da equipe, inclusive quem não programa.
 |---|---|
 | **Aluno** | Conta de estudante, pré-provisionada pelo responsável (não há cadastro público), identificada só por um código de acesso — sem nome nem e-mail. Tem uma meta semanal de questões. |
 | **Sessão** | Um login ativo do aluno, controlado pelo Supabase Auth. É encerrada no logout. |
-| **Disciplina** | Matéria do curso, ex.: Banco de Dados. |
+| **Disciplina** | Matéria do curso, ex.: Banco de Dados. É de um semestre do curso (1º a 5º). |
 | **Assunto** | Tema dentro de uma disciplina, ex.: Normalização. Corresponde a uma aula da ementa, com um número próprio, e é a unidade usada para identificar dificuldades. |
 | **Subassunto** | Recorte de um assunto, ex.: Formas Normais. Tem um resumo curto e pontos-chave, para o aluno revisar antes de estudar ou fazer um simulado. |
 | **Material** | Material didático (PDF) de um subassunto. |
@@ -149,7 +149,7 @@ da equipe, inclusive quem não programa.
 | **Alternativa** | Opção que o aluno pode escolher: de uma questão (múltipla escolha e múltiplas alternativas) ou de uma lacuna (seleção única). |
 | **Lacuna** | Espaço `{{id}}` no texto de uma questão, preenchido por seleção, por texto ou arrastando um termo. |
 | **Termo** | Item arrastável de uma questão de drag and drop. |
-| **Simulado** | Conjunto ordenado de questões de uma disciplina, com duração e dificuldade. Não existe simulado integrado. |
+| **Simulado** | Conjunto ordenado de questões de uma disciplina, com duração e dificuldade. Cobre o conteúdo de uma ou mais sprints (1 a 3); um simulado de revisão cobre mais de uma. Não existe simulado integrado. |
 | **Lista de exercícios** | Um simulado de tipo `exercise`: questões de um único assunto, sem duração. Fica na mesma tabela e usa as mesmas tentativas, correção e resultado. |
 | **Tentativa** | Envio de um simulado por um aluno. |
 | **Resposta** | O que o aluno respondeu em uma questão de uma tentativa, com o resultado da correção. |
@@ -173,6 +173,7 @@ da equipe, inclusive quem não programa.
 | Termo — Lacuna | 1 : N | No drag and drop, cada lacuna tem um termo correto. |
 | Disciplina — Simulado | 1 : N | Todo simulado (e toda lista de exercícios) é de exatamente uma disciplina. |
 | Assunto — Lista de exercícios | 1 : N | Uma lista de exercícios é de exatamente um assunto (`quizzes.topic_id`); um assunto pode ter várias listas. Um simulado (`kind = 'exam'`) não tem assunto. |
+| Simulado — Sprint | 1 : N | Um simulado cobre uma ou mais sprints, sem repetir; a sprint é um número de 1 a 3, não uma entidade. Lista de exercícios não tem sprint. |
 | Simulado — Questão | N : M | Um simulado tem pelo menos uma questão; uma questão pode estar em vários simulados. O relacionamento tem um atributo: a **ordem** da questão no simulado. |
 | Simulado — Tentativa | 1 : N | Sem limite: o aluno refaz o simulado quantas vezes quiser, e cada envio vira uma tentativa. |
 | Tentativa — Questão | N : M, via **Resposta** | Resposta é uma entidade associativa: no máximo uma por questão em cada tentativa. Questões sem resposta contam como não respondidas. |
@@ -246,6 +247,7 @@ views, regras de acesso) ficam no modelo físico, em [`supabase/migrations/`](..
 | Termo | `question_terms` |
 | Simulado e Lista de exercícios | `quizzes`, separados por `kind` (`exam` ou `exercise`) |
 | Simulado — Questão (N : M) | `quiz_questions` |
+| Sprints de um simulado | `quiz_sprints` |
 | Tentativa | `quiz_attempts` |
 | Resposta | `quiz_attempt_answers`, com os valores múltiplos em `quiz_attempt_answer_options`, `quiz_attempt_answer_blanks` e `quiz_attempt_answer_slots` |
 | Dia de estudo | `student_activity_days` |
@@ -272,6 +274,12 @@ Nomes de tabelas e colunas em inglês, seguindo a convenção de código do proj
   sem tabelas paralelas.
 - **Relacionamento N : M** entre Simulado e Questão vira a tabela associativa `quiz_questions`, que
   também guarda o atributo do relacionamento (`order_index`).
+- **Sprints de um simulado em tabela própria.** Como um simulado pode cobrir mais de uma sprint,
+  as sprints são linhas de `quiz_sprints` (chave `quiz_id`, `sprint`), e não uma coluna de
+  `quizzes` nem um array: o banco garante que cada sprint vá de 1 a 3 e não se repita. O semestre
+  é da disciplina (`subjects.semester`, de 1 a 5, padrão 1): guardá-lo também no simulado seria uma
+  dependência transitiva. Os assuntos que um simulado aborda (`QuizSummary.topics`) não são
+  guardados: saem dos assuntos das questões dele.
 - **Tipos de questão em uma única tabela.** Os seis tipos diferem em poucas colunas (`prompt`,
   `template`, `explanation`, `max_length`, `reference_answer`), então ficam em `questions` com a
   coluna `type`. Restrições `CHECK` garantem que cada tipo tenha exatamente as colunas que o
@@ -330,6 +338,7 @@ erDiagram
 
     subjects ||--o{ quizzes : ""
     quizzes ||--|{ quiz_questions : ""
+    quizzes ||--o{ quiz_sprints : ""
     questions ||--o{ quiz_questions : ""
     quizzes ||--o{ quiz_attempts : ""
     quiz_attempts ||--o{ quiz_attempt_answers : ""
@@ -369,6 +378,7 @@ erDiagram
         int id PK
         text name
         text short_label
+        smallint semester
     }
 
     topics {
@@ -467,6 +477,11 @@ erDiagram
         int order_index
     }
 
+    quiz_sprints {
+        int quiz_id PK, FK
+        smallint sprint PK
+    }
+
     quiz_attempts {
         int id PK
         int quiz_id FK
@@ -523,7 +538,9 @@ concentra o arredondamento das porcentagens; cada view decide o que conta como r
 | `v_student_streak`, `v_student_ranking` | `streakDays`, `RankingData.entries` |
 | `v_student_ranking_profile` | `RankingData.profile` (`quizzesCompleted` conta só simulados), `DashboardData.streakDays` e `DashboardData.weeklyGoal` |
 
-`QuizSummary.attemptsCount` é contado pela edge function `list-quizzes`, filtrado pelo aluno. O
+`QuizSummary.attemptsCount` é contado pela edge function `list-quizzes`, filtrado pelo aluno, que
+também lê `QuizSummary.sprints` de `quiz_sprints` e monta `QuizSummary.topics` com os assuntos das
+questões do simulado e todos os subassuntos de cada um (a questão é do assunto, não do subassunto). O
 `QuizResult` inteiro (contadores, `scorePercent`, `subjectPerformance` e `reviewItems`) é
 calculado pela `submit-quiz-attempt` a partir das respostas que ela acabou de corrigir, com as
 mesmas regras: `self_review` fica fora da nota e questão não respondida entra no denominador.

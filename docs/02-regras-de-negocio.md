@@ -66,6 +66,18 @@ Cada simulado exibe:
 - duração recomendada;
 - quantidade de tentativas que o aluno já realizou.
 
+Os assuntos abordados ficam num resumo que abre ao selecionar o simulado na lista, antes do
+"Iniciar": as aulas de onde vêm as questões dele, cada uma com seus subassuntos.
+
+### Sprint e semestre
+
+- Cada simulado cobre o conteúdo de uma sprint (1, 2 ou 3); um simulado de revisão pode cobrir
+  mais de uma, como "Sprint 1 e 2". O semestre (1º a 5º) é o da disciplina.
+- A lista filtra por sprint e por semestre com caixas de seleção, várias ao mesmo tempo. Um
+  simulado aparece quando todas as sprints dele estão marcadas, então o de revisão só aparece com
+  todas as suas sprints marcadas. Sem nenhuma caixa marcada, o filtro não restringe nada.
+- As listas de exercícios não têm sprint: elas são de uma aula.
+
 ### Cronômetro
 
 Modos suportados:

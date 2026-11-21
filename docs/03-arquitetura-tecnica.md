@@ -200,7 +200,8 @@ Para diferenciar mouse de toque (e não largura), usa-se `(hover: none) and (poi
   para voltar. Acima de `md` (com pelo menos 560 px de altura) a tela usa `PageLayout` com
   `fitViewport`: a página não rola, e a lista de aulas e o conteúdo da aba aberta rolam por dentro.
 - **Lista de simulados em cards.** A mesma tabela de `QuizzesPage` é reorganizada por CSS: cada
-  linha vira um card e o cabeçalho fica visível só para leitores de tela.
+  linha vira um card e o cabeçalho fica visível só para leitores de tela, e o resumo "O que este
+  simulado aborda" de um simulado selecionado vira um card logo abaixo do dele.
 - **Revisão da prova (resultado).** A grade de questões vem antes da questão, para trocar de
   questão sem rolar a página.
 - **Ações em pilha.** Pares de botões de rodapé e de modais ficam empilhados, em largura total,
