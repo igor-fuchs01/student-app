@@ -55,7 +55,7 @@ export const StyledNav = styled.nav<{ $hideOnMobile: boolean }>`
        content, below the question drawer (50/60) and the modal (100). */
     z-index: 30;
     display: ${({ $hideOnMobile }) => ($hideOnMobile ? "none" : "grid")};
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 0;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: ${({ theme }) => theme.colors.surface};
