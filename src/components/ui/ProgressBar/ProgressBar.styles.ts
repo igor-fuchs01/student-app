@@ -2,7 +2,7 @@ import styled from "styled-components";
 
 export const StyledTrack = styled.div`
   height: 10px;
-  background: rgba(0, 0, 0, 0.07);
+  background: ${({ theme }) => theme.colors.neutral100};
   border-radius: ${({ theme }) => theme.radii.pill};
 `;
 

@@ -36,7 +36,7 @@ export const StyledBadge = styled.span<{ $tone: BadgeTone }>`
   ${({ theme, $tone }) =>
     $tone === "neutral" &&
     css`
-      background: rgba(0, 0, 0, 0.06);
+      background: ${theme.colors.neutral100};
       color: ${theme.colors.muted};
     `}
 `;
