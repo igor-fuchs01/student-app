@@ -7,12 +7,17 @@ import type {
   QuizResult,
   QuizReviewItem,
   QuizSummary,
+  QuizTopic,
 } from "@models/quizzes";
 import { isQuestionAnswered } from "@features/quizzes/isQuestionAnswered";
 import { normalizeAnswerText } from "@features/quizzes/normalizeAnswerText";
 import { getMockSubjectDetail, hasMockTopic } from "./subjects";
 
-type MockQuizDefinition = Omit<QuizSummary, "questionCount" | "attemptsCount">;
+// subjectId and topicIds point at mocks/subjects.ts, which gives the assuntos of QuizSummary.topics.
+type MockQuizDefinition = Omit<QuizSummary, "questionCount" | "attemptsCount" | "topics"> & {
+  subjectId: string;
+  topicIds: string[];
+};
 
 // subjectId and topicId point at mocks/subjects.ts; the questions come from QUESTION_BANK.
 type MockExerciseDefinition = Pick<ExerciseSummary, "id" | "title" | "difficulty"> & {
@@ -263,41 +268,62 @@ const QUESTION_BANK: Question[] = [
   },
 ];
 
+// One quiz per sprint, plus one covering two sprints, so the sprint filter has every case to show.
 const QUIZZES: MockQuizDefinition[] = [
   {
     id: "algoritmos-1",
-    title: "Algoritmos — Simulado 1",
+    title: "Algoritmos — Sprint 1",
     subjectName: "Algoritmos",
+    subjectId: "algoritmos",
+    topicIds: ["logica-de-programacao", "estruturas-de-dados"],
     durationMinutes: 5,
     difficulty: "medium",
+    semester: 1,
+    sprints: [1],
   },
   {
     id: "arquitetura-1",
-    title: "Arquitetura — Simulado 1",
+    title: "Arquitetura — Sprint 1",
     subjectName: "Arquitetura de Computadores",
+    subjectId: "arquitetura-computadores",
+    topicIds: ["organizacao-de-computadores", "memoria-e-barramentos"],
     durationMinutes: 5,
     difficulty: "easy",
+    semester: 1,
+    sprints: [1],
   },
   {
     id: "so-1",
-    title: "Sistemas Operacionais — Simulado 1",
+    title: "Sistemas Operacionais — Sprint 1 e 2",
     subjectName: "Sistemas Operacionais",
+    subjectId: "sistemas-operacionais",
+    topicIds: ["processos-e-threads", "gerencia-de-memoria"],
     durationMinutes: 5,
     difficulty: "medium",
+    semester: 1,
+    sprints: [1, 2],
   },
   {
     id: "ti-1",
-    title: "Tecnologia da Informação — Simulado 1",
+    title: "Tecnologia da Informação — Sprint 2",
     subjectName: "Tecnologia da Informação",
+    subjectId: "tecnologia-informacao",
+    topicIds: ["fundamentos-de-redes", "seguranca-da-informacao"],
     durationMinutes: 5,
     difficulty: "easy",
+    semester: 1,
+    sprints: [2],
   },
   {
     id: "bd-1",
-    title: "Banco de Dados — Simulado 1",
+    title: "Banco de Dados — Sprint 3",
     subjectName: "Banco de Dados",
+    subjectId: "banco-de-dados",
+    topicIds: ["modelagem-conceitual", "modelo-relacional-e-normalizacao", "sql"],
     durationMinutes: 10,
     difficulty: "hard",
+    semester: 1,
+    sprints: [3],
   },
 ];
 
@@ -460,11 +486,30 @@ function questionsFor(quiz: MockQuizDefinition): Question[] {
   return QUESTION_BANK.filter((question) => question.subjectName === quiz.subjectName);
 }
 
+function topicsFor(quiz: MockQuizDefinition): QuizTopic[] {
+  const topics = getMockSubjectDetail(quiz.subjectId)?.topics ?? [];
+  return topics
+    .filter((topic) => quiz.topicIds.includes(topic.id))
+    .sort((a, b) => a.number - b.number)
+    .map((topic) => ({
+      number: topic.number,
+      name: topic.name,
+      subtopics: topic.subtopics.map((subtopic) => subtopic.name),
+    }));
+}
+
 export function buildMockQuizList(studentId: string): QuizSummary[] {
   return QUIZZES.map((quiz) => ({
-    ...quiz,
+    id: quiz.id,
+    title: quiz.title,
+    subjectName: quiz.subjectName,
     questionCount: questionsFor(quiz).length,
+    durationMinutes: quiz.durationMinutes,
     attemptsCount: attemptsByStudent.get(studentId)?.get(quiz.id) ?? 0,
+    difficulty: quiz.difficulty,
+    semester: quiz.semester,
+    sprints: quiz.sprints,
+    topics: topicsFor(quiz),
   }));
 }
 

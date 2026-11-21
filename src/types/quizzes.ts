@@ -4,6 +4,14 @@ const difficultySchema = z.enum(["easy", "medium", "hard"]);
 
 export type QuizDifficulty = z.infer<typeof difficultySchema>;
 
+const quizTopicSchema = z.object({
+  number: z.number().int().positive(),
+  name: z.string().min(1),
+  subtopics: z.array(z.string().min(1)),
+});
+
+export type QuizTopic = z.infer<typeof quizTopicSchema>;
+
 export const quizSummarySchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -12,6 +20,9 @@ export const quizSummarySchema = z.object({
   durationMinutes: z.number().int().positive(),
   attemptsCount: z.number().int().nonnegative(),
   difficulty: difficultySchema,
+  semester: z.number().int().min(1).max(5),
+  sprints: z.array(z.number().int().min(1).max(3)),
+  topics: z.array(quizTopicSchema),
 });
 
 export type QuizSummary = z.infer<typeof quizSummarySchema>;
