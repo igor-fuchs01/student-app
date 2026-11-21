@@ -19,4 +19,5 @@ export const API_ENDPOINTS = {
   exercises: {
     list: "/exercises",
   },
+  companies: "/companies",
 } as const;

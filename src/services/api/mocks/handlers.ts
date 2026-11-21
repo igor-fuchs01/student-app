@@ -18,6 +18,7 @@ import { activityMonthSchema } from "@models/ranking";
 import { MOCK_API_BASE_URL, MOCK_DELAY_MS } from "../config";
 import { API_ENDPOINTS } from "../endpoints";
 import { INVALID_CREDENTIALS_MESSAGE, type ApiErrorBody, type ApiErrorCode } from "../errors";
+import { buildMockCompanies } from "./companies";
 import { buildMockActivityCalendar, buildMockDashboard } from "./dashboard";
 import { createMockJwt, verifyMockJwt } from "./jwt";
 import {
@@ -200,6 +201,11 @@ export const handlers = [
       registerMockQuizAttempt(account.user.id, quizId);
       return HttpResponse.json(result);
     }),
+  ),
+
+  http.get(
+    api(API_ENDPOINTS.companies),
+    authenticated(() => HttpResponse.json(buildMockCompanies())),
   ),
 
   http.get(
