@@ -99,7 +99,9 @@ serveEndpoint("GET", async ({ url, studentId }) => {
   }
   const period = Number(periodParam);
   const subjectId = await parseSubjectId(url);
-  const periodStart = sql`current_date - ${period - 1}::int`;
+  // Days are dates in Brasília, like the study days and the weekly goal of the views.
+  const today = sql`private.local_date(now())`;
+  const periodStart = sql`${today} - ${period - 1}::int`;
   const graded = sql`qaa.review_status <> 'pending_review'`;
   const correct = sql`qaa.review_status = 'correct'`;
 
@@ -124,9 +126,9 @@ serveEndpoint("GET", async ({ url, studentId }) => {
           count(*) filter (where not in_period and ${graded}) as previous_graded,
           count(*) filter (where not in_period and ${correct}) as previous_correct
         from (
-          select qaa.review_status, qa.submitted_at::date >= ${periodStart} as in_period
+          select qaa.review_status, private.local_date(qa.submitted_at) >= ${periodStart} as in_period
           ${studentAnswers(studentId, subjectId)}
-            and qa.submitted_at::date >= current_date - ${2 * period - 1}::int
+            and private.local_date(qa.submitted_at) >= ${today} - ${2 * period - 1}::int
         ) qaa
       ) counts
     `,
@@ -134,8 +136,8 @@ serveEndpoint("GET", async ({ url, studentId }) => {
       with weeks as (
         select
           n,
-          greatest(current_date - (n * 7 + 6), ${periodStart}) as week_start,
-          current_date - n * 7 as week_end
+          greatest(${today} - (n * 7 + 6), ${periodStart}) as week_start,
+          ${today} - n * 7 as week_end
         from generate_series(0, ${Math.ceil(period / 7) - 1}::int) as n
       )
       select
@@ -150,7 +152,7 @@ serveEndpoint("GET", async ({ url, studentId }) => {
         )::float8 as percent
       from weeks w
       left join (
-        select qaa.review_status, qa.submitted_at::date as day
+        select qaa.review_status, private.local_date(qa.submitted_at) as day
         ${studentAnswers(studentId, subjectId)}
       ) qaa on qaa.day between w.week_start and w.week_end
       group by w.n, w.week_start, w.week_end
@@ -166,7 +168,7 @@ serveEndpoint("GET", async ({ url, studentId }) => {
           count(*) filter (where ${graded})
         )::float8 as percent
       ${studentAnswers(studentId, subjectId)}
-        and qa.submitted_at::date >= ${periodStart}
+        and private.local_date(qa.submitted_at) >= ${periodStart}
       group by ${subjectId === null ? sql`s.id, s.name` : sql`t.id, t.name, t.number`}
       having count(*) filter (where ${graded}) > 0
       order by percent desc, name
@@ -185,17 +187,17 @@ serveEndpoint("GET", async ({ url, studentId }) => {
         )::float8 as percent,
         count(*) filter (
           where qaa.review_status = 'incorrect'
-            and qaa.day >= current_date - ${RECENT_DAYS - 1}::int
+            and qaa.day >= ${today} - ${RECENT_DAYS - 1}::int
         )::int as recent_wrong_count
       from topics t
       join subjects s on s.id = t.subject_id
       left join (
-        select q.topic_id, qaa.review_status, qa.submitted_at::date as day
+        select q.topic_id, qaa.review_status, private.local_date(qa.submitted_at) as day
         from quiz_attempt_answers qaa
         join quiz_attempts qa on qa.id = qaa.attempt_id
         join questions q on q.id = qaa.question_id
         where qa.student_id = ${studentId}
-          and qa.submitted_at::date >= ${periodStart}
+          and private.local_date(qa.submitted_at) >= ${periodStart}
       ) qaa on qaa.topic_id = t.id
       ${subjectId === null ? sql`` : sql`where t.subject_id = ${subjectId}`}
       group by t.id, s.id

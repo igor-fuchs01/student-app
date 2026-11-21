@@ -314,7 +314,7 @@ precisam de atenção. Só traz dados numéricos; textos e formatação ficam na
 
 | Parâmetro | Tipo | Regras |
 |---|---|---|
-| `period` | integer | Opcional. `30`, `90` ou `180` (dias, contando hoje). Padrão `90`. |
+| `period` | integer | Opcional. `30`, `90` ou `180` (dias, contando hoje). Padrão `90`. Os dias seguem o horário de Brasília. |
 | `subjectId` | string | Opcional. Limita tudo, exceto `streakDays` e `weeklyGoal`, a uma disciplina. |
 
 Um percentual é sempre acertos sobre questões corrigidas: respostas `pending_review` (dissertativas
@@ -732,7 +732,7 @@ simulados e listas de exercícios enviou em cada um. Nunca traz dados de outros 
 
 | Parâmetro | Tipo | Regras |
 |---|---|---|
-| `month` | string | Opcional. `YYYY-MM`. Padrão: o mês atual. |
+| `month` | string | Opcional. `YYYY-MM`. Padrão: o mês atual no horário de Brasília. |
 
 **Respostas**
 
@@ -753,7 +753,8 @@ simulados e listas de exercícios enviou em cada um. Nunca traz dados de outros 
 ```
 
 Um dia entra em `days` quando é um dia de estudo (`student_activity_days`) ou tem uma tentativa
-enviada. As datas seguem o relógio do banco, o mesmo usado para registrar o dia de estudo no envio.
+enviada. As datas seguem o horário de Brasília (`private.local_date`), o mesmo usado para registrar
+o dia de estudo no envio ([`02-regras-de-negocio.md`](02-regras-de-negocio.md#dia-de-estudo)).
 
 **Comportamento no cliente:** o calendário fica abaixo do perfil, na tela de ranking. Mostra um mês
 por vez (domingo a sábado), começando no atual; as setas trocam de mês e não avançam além do mês
@@ -842,7 +843,7 @@ Números, datas e percentuais vêm crus (ex.: `GET /dashboard`); a UI formata.
 | `streakDays` | integer | `>= 0`. Dias consecutivos com atividade de estudo (todas as disciplinas). |
 | `preparation` | object | `{ percent, previousPercent }`: acerto no período e no período anterior; cada um entre `0` e `100`, ou `null` sem questões corrigidas. |
 | `questionsAnswered` | object | `{ count, previousCount }`: questões respondidas no período e no anterior; inteiros `>= 0`. |
-| `weeklyGoal` | object | `{ completed, target }`: questões respondidas desde segunda-feira (todas as disciplinas) e a meta semanal (`> 0`). |
+| `weeklyGoal` | object | `{ completed, target }`: questões respondidas desde segunda-feira no horário de Brasília (todas as disciplinas) e a meta semanal (`> 0`). |
 | `weeklyAccuracy` | [`WeeklyAccuracy`](#35-weeklyaccuracy)`[]` | Uma por janela de 7 dias do período, da mais antiga para a mais recente. |
 | `preparationBreakdown` | object | `{ scope, items }`: `scope` é `"subject"` (sem `subjectId`) ou `"topic"` (com `subjectId`); `items` é [`PreparationItem`](#36-preparationitem)`[]`, do maior para o menor `percent`. |
 | `studyFocus` | object | `{ items, totalCount }`: até 5 [`StudyFocusTopic`](#37-studyfocustopic), na ordem de prioridade, e quantos assuntos precisam de atenção no total. |

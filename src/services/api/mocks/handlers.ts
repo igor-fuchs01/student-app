@@ -19,7 +19,7 @@ import { MOCK_API_BASE_URL, MOCK_DELAY_MS } from "../config";
 import { API_ENDPOINTS } from "../endpoints";
 import { INVALID_CREDENTIALS_MESSAGE, type ApiErrorBody, type ApiErrorCode } from "../errors";
 import { buildMockCompanies } from "./companies";
-import { buildMockActivityCalendar, buildMockDashboard } from "./dashboard";
+import { buildMockActivityCalendar, buildMockDashboard, currentMockMonth } from "./dashboard";
 import { createMockJwt, verifyMockJwt } from "./jwt";
 import {
   buildMockExerciseList,
@@ -217,7 +217,7 @@ export const handlers = [
     api(API_ENDPOINTS.activityCalendar),
     authenticated(({ request }) => {
       const month = activityMonthSchema.safeParse(
-        new URL(request.url).searchParams.get("month") ?? new Date().toISOString().slice(0, 7),
+        new URL(request.url).searchParams.get("month") ?? currentMockMonth(),
       );
       if (!month.success) return errorResponse(400, "VALIDATION_ERROR", "Mês inválido.");
       return HttpResponse.json(buildMockActivityCalendar(month.data));

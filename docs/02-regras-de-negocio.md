@@ -288,6 +288,16 @@ Ranking de consistência
 5. Pedro     🔥 10 dias
 ```
 
+### Dia de estudo
+
+Um **dia de estudo** é um dia em que o aluno enviou ao menos um simulado ou lista de exercícios. É
+a base do streak, dos dias estudados e do calendário de estudos.
+
+- O dia segue o **horário de Brasília** (`America/Sao_Paulo`), não o relógio do servidor (UTC):
+  um envio às 22h de segunda conta para segunda, e não para terça. O mesmo vale para a semana da
+  meta semanal (de segunda a domingo) e para os períodos do painel de Início.
+- O streak conta os dias de estudo consecutivos que terminam hoje ou ontem.
+
 ### Nunca exibir para outros alunos
 
 - notas;

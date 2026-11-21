@@ -149,7 +149,7 @@ serveEndpoint("POST", async ({ request, studentId }) => {
 
     await tx`
       insert into student_activity_days (student_id, activity_date)
-      values (${studentId}, current_date)
+      values (${studentId}, private.local_date(now()))
       on conflict do nothing
     `;
     return attempt.submitted_at;
