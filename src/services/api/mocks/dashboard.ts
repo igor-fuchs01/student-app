@@ -217,6 +217,11 @@ export function buildMockDashboard({
   };
 }
 
+// The current month in the browser's local calendar, the default of GET /ranking/activity.
+export function currentMockMonth(): string {
+  return isoDate(0).slice(0, 7);
+}
+
 // GET /ranking/activity over the same history, so the calendar agrees with the dashboard. Each
 // study day gets a fixed mix of simulados and exercise lists, derived from the day itself.
 export function buildMockActivityCalendar(month: string): ActivityCalendar {

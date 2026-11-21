@@ -135,6 +135,8 @@ O aluno deve conseguir:
 
 **Antes do envio**, apresentar uma confirmação que mostre: questões respondidas, não respondidas e marcadas para revisão.
 
+O envio exige ao menos uma questão respondida (ver [Dia de estudo](#dia-de-estudo), seção 11).
+
 ---
 
 ## 6. Correção
@@ -287,6 +289,20 @@ Ranking de consistência
 4. Maria     🔥 12 dias
 5. Pedro     🔥 10 dias
 ```
+
+### Dia de estudo
+
+Um **dia de estudo** é um dia em que o aluno enviou ao menos um simulado ou lista de exercícios. É
+a base do streak, dos dias estudados e do calendário de estudos.
+
+- O envio precisa ter **ao menos uma questão respondida**. Um simulado entregue em branco (ou só
+  com respostas incompletas) é recusado: não vira tentativa, não conta como simulado concluído e
+  não marca o dia. A tela de revisão não deixa enviar sem respostas e, se o tempo acabar sem
+  nenhuma, avisa e não envia nada.
+- O dia segue o **horário de Brasília** (`America/Sao_Paulo`), não o relógio do servidor (UTC):
+  um envio às 22h de segunda conta para segunda, e não para terça. O mesmo vale para a semana da
+  meta semanal (de segunda a domingo) e para os períodos do painel de Início.
+- O streak conta os dias de estudo consecutivos que terminam hoje ou ontem.
 
 ### Nunca exibir para outros alunos
 

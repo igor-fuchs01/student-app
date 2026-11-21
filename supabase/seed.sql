@@ -264,13 +264,13 @@ JOIN questions q ON q.type = 'essay';
 -- -----------------------------------------------------------------------------
 
 INSERT INTO student_activity_days (student_id, activity_date)
-SELECT s.id, CURRENT_DATE - d
+SELECT s.id, private.local_date(now()) - d
 FROM students s
 JOIN auth.users u ON u.id = s.auth_user_id AND u.email = 'demo0001@alunos.student-app.invalid'
 CROSS JOIN generate_series(0, 2) AS d;
 
 INSERT INTO student_activity_days (student_id, activity_date)
-SELECT s.id, CURRENT_DATE - d
+SELECT s.id, private.local_date(now()) - d
 FROM students s
 JOIN auth.users u ON u.id = s.auth_user_id AND u.email = 'demo0002@alunos.student-app.invalid'
 CROSS JOIN generate_series(0, 4) AS d;

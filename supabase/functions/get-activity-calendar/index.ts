@@ -9,9 +9,15 @@ type DayRow = { date: string; exams_count: number; exercises_count: number };
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 serveEndpoint("GET", async ({ studentId, url }) => {
-  // Without month, the current one; dates follow the database clock, like current_date when the
-  // study day is recorded by submit-quiz-attempt.
-  const month = url.searchParams.get("month") ?? new Date().toISOString().slice(0, 7);
+  // Without month, the current one. Dates are in Brasília (private.local_date), like the study day
+  // recorded by submit-quiz-attempt.
+  const month =
+    url.searchParams.get("month") ??
+    (
+      await sql<{ month: string }[]>`
+        select to_char(private.local_date(now()), 'YYYY-MM') as month
+      `
+    )[0].month;
   if (!MONTH.test(month)) {
     throw new ApiError(400, "VALIDATION_ERROR", "Mês inválido.");
   }
@@ -27,18 +33,19 @@ serveEndpoint("GET", async ({ studentId, url }) => {
         and activity_date >= ${monthStart}::date
         and activity_date < ${monthStart}::date + interval '1 month'
       union
-      select submitted_at::date
+      select private.local_date(submitted_at)
       from quiz_attempts
       where student_id = ${studentId}
-        and submitted_at >= ${monthStart}::date
-        and submitted_at < ${monthStart}::date + interval '1 month'
+        and private.local_date(submitted_at) >= ${monthStart}::date
+        and private.local_date(submitted_at) < ${monthStart}::date + interval '1 month'
     )
     select
       to_char(d.day, 'YYYY-MM-DD') as date,
       count(z.id) filter (where z.kind = 'exam')::int as exams_count,
       count(z.id) filter (where z.kind = 'exercise')::int as exercises_count
     from month_days d
-    left join quiz_attempts qa on qa.student_id = ${studentId} and qa.submitted_at::date = d.day
+    left join quiz_attempts qa
+      on qa.student_id = ${studentId} and private.local_date(qa.submitted_at) = d.day
     left join quizzes z on z.id = qa.quiz_id
     group by d.day
     order by d.day

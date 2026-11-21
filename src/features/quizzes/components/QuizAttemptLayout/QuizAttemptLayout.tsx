@@ -53,7 +53,6 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   const [now, setNow] = useState(() => Date.now());
   const autoSubmittedRef = useRef(false);
 
-  const inProgress = hasStarted && !isFinished && Boolean(quiz);
   const attemptBasePath = `${attemptKind.listPath}/${quizId}`;
   // An exercise list has no durationMinutes, so it never runs against the clock.
   const hasTimeLimit = timeLimitEnabled && quiz?.durationMinutes !== undefined;
@@ -61,6 +60,18 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   const elapsedSeconds = startedAt === null ? 0 : Math.max(0, Math.floor((now - startedAt) / 1000));
   const remainingSeconds = Math.max(0, (quiz?.durationMinutes ?? 0) * 60 - elapsedSeconds);
   const isTimeUp = hasTimeLimit && startedAt !== null && remainingSeconds === 0;
+
+  // Questions left blank or partially filled are not sent; they count as unanswered.
+  const submittedAnswers = quiz
+    ? quiz.questions.flatMap((question) => {
+        const answer = answers[question.id];
+        return answer && isQuestionAnswered(question, answer) ? [answer] : [];
+      })
+    : [];
+  // The server refuses an attempt with no answered question, so when time runs out before any
+  // answer nothing is sent and the attempt just ends.
+  const timedOutBlank = isTimeUp && submittedAnswers.length === 0;
+  const inProgress = hasStarted && !isFinished && !timedOutBlank && Boolean(quiz);
 
   const blocker = useBlocker(
     ({ nextLocation }) =>
@@ -105,14 +116,6 @@ function QuizAttempt({ quizId }: { quizId: string }) {
     return () => clearInterval(interval);
   }, [startedAt, isFinished]);
 
-  // Questions left blank or partially filled are not sent; they count as unanswered.
-  const submittedAnswers = quiz
-    ? quiz.questions.flatMap((question) => {
-        const answer = answers[question.id];
-        return answer && isQuestionAnswered(question, answer) ? [answer] : [];
-      })
-    : [];
-
   const {
     mutate: submitAttempt,
     isPending: isSubmitting,
@@ -129,11 +132,11 @@ function QuizAttempt({ quizId }: { quizId: string }) {
   });
 
   useEffect(() => {
-    if (!isTimeUp || isFinished || autoSubmittedRef.current) return;
+    if (!isTimeUp || timedOutBlank || isFinished || autoSubmittedRef.current) return;
 
     autoSubmittedRef.current = true;
     submitAttempt();
-  }, [isTimeUp, isFinished, submitAttempt]);
+  }, [isTimeUp, timedOutBlank, isFinished, submitAttempt]);
 
   function setAnswer(questionId: string, patch: Omit<QuizAnswer, "questionId">) {
     if (isTimeUp) return;
