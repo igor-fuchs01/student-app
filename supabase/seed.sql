@@ -200,6 +200,9 @@ FROM quizzes z
 CROSS JOIN questions q
 WHERE z.title = 'Banco de Dados — Simulado 1';
 
+INSERT INTO quiz_sprints (quiz_id, sprint)
+SELECT id, 1 FROM quizzes WHERE title = 'Banco de Dados — Simulado 1';
+
 -- -----------------------------------------------------------------------------
 -- Exercise lists: one per topic, with the questions of that topic
 -- -----------------------------------------------------------------------------
