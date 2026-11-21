@@ -217,7 +217,7 @@ export const StyledSheetClose = styled.button`
     height: 44px;
     border: none;
     border-radius: ${({ theme }) => theme.radii.pill};
-    background: rgba(0, 0, 0, 0.05);
+    background: ${({ theme }) => theme.colors.neutral100};
     color: ${({ theme }) => theme.colors.text};
     font-size: 16px;
     line-height: 1;
